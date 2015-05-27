@@ -1,0 +1,11 @@
+[package]
+name = "crates-index"
+description = "Library for retrieving and interacting with the crates.io index"
+version = "0.1.0"
+authors = ["Corey Farwell <coreyf@rwell.org>"]
+keywords = ["crates.io", "index", "dependencies", "crate", "meta"]
+
+[dependencies]
+git2 = "0.2.11"
+glob = "0.2.10"
+rustc-serialize = "0.3.14"
