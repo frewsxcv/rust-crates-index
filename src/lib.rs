@@ -89,7 +89,8 @@ impl CratesIndex {
             let file = fs::File::open(&index_path).unwrap();
             let last_line = BufReader::new(file).lines().last().unwrap().unwrap();
             let crate_info: CrateInfo = rustc_serialize::json::decode(&last_line).unwrap();
-            let deps_names = crate_info.deps.iter().map(|d| d.name.clone()).collect();
+            let mut deps_names = crate_info.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
+            deps_names.dedup();
             map.insert(crate_info.name, deps_names);
         }
 
