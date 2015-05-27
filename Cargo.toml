@@ -3,7 +3,7 @@ name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
 version = "0.1.0"
 authors = ["Corey Farwell <coreyf@rwell.org>"]
-keywords = ["crates.io", "index", "dependencies", "crate", "meta"]
+keywords = ["packaging", "index", "dependencies", "crate", "meta"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
 
 [dependencies]
