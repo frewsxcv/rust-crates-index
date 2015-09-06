@@ -62,7 +62,7 @@ impl CratesIndex {
     }
 
     /// Clones the index to the path specified from the constructor
-    pub fn clone_index(&self) -> Result<(), git2::Error> {
+    pub fn clone(&self) -> Result<(), git2::Error> {
         let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
         Ok(())
     }
