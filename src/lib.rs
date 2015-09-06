@@ -62,8 +62,9 @@ impl CratesIndex {
     }
 
     /// Clones the index to the path specified from the constructor
-    pub fn clone_index(&self) {
-        git2::Repository::clone(INDEX_GIT_URL, &self.path).unwrap();
+    pub fn clone_index(&self) -> Result<(), git2::Error> {
+        let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
+        Ok(())
     }
 
     /// Returns all the `.json` files in the index
