@@ -99,3 +99,11 @@ impl CratesIndex {
         map
     }
 }
+
+#[test]
+fn test_dependencies() {
+    let index = CratesIndex::new("_test".into());
+    if !index.exists() {
+        index.clone().unwrap();
+    }
+}
