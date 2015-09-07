@@ -107,7 +107,7 @@ impl CratesIndex {
             let mut deps_names = version.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
             deps_names.sort_by(|a, b| a.cmp(b));
             deps_names.dedup();
-            map.insert(crate_info.name, deps_names);
+            map.insert(version.name.clone(), deps_names);
         }
 
         map
