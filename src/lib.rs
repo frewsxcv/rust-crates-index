@@ -26,18 +26,21 @@ extern crate rustc_serialize;
 
 static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-index";
 
+
+/// A single version of crate published to the index
 #[derive(RustcDecodable)]
-pub struct CrateInfo {
+pub struct Version {
     pub name: String,
     pub vers: String,
-    pub deps: Vec<DepInfo>,
+    pub deps: Vec<Dependency>,
     pub cksum: String,
     pub features: HashMap<String, Vec<String>>,
     pub yanked: bool,
 }
 
+/// A single dependency of a specific crate version
 #[derive(RustcDecodable)]
-pub struct DepInfo {
+pub struct Dependency {
     pub name: String,
     pub req: String,
     pub features: Vec<String>,
@@ -47,14 +50,14 @@ pub struct DepInfo {
     pub kind: Option<String>
 }
 
-pub struct CratesIndex {
+pub struct Index {
     path: PathBuf,
 }
 
-impl CratesIndex {
-    /// Construct a new CratesIndex supplying a path where the index lives or should live
-    pub fn new(path: PathBuf) -> CratesIndex {
-        CratesIndex{path: path}
+impl Index {
+    /// Construct a new Index supplying a path where the index lives or should live
+    pub fn new(path: PathBuf) -> Index {
+        Index{path: path}
     }
 
     /// Determines if *anything* exists at the path specified from the constructor
@@ -116,29 +119,29 @@ impl CratesIndex {
 
 
 pub struct Crate {
-    infos: Vec<CrateInfo>,
+    versions: Vec<Version>,
 }
 
 impl Crate {
     pub fn from_index_path(index_path: &PathBuf) -> Crate {
-        let mut infos = vec![];
+        let mut versions = vec![];
         let file = fs::File::open(&index_path).unwrap();
         for line in BufReader::new(file).lines() {
-            let info: CrateInfo = rustc_serialize::json::decode(&line.unwrap()).unwrap();
-            infos.push(info);
+            let version: Version = rustc_serialize::json::decode(&line.unwrap()).unwrap();
+            versions.push(version);
         }
-        Crate {infos: infos}
+        Crate {versions: versions}
     }
 
-    pub fn latest_version(&self) -> &CrateInfo {
-        &self.infos[self.infos.len()]
+    pub fn latest_version(&self) -> &Version {
+        &self.versions[self.versions.len()]
     }
 }
 
 
 #[test]
 fn test_dependencies() {
-    let index = CratesIndex::new("_test".into());
+    let index = Index::new("_test".into());
     if !index.exists() {
         index.clone().unwrap();
     }
