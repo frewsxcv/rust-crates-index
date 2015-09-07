@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{BufRead, BufReader};
@@ -67,6 +68,13 @@ impl CratesIndex {
         Ok(())
     }
 
+    pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
+        self.json_paths()
+            .iter()
+            .find(|path| path.file_name().unwrap().to_str().unwrap().eq_ignore_ascii_case(crate_name))
+            .map(Crate::from_index_path)
+    }
+
     /// Returns all the `.json` files in the index
     pub fn json_paths(&self) -> Vec<PathBuf> {
         let mut match_options = glob::MatchOptions::new();
@@ -103,6 +111,24 @@ impl CratesIndex {
         map
     }
 }
+
+
+pub struct Crate {
+    infos: Vec<CrateInfo>,
+}
+
+impl Crate {
+    pub fn from_index_path(index_path: &PathBuf) -> Crate {
+        let mut infos = vec![];
+        let file = fs::File::open(&index_path).unwrap();
+        for line in BufReader::new(file).lines() {
+            let info: CrateInfo = rustc_serialize::json::decode(&line.unwrap()).unwrap();
+            infos.push(info);
+        }
+        Crate {infos: infos}
+    }
+}
+
 
 #[test]
 fn test_dependencies() {
