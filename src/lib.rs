@@ -75,6 +75,14 @@ impl CratesIndex {
             .map(Crate::from_index_path)
     }
 
+    // TODO: this should be crate_iter that returns an Iterator
+    pub fn crates(&self) -> Vec<Crate> {
+        self.json_paths()
+            .iter()
+            .map(Crate::from_index_path)
+            .collect::<Vec<_>>()
+    }
+
     /// Returns all the `.json` files in the index
     pub fn json_paths(&self) -> Vec<PathBuf> {
         let mut match_options = glob::MatchOptions::new();
@@ -94,15 +102,9 @@ impl CratesIndex {
     /// of crate names that are its dependencies
     pub fn dependency_map(&self) -> HashMap<String, Vec<String>> {
         let mut map = HashMap::new();
-        for index_path in self.json_paths() {
-            let file = fs::File::open(&index_path).unwrap();
-
-            // Each line of the file is a different published version of the crate, and the last
-            // line is the latest version
-            let last_line = BufReader::new(file).lines().last().unwrap().unwrap();
-
-            let crate_info: CrateInfo = rustc_serialize::json::decode(&last_line).unwrap();
-            let mut deps_names = crate_info.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
+        for crate_ in self.crates().iter() {
+            let version = crate_.latest_version();
+            let mut deps_names = version.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
             deps_names.sort_by(|a, b| a.cmp(b));
             deps_names.dedup();
             map.insert(crate_info.name, deps_names);
@@ -126,6 +128,10 @@ impl Crate {
             infos.push(info);
         }
         Crate {infos: infos}
+    }
+
+    pub fn latest_version(&self) -> &CrateInfo {
+        &self.infos[self.infos.len()]
     }
 }
 
