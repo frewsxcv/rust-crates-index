@@ -88,7 +88,11 @@ impl CratesIndex {
         let mut map = HashMap::new();
         for index_path in self.json_paths() {
             let file = fs::File::open(&index_path).unwrap();
+
+            // Each line of the file is a different published version of the crate, and the last
+            // line is the latest version
             let last_line = BufReader::new(file).lines().last().unwrap().unwrap();
+
             let crate_info: CrateInfo = rustc_serialize::json::decode(&last_line).unwrap();
             let mut deps_names = crate_info.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
             deps_names.sort_by(|a, b| a.cmp(b));
