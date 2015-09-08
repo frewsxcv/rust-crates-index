@@ -72,22 +72,22 @@ impl Index {
     }
 
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
-        self.json_paths()
+        self.crate_index_paths()
             .iter()
             .find(|path| path.file_name().unwrap().to_str().unwrap().eq_ignore_ascii_case(crate_name))
-            .map(Crate::from_index_path)
+            .map(Crate::from_crate_index_path)
     }
 
     // TODO: this should be crate_iter that returns an Iterator
     pub fn crates(&self) -> Vec<Crate> {
-        self.json_paths()
+        self.crate_index_paths()
             .iter()
-            .map(Crate::from_index_path)
+            .map(Crate::from_crate_index_path)
             .collect::<Vec<_>>()
     }
 
-    /// Returns all the `.json` files in the index
-    pub fn json_paths(&self) -> Vec<PathBuf> {
+    /// Returns all the crate index file paths in the index
+    pub fn crate_index_paths(&self) -> Vec<PathBuf> {
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_leading_dot = true;
 
@@ -123,7 +123,7 @@ pub struct Crate {
 }
 
 impl Crate {
-    pub fn from_index_path(index_path: &PathBuf) -> Crate {
+    pub fn from_crate_index_path(index_path: &PathBuf) -> Crate {
         let mut versions = vec![];
         let file = fs::File::open(&index_path).unwrap();
         for line in BufReader::new(file).lines() {
