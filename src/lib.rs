@@ -168,4 +168,7 @@ fn test_dependencies() {
     if !index.exists() {
         index.clone().unwrap();
     }
+    let crate_ = index.crates().nth(0).unwrap();
+    let version = crate_.latest_version();
+    let _ = version.deps;
 }
