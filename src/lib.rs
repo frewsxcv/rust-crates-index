@@ -88,6 +88,7 @@ impl Iterator for CrateIndexPaths {
 }
 
 
+/// Wrapper around managing the crates.io-index git repository
 pub struct Index {
     path: PathBuf,
 }
@@ -109,12 +110,14 @@ impl Index {
         Ok(())
     }
 
+    /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
             .find(|path| path.file_name().unwrap().to_str().unwrap().eq_ignore_ascii_case(crate_name))
             .map(|p| Crate::new(&p))
     }
 
+    /// Retrieve an iterator over all the crates in the index
     pub fn crates(&self) -> Crates {
         Crates(self.crate_index_paths())
     }
@@ -126,6 +129,7 @@ impl Index {
 }
 
 
+/// A single crate that contains many published versions
 pub struct Crate {
     versions: Vec<Version>,
 }
