@@ -157,7 +157,7 @@ impl Crate {
     }
 
     pub fn latest_version(&self) -> &Version {
-        &self.versions[self.versions.len()]
+        &self.versions[self.versions.len() - 1]
     }
 }
 
