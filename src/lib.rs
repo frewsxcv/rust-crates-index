@@ -57,7 +57,7 @@ pub struct Crates(CrateIndexPaths);
 impl Iterator for Crates {
     type Item = Crate;
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|p| Crate::from_crate_index_path(&p))
+        self.0.next().map(|p| Crate::new(&p))
     }
 }
 
@@ -112,7 +112,7 @@ impl Index {
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
             .find(|path| path.file_name().unwrap().to_str().unwrap().eq_ignore_ascii_case(crate_name))
-            .map(|p| Crate::from_crate_index_path(&p))
+            .map(|p| Crate::new(&p))
     }
 
     pub fn crates(&self) -> Crates {
@@ -146,7 +146,7 @@ pub struct Crate {
 }
 
 impl Crate {
-    pub fn from_crate_index_path(index_path: &PathBuf) -> Crate {
+    pub fn new(index_path: &PathBuf) -> Crate {
         let mut versions = vec![];
         let file = fs::File::open(&index_path).unwrap();
         for line in BufReader::new(file).lines() {
