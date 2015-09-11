@@ -50,6 +50,44 @@ pub struct Dependency {
     pub kind: Option<String>
 }
 
+
+/// Constructed from `Index::crates`
+pub struct Crates(CrateIndexPaths);
+
+impl Iterator for Crates {
+    type Item = Crate;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|p| Crate::from_crate_index_path(&p))
+    }
+}
+
+
+/// Constructed from `Index::crate_index_paths`
+pub struct CrateIndexPaths(std::iter::Chain<glob::Paths, glob::Paths>);
+
+impl CrateIndexPaths {
+    fn new(path: PathBuf) -> CrateIndexPaths {
+        let mut match_options = glob::MatchOptions::new();
+        match_options.require_literal_leading_dot = true;
+
+        let glob_pattern = format!("{}/*/*/*", path.to_str().unwrap());
+        let index_paths1 = glob::glob_with(&glob_pattern, &match_options).unwrap();
+
+        let glob_pattern = format!("{}/[12]/*", path.to_str().unwrap());
+        let index_paths2 = glob::glob_with(&glob_pattern, &match_options).unwrap();
+
+        CrateIndexPaths(index_paths1.chain(index_paths2))
+    }
+}
+
+impl Iterator for CrateIndexPaths {
+    type Item = PathBuf;
+    fn next(&mut self)  -> Option<Self::Item> {
+        self.0.next().map(|glob_result| glob_result.unwrap())
+    }
+}
+
+
 pub struct Index {
     path: PathBuf,
 }
@@ -73,39 +111,24 @@ impl Index {
 
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
-            .iter()
             .find(|path| path.file_name().unwrap().to_str().unwrap().eq_ignore_ascii_case(crate_name))
-            .map(Crate::from_crate_index_path)
+            .map(|p| Crate::from_crate_index_path(&p))
     }
 
-    // TODO: this should be crate_iter that returns an Iterator
-    pub fn crates(&self) -> Vec<Crate> {
-        self.crate_index_paths()
-            .iter()
-            .map(Crate::from_crate_index_path)
-            .collect::<Vec<_>>()
+    pub fn crates(&self) -> Crates {
+        Crates(self.crate_index_paths())
     }
 
     /// Returns all the crate index file paths in the index
-    pub fn crate_index_paths(&self) -> Vec<PathBuf> {
-        let mut match_options = glob::MatchOptions::new();
-        match_options.require_literal_leading_dot = true;
-
-        let glob_pattern = format!("{}/*/*/*", self.path.to_str().unwrap());
-        let index_paths1 = glob::glob_with(&glob_pattern, &match_options).unwrap();
-
-        let glob_pattern = format!("{}/[12]/*", self.path.to_str().unwrap());
-        let index_paths2 = glob::glob_with(&glob_pattern, &match_options).unwrap();
-
-        let index_paths = index_paths1.chain(index_paths2);
-        index_paths.map(|glob_result| glob_result.unwrap()).collect()
+    pub fn crate_index_paths(&self) -> CrateIndexPaths {
+        CrateIndexPaths::new(self.path.clone())  // TODO: remove this clone
     }
 
     /// Generates a map of dependencies where the keys are crate names and the values are vectors
     /// of crate names that are its dependencies
     pub fn dependency_map(&self) -> HashMap<String, Vec<String>> {
         let mut map = HashMap::new();
-        for crate_ in self.crates().iter() {
+        for crate_ in self.crates() {
             let version = crate_.latest_version();
             let mut deps_names = version.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
             deps_names.sort_by(|a, b| a.cmp(b));
