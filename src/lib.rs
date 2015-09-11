@@ -123,21 +123,6 @@ impl Index {
     pub fn crate_index_paths(&self) -> CrateIndexPaths {
         CrateIndexPaths::new(self.path.clone())  // TODO: remove this clone
     }
-
-    /// Generates a map of dependencies where the keys are crate names and the values are vectors
-    /// of crate names that are its dependencies
-    pub fn dependency_map(&self) -> HashMap<String, Vec<String>> {
-        let mut map = HashMap::new();
-        for crate_ in self.crates() {
-            let version = crate_.latest_version();
-            let mut deps_names = version.deps.iter().map(|d| d.name.clone()).collect::<Vec<_>>();
-            deps_names.sort_by(|a, b| a.cmp(b));
-            deps_names.dedup();
-            map.insert(version.name.clone(), deps_names);
-        }
-
-        map
-    }
 }
 
 
