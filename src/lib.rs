@@ -28,7 +28,7 @@ static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-ind
 
 
 /// A single version of crate published to the index
-#[derive(RustcDecodable)]
+#[derive(RustcDecodable, Clone)]
 pub struct Version {
     pub name: String,
     pub vers: String,
@@ -39,7 +39,7 @@ pub struct Version {
 }
 
 /// A single dependency of a specific crate version
-#[derive(RustcDecodable)]
+#[derive(RustcDecodable, Clone)]
 pub struct Dependency {
     pub name: String,
     pub req: String,
