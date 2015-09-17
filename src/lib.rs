@@ -131,7 +131,8 @@ impl Index {
 
 /// A single crate that contains many published versions
 pub struct Crate {
-    versions: Vec<Version>,
+    /// Published versions of this crate sorted chronologically by date published
+    pub versions: Vec<Version>,
 }
 
 impl Crate {
