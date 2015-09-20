@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Corey Farwell <coreyf@rwell.org>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
