@@ -30,24 +30,86 @@ static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-ind
 /// A single version of crate published to the index
 #[derive(RustcDecodable, Clone)]
 pub struct Version {
-    pub name: String,
-    pub vers: String,
-    pub deps: Vec<Dependency>,
-    pub cksum: String,
-    pub features: HashMap<String, Vec<String>>,
-    pub yanked: bool,
+    name: String,
+    vers: String,
+    deps: Vec<Dependency>,
+    cksum: String,
+    features: HashMap<String, Vec<String>>,
+    yanked: bool,
+}
+
+impl Version {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn version(&self) -> &str {
+        &self.vers
+    }
+
+    pub fn dependencies(&self) -> &[Dependency] {
+        &self.deps
+    }
+
+    pub fn checksum(&self) -> &str {
+        &self.cksum
+    }
+
+    pub fn features(&self) -> &HashMap<String, Vec<String>> {
+        &self.features
+    }
+
+    pub fn is_yanked(&self) -> bool {
+        self.yanked
+    }
 }
 
 /// A single dependency of a specific crate version
 #[derive(RustcDecodable, Clone)]
 pub struct Dependency {
-    pub name: String,
-    pub req: String,
-    pub features: Vec<String>,
-    pub optional: bool,
-    pub default_features: bool,
-    pub target: Option<String>,
-    pub kind: Option<String>
+    name: String,
+    req: String,
+    features: Vec<String>,
+    optional: bool,
+    default_features: bool,
+    target: Option<String>,
+    kind: Option<String>
+}
+
+impl Dependency {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn requirement(&self) -> &str {
+        &self.req
+    }
+
+    pub fn features(&self) -> &[String] {
+        &self.features
+    }
+
+    pub fn is_optional(&self) -> bool {
+        self.optional
+    }
+
+    pub fn has_default_features(&self) -> bool {
+        self.default_features
+    }
+
+    pub fn target(&self) -> Option<&str> {
+        match self.target {
+            Some(ref s) => Some(s),
+            None => None,
+        }
+    }
+
+    pub fn kind(&self) -> Option<&str> {
+        match self.kind {
+            Some(ref s) => Some(s),
+            None => None,
+        }
+    }
 }
 
 
@@ -131,8 +193,7 @@ impl Index {
 
 /// A single crate that contains many published versions
 pub struct Crate {
-    /// Published versions of this crate sorted chronologically by date published
-    pub versions: Vec<Version>,
+    versions: Vec<Version>,
 }
 
 impl Crate {
@@ -144,6 +205,11 @@ impl Crate {
             versions.push(version);
         }
         Crate {versions: versions}
+    }
+
+    /// Published versions of this crate sorted chronologically by date published
+    pub fn versions(&self) -> &[Version] {
+        &self.versions
     }
 
     pub fn latest_version(&self) -> &Version {
