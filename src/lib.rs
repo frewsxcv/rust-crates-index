@@ -15,6 +15,7 @@
 
 use std::ascii::AsciiExt;
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -175,7 +176,10 @@ impl Index {
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
-            .find(|path| path.file_name().unwrap().to_str().unwrap().eq_ignore_ascii_case(crate_name))
+            .find(|path| path.file_name()
+                             .and_then(OsStr::to_str)
+                             .map(|file_name| file_name.eq_ignore_ascii_case(crate_name))
+                             .unwrap_or(false))
             .map(|p| Crate::new(&p))
     }
 
