@@ -28,7 +28,7 @@ extern crate rustc_serialize;
 static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-index";
 
 
-/// A single version of crate published to the index
+/// A single version of a crate published to the index
 #[derive(RustcDecodable, Clone)]
 pub struct Version {
     name: String,
@@ -40,18 +40,22 @@ pub struct Version {
 }
 
 impl Version {
+    /// Name of the crate
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Name of this version
     pub fn version(&self) -> &str {
         &self.vers
     }
 
+    /// Dependencies for this version
     pub fn dependencies(&self) -> &[Dependency] {
         &self.deps
     }
 
+    /// Checksum of the package for this version
     pub fn checksum(&self) -> &str {
         &self.cksum
     }
@@ -60,6 +64,8 @@ impl Version {
         &self.features
     }
 
+    /// Whether this version was [yanked](http://doc.crates.io/crates-io.html#cargo-yank) from the
+    /// index
     pub fn is_yanked(&self) -> bool {
         self.yanked
     }
