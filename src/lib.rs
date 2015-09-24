@@ -222,6 +222,10 @@ impl Crate {
         &self.versions
     }
 
+    pub fn earliest_version(&self) -> &Version {
+        &self.versions[0]
+    }
+
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
