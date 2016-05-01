@@ -179,6 +179,26 @@ impl Index {
         Ok(())
     }
 
+    /// Clones the index to the path specified from the constructor, or updates
+    /// the index if it already exists.
+    pub fn clone_or_update(&self) -> Result<(), git2::Error> {
+        match git2::Repository::discover(&self.path) {
+            Ok(repo) => {
+                // TODO: there must be a better way of doing this.
+                let mut remote = try!(repo.find_remote("origin"));
+                try!(remote.fetch(&["master"], None, None));
+                let remote_head = remote.list()
+                                        .unwrap()
+                                        .iter()
+                                        .filter(|i| i.name() == "HEAD")
+                                        .next()
+                                        .unwrap();
+                repo.set_head_detached(remote_head.oid())
+            },
+            Err(..) => self.clone(),
+        }
+    }
+
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
@@ -232,13 +252,34 @@ impl Crate {
 }
 
 
-#[test]
-fn test_dependencies() {
-    let index = Index::new("_test".into());
-    if !index.exists() {
-        index.clone().unwrap();
+#[cfg(test)]
+mod tests {
+    use super::Index;
+    use std::fs;
+
+    static TEST_INDEX_DIR: &'static str = "_test";
+
+    #[test]
+    fn test_dependencies_clone() {
+        let index = Index::new(TEST_INDEX_DIR.into());
+        if !index.exists() {
+            index.clone();
+        }
+        let crate_ = index.crates().nth(0).unwrap();
+        let version = crate_.latest_version();
+        let _ = version.deps;
+
+        fs::remove_dir_all(TEST_INDEX_DIR).unwrap();
     }
-    let crate_ = index.crates().nth(0).unwrap();
-    let version = crate_.latest_version();
-    let _ = version.deps;
+
+    #[test]
+    fn test_dependencies_clone_or_update() {
+        let index = Index::new(TEST_INDEX_DIR.into());
+        index.clone_or_update();
+        let crate_ = index.crates().nth(0).unwrap();
+        let version = crate_.latest_version();
+        let _ = version.deps;
+
+        fs::remove_dir_all(TEST_INDEX_DIR).unwrap();
+    }
 }
