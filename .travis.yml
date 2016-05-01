@@ -31,11 +31,7 @@ before_script:
 
 # the main build
 script:
-  - |
-      export RUST_BACKTRACE=1 && travis-cargo build &&
-      travis-cargo test &&
-      travis-cargo bench &&
-      travis-cargo --only stable doc
+  - cargo test
 after_success:
   # upload the documentation from the build with stable (automatically only actually
   # runs on the master branch, not individual PRs)
