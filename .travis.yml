@@ -32,7 +32,7 @@ before_script:
 # the main build
 script:
   - |
-      travis-cargo build &&
+      RUST_BACKTRACE=1 && travis-cargo build &&
       travis-cargo test &&
       travis-cargo bench &&
       travis-cargo --only stable doc
