@@ -261,6 +261,8 @@ mod tests {
 
     #[test]
     fn test_dependencies_clone() {
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+
         let index = Index::new(TEST_INDEX_DIR.into());
         if !index.exists() {
             index.clone();
@@ -274,6 +276,8 @@ mod tests {
 
     #[test]
     fn test_dependencies_clone_or_update() {
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+
         let index = Index::new(TEST_INDEX_DIR.into());
         index.clone_or_update();
         let crate_ = index.crates().nth(0).unwrap();
