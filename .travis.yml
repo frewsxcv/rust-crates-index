@@ -1,4 +1,7 @@
 language: rust
+env:
+  - RUST_BACKTRACE=1
+
 # necessary for `travis-cargo coveralls --no-sudo`
 addons:
   apt:
