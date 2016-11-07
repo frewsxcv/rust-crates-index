@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Corey Farwell <coreyf@rwell.org>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
@@ -9,6 +9,6 @@ license = "Apache-2.0"
 documentation = "https://frewsxcv.github.io/rust-crates-index/crates_index/index.html"
 
 [dependencies]
-git2 = "0.3.3"
+git2 = "0.5.1"
 glob = "0.2.10"
 rustc-serialize = "0.3.14"
