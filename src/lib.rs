@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 extern crate git2;
 extern crate glob;
@@ -207,7 +207,7 @@ pub struct Crate {
 }
 
 impl Crate {
-    pub fn new(index_path: &PathBuf) -> Crate {
+    pub fn new(index_path: &Path) -> Crate {
         let mut versions = vec![];
         let file = fs::File::open(&index_path).unwrap();
         for line in BufReader::new(file).lines() {
