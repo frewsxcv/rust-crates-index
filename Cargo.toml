@@ -9,6 +9,6 @@ license = "Apache-2.0"
 documentation = "https://frewsxcv.github.io/rust-crates-index/crates_index/index.html"
 
 [dependencies]
-git2 = "0.5.1"
+git2 = "0.6"
 glob = "0.2.10"
 rustc-serialize = "0.3.14"
