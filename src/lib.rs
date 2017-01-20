@@ -173,8 +173,8 @@ impl Index {
         fs::metadata(&self.path).is_ok()
     }
 
-    /// Clones the index to the path specified from the constructor
-    pub fn clone(&self) -> Result<(), git2::Error> {
+    /// Downloads the index to the path specified from the constructor
+    pub fn fetch(&self) -> Result<(), git2::Error> {
         let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
         Ok(())
     }
@@ -236,7 +236,7 @@ impl Crate {
 fn test_dependencies() {
     let index = Index::new("_test".into());
     if !index.exists() {
-        index.clone().unwrap();
+        index.fetch().unwrap();
     }
     let crate_ = index.crates().nth(0).unwrap();
     let version = crate_.latest_version();
