@@ -135,9 +135,10 @@ impl Iterator for Crates {
 pub struct CrateIndexPaths(std::iter::Chain<glob::Paths, glob::Paths>);
 
 impl CrateIndexPaths {
-    fn new(path: PathBuf) -> CrateIndexPaths {
+    fn new<P: AsRef<Path>>(path: P) -> CrateIndexPaths {
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_leading_dot = true;
+        let path = path.as_ref();
 
         let glob_pattern = format!("{}/*/*/*", path.to_str().unwrap());
         let index_paths1 = glob::glob_with(&glob_pattern, &match_options).unwrap();
@@ -207,7 +208,8 @@ pub struct Crate {
 }
 
 impl Crate {
-    pub fn new(index_path: &Path) -> Crate {
+    pub fn new<P: AsRef<Path>>(index_path: P) -> Crate {
+        let index_path = index_path.as_ref();
         let mut versions = vec![];
         let file = fs::File::open(&index_path).unwrap();
         for line in BufReader::new(file).lines() {
