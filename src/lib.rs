@@ -165,8 +165,9 @@ pub struct Index {
 
 impl Index {
     /// Construct a new Index supplying a path where the index lives or should live
-    pub fn new(path: PathBuf) -> Index {
-        Index{path: path}
+    pub fn new<P: AsRef<Path>>(path: P) -> Index {
+        let pathbuf = path.as_ref().to_path_buf();
+        Index{path: pathbuf}
     }
 
     /// Determines if *anything* exists at the path specified from the constructor
@@ -236,7 +237,7 @@ impl Crate {
 
 #[test]
 fn test_dependencies() {
-    let index = Index::new("_test".into());
+    let index = Index::new("_test");
     if !index.exists() {
         index.fetch().unwrap();
     }
