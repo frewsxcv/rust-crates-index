@@ -80,7 +80,7 @@ pub struct Dependency {
     optional: bool,
     default_features: bool,
     target: Option<String>,
-    kind: Option<String>
+    kind: Option<String>,
 }
 
 impl Dependency {
@@ -152,7 +152,7 @@ impl CrateIndexPaths {
 
 impl Iterator for CrateIndexPaths {
     type Item = PathBuf;
-    fn next(&mut self)  -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|glob_result| glob_result.unwrap())
     }
 }
@@ -166,7 +166,7 @@ pub struct Index {
 impl Index {
     /// Construct a new Index supplying a path where the index lives or should live
     pub fn new(path: PathBuf) -> Index {
-        Index{path: path}
+        Index { path: path }
     }
 
     /// Determines if *anything* exists at the path specified from the constructor
@@ -183,10 +183,12 @@ impl Index {
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
-            .find(|path| path.file_name()
-                             .and_then(OsStr::to_str)
-                             .map(|file_name| file_name.eq_ignore_ascii_case(crate_name))
-                             .unwrap_or(false))
+            .find(|path| {
+                path.file_name()
+                    .and_then(OsStr::to_str)
+                    .map(|file_name| file_name.eq_ignore_ascii_case(crate_name))
+                    .unwrap_or(false)
+            })
             .map(|p| Crate::new(&p))
     }
 
@@ -197,7 +199,7 @@ impl Index {
 
     /// Returns all the crate index file paths in the index
     pub fn crate_index_paths(&self) -> CrateIndexPaths {
-        CrateIndexPaths::new(self.path.clone())  // TODO: remove this clone
+        CrateIndexPaths::new(self.path.clone()) // TODO: remove this clone
     }
 }
 
@@ -216,7 +218,7 @@ impl Crate {
             let version: Version = rustc_serialize::json::decode(&line.unwrap()).unwrap();
             versions.push(version);
         }
-        Crate {versions: versions}
+        Crate { versions: versions }
     }
 
     /// Published versions of this crate sorted chronologically by date published
