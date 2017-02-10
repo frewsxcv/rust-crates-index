@@ -4,7 +4,7 @@
 
 Library for retrieving and interacting with the [crates.io index](https://github.com/rust-lang/crates.io-index)
 
-[Documentation](https://frewsxcv.github.io/rust-crates-index)
+[Documentation](https://docs.rs/crates-index/)
 
 Much of this code was extracted from [github.com/huonw/crates.io-graph](https://github.com/huonw/crates.io-graph)
 
