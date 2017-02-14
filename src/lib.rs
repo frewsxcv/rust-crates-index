@@ -13,6 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Library for retrieving and interacting with the [crates.io index](https://github.com/rust-lang/crates.io-index)
+//!
+//! ## Examples
+//!
+//! ```rust
+//! extern crate crates_index;
+//!
+//! let index = crates_index::Index::new("_index".into());
+//! if !index.exists() {
+//!    index.fetch().expect("Could not fetch crates.io index");
+//! }
+//! for crate_ in index.crates() {
+//!    let latest_version = crate_.latest_version();
+//!    println!("crate name: {}", latest_version.name());
+//!    println!("crate version: {}", latest_version.version());
+//! }
+//! ```
+
 use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::ffi::OsStr;
