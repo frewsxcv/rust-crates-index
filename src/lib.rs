@@ -208,6 +208,30 @@ impl Index {
         Ok(())
     }
 
+    /// Assumes the index already exists at `self.path`, and updates it
+    pub fn update(&self) -> Result<(), git2::Error> {
+        debug_assert!(self.exists());
+        let repo = git2::Repository::discover(&self.path)?;
+        let mut origin_remote = repo.find_remote("origin")?;
+        origin_remote.fetch(&["master"], None, None)?;
+        let mut branches = repo.branches(Some(git2::BranchType::Remote))?;
+        let origin_master_branch = branches.next().expect("could not find branch origin/master")?.0;
+        debug_assert_eq!(origin_master_branch.name()?, Some("origin/master"));
+        let target_oid = origin_master_branch.get().target().unwrap();
+        let object = repo.find_object(target_oid, None)?;
+        repo.reset(&object, git2::ResetType::Hard, None)?;
+        Ok(())
+    }
+
+    /// Downloads the index to the path specified from the constructor
+    pub fn retrieve_or_update(&self) -> Result<(), git2::Error> {
+        if self.exists() {
+            self.update()
+        } else {
+            self.retrieve()
+        }
+    }
+
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
@@ -275,9 +299,23 @@ mod test {
         let _ = fs::remove_dir_all(TEST_INDEX_DIR);
 
         let index = Index::new(TEST_INDEX_DIR.into());
-        let crate_ = index.crates().nth(0).unwrap();
+        index.retrieve().expect("could not fetch crates io index");
+        let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
         let version = crate_.latest_version();
         let _ = version.deps;
+
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+    }
+
+    #[test]
+    fn test_retrieve_or_update() {
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+
+        let index = Index::new(TEST_INDEX_DIR.into());
+        index.retrieve_or_update().expect("could not fetch crates io index");
+        assert!(index.exists());
+        index.retrieve_or_update().expect("could not fetch crates io index");
+        assert!(index.exists());
 
         let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
