@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Library for retrieving and interacting with the [crates.io index](https://github.com/rust-lang/crates.io-index)
+//! Library for retrieving and interacting with the [crates.io index].
+//!
+//! [crates.io index]: https://github.com/rust-lang/crates.io-index
 //!
 //! ## Examples
 //!
@@ -202,11 +204,11 @@ impl Index {
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
         self.crate_index_paths()
             .find(|path| {
-                path.file_name()
-                    .and_then(OsStr::to_str)
-                    .map(|file_name| file_name.eq_ignore_ascii_case(crate_name))
-                    .unwrap_or(false)
-            })
+                      path.file_name()
+                          .and_then(OsStr::to_str)
+                          .map(|file_name| file_name.eq_ignore_ascii_case(crate_name))
+                          .unwrap_or(false)
+                  })
             .map(|p| Crate::new(&p))
     }
 
