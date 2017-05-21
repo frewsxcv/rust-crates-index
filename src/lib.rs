@@ -274,9 +274,6 @@ mod test {
         let _ = fs::remove_dir_all(TEST_INDEX_DIR);
 
         let index = Index::new(TEST_INDEX_DIR.into());
-        if !index.exists() {
-            index.retrieve().unwrap();
-        }
         let crate_ = index.crates().nth(0).unwrap();
         let version = crate_.latest_version();
         let _ = version.deps;
