@@ -22,7 +22,7 @@
 //!
 //! let index = crates_index::Index::new("_index".into());
 //! if !index.exists() {
-//!    index.fetch().expect("Could not fetch crates.io index");
+//!    index.retrieve().expect("Could not fetch crates.io index");
 //! }
 //! for crate_ in index.crates() {
 //!    let latest_version = crate_.latest_version();
@@ -193,7 +193,7 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn fetch(&self) -> Result<(), git2::Error> {
+    pub fn retrieve(&self) -> Result<(), git2::Error> {
         let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
         Ok(())
     }
@@ -258,7 +258,7 @@ impl Crate {
 fn test_dependencies() {
     let index = Index::new("_test".into());
     if !index.exists() {
-        index.fetch().unwrap();
+        index.retrieve().unwrap();
     }
     let crate_ = index.crates().nth(0).unwrap();
     let version = crate_.latest_version();
