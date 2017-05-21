@@ -189,9 +189,16 @@ impl Index {
         Index { path: path }
     }
 
-    /// Determines if *anything* exists at the path specified from the constructor
+    /// Determines if a crates.io repository exists at `self.path`
     pub fn exists(&self) -> bool {
-        fs::metadata(&self.path).is_ok()
+        git2::Repository::discover(&self.path)
+            .map(|repository| {
+                repository
+                    .find_remote("origin")
+                    .map(|remote| remote.url() == Some(INDEX_GIT_URL))
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false)
     }
 
     /// Downloads the index to the path specified from the constructor
@@ -255,14 +262,37 @@ impl Crate {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use std::fs;
+    use super::Index;
 
-#[test]
-fn test_dependencies() {
-    let index = Index::new("_test".into());
-    if !index.exists() {
-        index.retrieve().unwrap();
+    static TEST_INDEX_DIR: &'static str = "_test";
+
+    #[test]
+    fn test_dependencies() {
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+
+        let index = Index::new(TEST_INDEX_DIR.into());
+        if !index.exists() {
+            index.retrieve().unwrap();
+        }
+        let crate_ = index.crates().nth(0).unwrap();
+        let version = crate_.latest_version();
+        let _ = version.deps;
+
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
-    let crate_ = index.crates().nth(0).unwrap();
-    let version = crate_.latest_version();
-    let _ = version.deps;
+
+    #[test]
+    fn test_exists() {
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+
+        let index = Index::new(TEST_INDEX_DIR.into());
+        assert!(!index.exists());
+        index.retrieve().unwrap();
+        assert!(index.exists());
+
+        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+    }
 }
