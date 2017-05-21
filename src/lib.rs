@@ -38,6 +38,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufRead, BufReader};
+use std::iter;
 use std::path::{Path, PathBuf};
 
 extern crate git2;
@@ -152,7 +153,7 @@ impl Iterator for Crates {
 
 
 /// Constructed from `Index::crate_index_paths`
-pub struct CrateIndexPaths(std::iter::Chain<glob::Paths, glob::Paths>);
+pub struct CrateIndexPaths(iter::Chain<glob::Paths, glob::Paths>);
 
 impl CrateIndexPaths {
     fn new<P: AsRef<Path>>(path: P) -> CrateIndexPaths {
