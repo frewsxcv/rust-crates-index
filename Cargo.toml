@@ -6,7 +6,7 @@ authors = ["Corey Farwell <coreyf@rwell.org>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
 license = "Apache-2.0"
-documentation = "https://frewsxcv.github.io/rust-crates-index/crates_index/index.html"
+documentation = "https://docs.rs/crates-index/"
 
 [dependencies]
 git2 = "0.6"
