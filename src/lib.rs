@@ -217,11 +217,8 @@ impl Index {
         let repo = git2::Repository::discover(&self.path)?;
         let mut origin_remote = repo.find_remote("origin")?;
         origin_remote.fetch(&["master"], None, None)?;
-        let mut branches = repo.branches(Some(git2::BranchType::Remote))?;
-        let origin_master_branch = branches.next().expect("could not find branch origin/master")?.0;
-        debug_assert_eq!(origin_master_branch.name()?, Some("origin/master"));
-        let target_oid = origin_master_branch.get().target().unwrap();
-        let object = repo.find_object(target_oid, None)?;
+        let oid = repo.refname_to_id("refs/remotes/origin/master")?;
+        let object = repo.find_object(oid, None).unwrap();
         repo.reset(&object, git2::ResetType::Hard, None)?;
         Ok(())
     }
