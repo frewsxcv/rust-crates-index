@@ -43,14 +43,17 @@ use std::path::{Path, PathBuf};
 
 extern crate git2;
 extern crate glob;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+extern crate serde;
 
 
 static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-index";
 
 
 /// A single version of a crate published to the index
-#[derive(RustcDecodable, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Version {
     name: String,
     vers: String,
@@ -93,7 +96,7 @@ impl Version {
 }
 
 /// A single dependency of a specific crate version
-#[derive(RustcDecodable, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Dependency {
     name: String,
     req: String,
@@ -267,7 +270,7 @@ impl Crate {
         let mut versions = vec![];
         let file = fs::File::open(&index_path).unwrap();
         for line in BufReader::new(file).lines() {
-            let version: Version = rustc_serialize::json::decode(&line.unwrap()).unwrap();
+            let version: Version = serde_json::from_str(&line.unwrap()).unwrap();
             versions.push(version);
         }
         Crate { versions: versions }
