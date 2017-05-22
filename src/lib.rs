@@ -285,6 +285,10 @@ impl Crate {
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
+
+    pub fn name(&self) -> &str {
+        self.latest_version().name()
+    }
 }
 
 #[cfg(test)]
