@@ -41,6 +41,8 @@ use std::io::{BufRead, BufReader};
 use std::iter;
 use std::path::{Path, PathBuf};
 
+#[macro_use]
+extern crate error_chain;
 extern crate git2;
 extern crate glob;
 #[macro_use]
@@ -48,6 +50,11 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 
+error_chain! {
+    foreign_links {
+        Git(git2::Error);
+    }
+}
 
 static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-index";
 
@@ -206,13 +213,13 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn retrieve(&self) -> Result<(), git2::Error> {
+    pub fn retrieve(&self) -> Result<()> {
         let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
         Ok(())
     }
 
     /// Assumes the index already exists at `self.path`, and updates it
-    pub fn update(&self) -> Result<(), git2::Error> {
+    pub fn update(&self) -> Result<()> {
         debug_assert!(self.exists());
         let repo = git2::Repository::discover(&self.path)?;
         let mut origin_remote = repo.find_remote("origin")?;
@@ -224,7 +231,7 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn retrieve_or_update(&self) -> Result<(), git2::Error> {
+    pub fn retrieve_or_update(&self) -> Result<()> {
         if self.exists() {
             self.update()
         } else {
