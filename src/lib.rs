@@ -22,7 +22,7 @@
 //! ```rust
 //! extern crate crates_index;
 //!
-//! let index = crates_index::Index::new("_index".into());
+//! let index = crates_index::Index::new("_index");
 //! if !index.exists() {
 //!    index.retrieve().expect("Could not fetch crates.io index");
 //! }
@@ -188,16 +188,16 @@ impl Iterator for CrateIndexPaths {
     }
 }
 
-
 /// Wrapper around managing the crates.io-index git repository
+#[derive(Debug, Clone, PartialEq)]
 pub struct Index {
     path: PathBuf,
 }
 
 impl Index {
     /// Construct a new Index supplying a path where the index lives or should live
-    pub fn new(path: PathBuf) -> Index {
-        Index { path: path }
+    pub fn new<P: Into<PathBuf>>(path: P) -> Index {
+        Index { path: path.into() }
     }
 
     /// Determines if a crates.io repository exists at `self.path`
@@ -260,8 +260,12 @@ impl Index {
     pub fn crate_index_paths(&self) -> CrateIndexPaths {
         CrateIndexPaths::new(self.path.clone()) // TODO: remove this clone
     }
-}
 
+    /// Get the index directory.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
 
 /// A single crate that contains many published versions
 pub struct Crate {
@@ -309,7 +313,7 @@ mod test {
     fn test_dependencies() {
         let _ = fs::remove_dir_all(TEST_INDEX_DIR);
 
-        let index = Index::new(TEST_INDEX_DIR.into());
+        let index = Index::new(TEST_INDEX_DIR);
         index.retrieve().expect("could not fetch crates io index");
         let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
         let version = crate_.latest_version();
@@ -322,7 +326,7 @@ mod test {
     fn test_retrieve_or_update() {
         let _ = fs::remove_dir_all(TEST_INDEX_DIR);
 
-        let index = Index::new(TEST_INDEX_DIR.into());
+        let index = Index::new(TEST_INDEX_DIR);
         index.retrieve_or_update().expect("could not fetch crates io index");
         assert!(index.exists());
         index.retrieve_or_update().expect("could not fetch crates io index");
@@ -335,7 +339,7 @@ mod test {
     fn test_exists() {
         let _ = fs::remove_dir_all(TEST_INDEX_DIR);
 
-        let index = Index::new(TEST_INDEX_DIR.into());
+        let index = Index::new(TEST_INDEX_DIR);
         assert!(!index.exists());
         index.retrieve().unwrap();
         assert!(index.exists());
