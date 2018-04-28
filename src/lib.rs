@@ -213,7 +213,7 @@ impl Index {
 
     /// Downloads the index to the path specified from the constructor
     pub fn retrieve(&self) -> Result<()> {
-        let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
+        let _ = git2::Repository::clone(INDEX_GIT_URL, &self.path)?;
         Ok(())
     }
 
