@@ -59,7 +59,7 @@ static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-ind
 
 
 /// A single version of a crate published to the index
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Version {
     name: String,
     vers: String,
@@ -102,7 +102,7 @@ impl Version {
 }
 
 /// A single dependency of a specific crate version
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Dependency {
     name: String,
     req: String,
@@ -267,6 +267,7 @@ impl Index {
 }
 
 /// A single crate that contains many published versions
+#[derive(Debug)]
 pub struct Crate {
     versions: Vec<Version>,
 }
@@ -315,6 +316,7 @@ mod test {
         let index = Index::new(TEST_INDEX_DIR);
         index.retrieve().expect("could not fetch crates io index");
         let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
+        let _ = format!("supports debug {:?}", crate_);
         let version = crate_.latest_version();
         let _ = version.deps;
 
