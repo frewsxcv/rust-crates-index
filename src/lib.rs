@@ -59,7 +59,7 @@ static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-ind
 
 
 /// A single version of a crate published to the index
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Version {
     name: String,
     vers: String,
@@ -102,7 +102,7 @@ impl Version {
 }
 
 /// A single dependency of a specific crate version
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Dependency {
     name: String,
     req: String,
@@ -213,7 +213,7 @@ impl Index {
 
     /// Downloads the index to the path specified from the constructor
     pub fn retrieve(&self) -> Result<()> {
-        let _ = try!(git2::Repository::clone(INDEX_GIT_URL, &self.path));
+        let _ = git2::Repository::clone(INDEX_GIT_URL, &self.path)?;
         Ok(())
     }
 
@@ -267,6 +267,7 @@ impl Index {
 }
 
 /// A single crate that contains many published versions
+#[derive(Debug)]
 pub struct Crate {
     versions: Vec<Version>,
 }
@@ -303,46 +304,40 @@ impl Crate {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
     use super::Index;
-
-    static TEST_INDEX_DIR: &'static str = "_test";
+    extern crate tempdir;
+    use self::tempdir::TempDir;
 
     #[test]
     fn test_dependencies() {
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+        let tmp_dir = TempDir::new("test1").unwrap();
 
-        let index = Index::new(TEST_INDEX_DIR);
+        let index = Index::new(tmp_dir.path());
         index.retrieve().expect("could not fetch crates io index");
         let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
+        let _ = format!("supports debug {:?}", crate_);
         let version = crate_.latest_version();
         let _ = version.deps;
-
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
 
     #[test]
     fn test_retrieve_or_update() {
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+        let tmp_dir = TempDir::new("test2").unwrap();
 
-        let index = Index::new(TEST_INDEX_DIR);
+        let index = Index::new(tmp_dir.path());
         index.retrieve_or_update().expect("could not fetch crates io index");
         assert!(index.exists());
         index.retrieve_or_update().expect("could not fetch crates io index");
         assert!(index.exists());
-
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
 
     #[test]
     fn test_exists() {
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+        let tmp_dir = TempDir::new("test3").unwrap();
 
-        let index = Index::new(TEST_INDEX_DIR);
+        let index = Index::new(tmp_dir.path());
         assert!(!index.exists());
         index.retrieve().unwrap();
         assert!(index.exists());
-
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
 }
