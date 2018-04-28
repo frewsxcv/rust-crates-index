@@ -304,47 +304,40 @@ impl Crate {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
     use super::Index;
-
-    static TEST_INDEX_DIR: &'static str = "_test";
+    extern crate tempdir;
+    use self::tempdir::TempDir;
 
     #[test]
     fn test_dependencies() {
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+        let tmp_dir = TempDir::new("test1").unwrap();
 
-        let index = Index::new(TEST_INDEX_DIR);
+        let index = Index::new(tmp_dir.path());
         index.retrieve().expect("could not fetch crates io index");
         let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
         let _ = format!("supports debug {:?}", crate_);
         let version = crate_.latest_version();
         let _ = version.deps;
-
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
 
     #[test]
     fn test_retrieve_or_update() {
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+        let tmp_dir = TempDir::new("test2").unwrap();
 
-        let index = Index::new(TEST_INDEX_DIR);
+        let index = Index::new(tmp_dir.path());
         index.retrieve_or_update().expect("could not fetch crates io index");
         assert!(index.exists());
         index.retrieve_or_update().expect("could not fetch crates io index");
         assert!(index.exists());
-
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
 
     #[test]
     fn test_exists() {
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
+        let tmp_dir = TempDir::new("test3").unwrap();
 
-        let index = Index::new(TEST_INDEX_DIR);
+        let index = Index::new(tmp_dir.path());
         assert!(!index.exists());
         index.retrieve().unwrap();
         assert!(index.exists());
-
-        let _ = fs::remove_dir_all(TEST_INDEX_DIR);
     }
 }
