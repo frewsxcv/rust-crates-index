@@ -24,6 +24,10 @@ for crate_ in index.crates() {
 }
 ```
 
+## Similar crates
+
+- [`crates_io_api`](https://github.com/theduke/crates_io_api)
+
 ## License
 
 Licensed under version 2 of the Apache License
