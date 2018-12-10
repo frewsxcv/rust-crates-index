@@ -111,6 +111,7 @@ pub struct Dependency {
     default_features: bool,
     target: Option<String>,
     kind: Option<String>,
+    package: Option<String>,
 }
 
 impl Dependency {
@@ -145,6 +146,33 @@ impl Dependency {
         match self.kind {
             Some(ref s) => Some(s),
             None => None,
+        }
+    }
+
+    pub fn package(&self) -> Option<&str> {
+        match self.package {
+            Some(ref s) => Some(s),
+            None => None,
+        }
+    }
+
+    /// Returns the name of the crate providing the dependency.
+    /// This is equivalent to `name()` unless `self.package()`
+    /// is not `None`, in which case it's equal to `self.package()`.
+    /// 
+    /// Basically, you can define a dependency in your `Cargo.toml`
+    /// like this:
+    /// 
+    /// ```toml
+    /// serde_lib = {version = "1", package = "serde"}
+    /// ```
+    /// 
+    /// ...which means that it uses the crate `serde` but imports
+    /// it under the name `serde_lib`.
+    pub fn crate_name(&self) -> &str {
+        match self.package {
+            Some(ref s) => s,
+            None => self.name(),
         }
     }
 }
@@ -313,11 +341,17 @@ mod test {
         let tmp_dir = TempDir::new("test1").unwrap();
 
         let index = Index::new(tmp_dir.path());
-        index.retrieve().expect("could not fetch crates io index");
-        let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
+        index.retrieve_or_update().expect("could not fetch crates io index");
+        // let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
+        let crate_ = index.crate_("sval").expect("Could not find the crate libnotify in the index");
         let _ = format!("supports debug {:?}", crate_);
-        let version = crate_.latest_version();
-        let _ = version.deps;
+
+        let version = crate_.versions().iter().find(|v| v.version() == "0.0.1")
+            .expect("Version 0.0.1 of sval does not exist?");
+        let dep_with_package_name = version.dependencies().iter().find(|d| d.name() == "serde_lib")
+            .expect("sval does not have expected dependency?");
+        assert_ne!(dep_with_package_name.name(), dep_with_package_name.package().unwrap());
+        assert_eq!(dep_with_package_name.crate_name(), dep_with_package_name.package().unwrap());
     }
 
     #[test]
