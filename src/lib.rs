@@ -295,7 +295,7 @@ impl Index {
 }
 
 /// A single crate that contains many published versions
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Crate {
     versions: Vec<Version>,
 }
