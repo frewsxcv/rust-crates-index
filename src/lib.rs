@@ -48,6 +48,7 @@ extern crate glob;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
+extern crate home;
 
 error_chain! {
     foreign_links {
@@ -227,14 +228,21 @@ impl Index {
         Index { path: path.into() }
     }
 
+    /// Use Cargo's own index in `CARGO_HOME` (`~/.cargo/registry/index`)
+    pub fn new_cargo_default() -> Index {
+        let cargo_home = home::cargo_home().unwrap_or_default();
+        Self::new(cargo_home.join("registry").join("index").join("github.com-1ecc6299db9ec823"))
+    }
+
     /// Determines if a crates.io repository exists at `self.path`
     pub fn exists(&self) -> bool {
         git2::Repository::discover(&self.path)
             .map(|repository| {
                 repository
-                    .find_remote("origin")
-                    .map(|remote| remote.url() == Some(INDEX_GIT_URL))
-                    .unwrap_or(false)
+                    .find_remote("origin").ok()
+                    // Cargo creates a checkout without an origin set,
+                    // so default to true in case of missing origin
+                    .map_or(true, |remote| remote.url().map_or(true, |url| url == INDEX_GIT_URL))
             })
             .unwrap_or(false)
     }
@@ -249,9 +257,10 @@ impl Index {
     pub fn update(&self) -> Result<()> {
         debug_assert!(self.exists());
         let repo = git2::Repository::discover(&self.path)?;
-        let mut origin_remote = repo.find_remote("origin")?;
+        let mut origin_remote = repo.find_remote("origin")
+            .or_else(|_| repo.remote_anonymous(INDEX_GIT_URL))?;
         origin_remote.fetch(&["master"], None, None)?;
-        let oid = repo.refname_to_id("refs/remotes/origin/master")?;
+        let oid = repo.refname_to_id("FETCH_HEAD")?;
         let object = repo.find_object(oid, None).unwrap();
         repo.reset(&object, git2::ResetType::Hard, None)?;
         Ok(())
@@ -363,6 +372,12 @@ mod test {
         assert!(index.exists());
         index.retrieve_or_update().expect("could not fetch crates io index");
         assert!(index.exists());
+    }
+
+    #[test]
+    fn test_cargo_default_updates() {
+        let index = Index::new_cargo_default();
+        index.update().map_err(|e| format!("could not fetch cargo's index in {}: {}", index.path().display(), e)).unwrap();
     }
 
     #[test]
