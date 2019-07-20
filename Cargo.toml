@@ -4,6 +4,7 @@ description = "Library for retrieving and interacting with the crates.io index"
 version = "0.13.1"
 authors = ["Corey Farwell <coreyf@rwell.org>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
+categories = ["development-tools", "database"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
 license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
