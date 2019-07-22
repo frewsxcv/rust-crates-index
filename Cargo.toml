@@ -10,8 +10,8 @@ license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
 
 [dependencies]
-git2 = "0.8"
-glob = "0.2.10"
+git2 = "0.9"
+glob = "0.3"
 serde_derive = "1"
 serde_json = "1"
 serde = "1"
