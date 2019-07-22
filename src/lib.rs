@@ -200,10 +200,10 @@ impl CrateIndexPaths {
         let path = path.as_ref();
 
         let glob_pattern = format!("{}/*/*/*", path.to_str().unwrap());
-        let index_paths1 = glob::glob_with(&glob_pattern, &match_options).unwrap();
+        let index_paths1 = glob::glob_with(&glob_pattern, match_options).unwrap();
 
         let glob_pattern = format!("{}/[12]/*", path.to_str().unwrap());
-        let index_paths2 = glob::glob_with(&glob_pattern, &match_options).unwrap();
+        let index_paths2 = glob::glob_with(&glob_pattern, match_options).unwrap();
 
         CrateIndexPaths(index_paths1.chain(index_paths2))
     }
