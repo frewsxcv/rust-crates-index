@@ -378,6 +378,8 @@ mod test {
     fn test_cargo_default_updates() {
         let index = Index::new_cargo_default();
         index.update().map_err(|e| format!("could not fetch cargo's index in {}: {}", index.path().display(), e)).unwrap();
+        assert!(index.crate_("crates-index").is_some());
+        assert!(index.crate_("toml").is_some());
     }
 
     #[test]
