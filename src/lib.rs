@@ -34,7 +34,6 @@
 //! ```
 
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::iter;
@@ -112,6 +111,7 @@ pub struct Dependency {
     default_features: bool,
     target: Option<String>,
     kind: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     package: Option<String>,
 }
 
@@ -277,14 +277,22 @@ impl Index {
 
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
-        self.crate_index_paths()
-            .find(|path| {
-                      path.file_name()
-                          .and_then(OsStr::to_str)
-                          .map(|file_name| file_name.eq_ignore_ascii_case(crate_name))
-                          .unwrap_or(false)
-                  })
-            .map(|p| Crate::new(&p))
+        let name_lower = crate_name.to_ascii_lowercase();
+        if !name_lower.is_ascii() {
+            return None;
+        }
+        let path = match name_lower.len() {
+            0 => return None,
+            1 => self.path.join("1"),
+            2 => self.path.join("2"),
+            3 => self.path.join("3").join(&name_lower[0..1]),
+            _ => self.path.join(&name_lower[0..2]).join(&name_lower[2..4]),
+        }.join(name_lower);
+        if path.exists() {
+            Some(Crate::new(path.as_path()))
+        } else {
+            None
+        }
     }
 
     /// Retrieve an iterator over all the crates in the index
@@ -380,6 +388,10 @@ mod test {
         index.update().map_err(|e| format!("could not fetch cargo's index in {}: {}", index.path().display(), e)).unwrap();
         assert!(index.crate_("crates-index").is_some());
         assert!(index.crate_("toml").is_some());
+        assert!(index.crate_("gcc").is_some());
+        assert!(index.crate_("cc").is_some());
+        assert!(index.crate_("CC").is_some());
+        assert!(index.crate_("無").is_none());
     }
 
     #[test]
