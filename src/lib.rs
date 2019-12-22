@@ -35,7 +35,7 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{self, BufRead, BufReader};
 use std::iter;
 use std::path::{Path, PathBuf};
 
@@ -160,14 +160,14 @@ impl Dependency {
     /// Returns the name of the crate providing the dependency.
     /// This is equivalent to `name()` unless `self.package()`
     /// is not `None`, in which case it's equal to `self.package()`.
-    /// 
+    ///
     /// Basically, you can define a dependency in your `Cargo.toml`
     /// like this:
-    /// 
+    ///
     /// ```toml
     /// serde_lib = {version = "1", package = "serde"}
     /// ```
-    /// 
+    ///
     /// ...which means that it uses the crate `serde` but imports
     /// it under the name `serde_lib`.
     pub fn crate_name(&self) -> &str {
@@ -180,12 +180,19 @@ impl Dependency {
 
 
 /// Constructed from `Index::crates`
+///
+/// Silently ignores crates that can't be loaded/parsed
 pub struct Crates(CrateIndexPaths);
 
 impl Iterator for Crates {
     type Item = Crate;
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|p| Crate::new(&p))
+        while let Some(p) = self.0.next() {
+            if let Ok(c) = Crate::new_checked(&p) {
+                return Some(c)
+            }
+        }
+        None
     }
 }
 
@@ -289,7 +296,7 @@ impl Index {
             _ => self.path.join(&name_lower[0..2]).join(&name_lower[2..4]),
         }.join(name_lower);
         if path.exists() {
-            Some(Crate::new(path.as_path()))
+            Crate::new_checked(path.as_path()).ok()
         } else {
             None
         }
@@ -318,15 +325,27 @@ pub struct Crate {
 }
 
 impl Crate {
+    #[doc(hidden)]
+    #[deprecated(note = "this may panic. use new_checked() instead")]
     pub fn new<P: AsRef<Path>>(index_path: P) -> Crate {
+        Self::new_checked(index_path).unwrap()
+    }
+
+    /// Parse the file with crate versions.
+    ///
+    /// The file must contain at least one version.
+    pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
         let index_path = index_path.as_ref();
         let mut versions = vec![];
-        let file = fs::File::open(&index_path).unwrap();
+        let file = fs::File::open(&index_path)?;
         for line in BufReader::new(file).lines() {
-            let version: Version = serde_json::from_str(&line.unwrap()).unwrap();
+            let version: Version = serde_json::from_str(&line?).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             versions.push(version);
         }
-        Crate { versions: versions }
+        if versions.is_empty() {
+            return Err(io::Error::new(io::ErrorKind::Other, "crate must have versions"));
+        }
+        Ok(Crate { versions: versions })
     }
 
     /// Published versions of this crate sorted chronologically by date published
@@ -334,10 +353,14 @@ impl Crate {
         &self.versions
     }
 
+    /// Oldest version.
+    ///
+    /// Warning: may not be the lowest version number.
     pub fn earliest_version(&self) -> &Version {
         &self.versions[0]
     }
 
+    /// Most recently published version. Warning: may not be the highest version.
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
