@@ -110,6 +110,7 @@ pub struct Dependency {
     optional: bool,
     default_features: bool,
     target: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     package: Option<String>,
