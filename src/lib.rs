@@ -22,7 +22,7 @@
 //! ```rust
 //! extern crate crates_index;
 //!
-//! let index = crates_index::Index::new("_index");
+//! let index = crates_index::Index::new("/tmp/_index");
 //! if !index.exists() {
 //!    index.retrieve().expect("Could not fetch crates.io index");
 //! }
