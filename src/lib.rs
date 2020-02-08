@@ -346,7 +346,7 @@ impl Crate {
         if versions.is_empty() {
             return Err(io::Error::new(io::ErrorKind::Other, "crate must have versions"));
         }
-        Ok(Crate { versions: versions })
+        Ok(Crate { versions })
     }
 
     /// Published versions of this crate sorted chronologically by date published
