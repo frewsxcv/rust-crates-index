@@ -55,7 +55,7 @@ error_chain! {
     }
 }
 
-static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-index";
+static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
 
 /// A single version of a crate published to the index
