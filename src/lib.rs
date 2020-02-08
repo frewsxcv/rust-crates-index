@@ -224,6 +224,14 @@ impl Iterator for CrateIndexPaths {
     }
 }
 
+fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
+    let mut proxy_opts = git2::ProxyOptions::new();
+    proxy_opts.auto();
+    let mut fetch_opts = git2::FetchOptions::new();
+    fetch_opts.proxy_options(proxy_opts);
+    fetch_opts
+}
+
 /// Wrapper around managing the crates.io-index git repository
 #[derive(Debug, Clone, PartialEq)]
 pub struct Index {
@@ -257,7 +265,9 @@ impl Index {
 
     /// Downloads the index to the path specified from the constructor
     pub fn retrieve(&self) -> Result<()> {
-        let _ = git2::Repository::clone(INDEX_GIT_URL, &self.path)?;
+        git2::build::RepoBuilder::new()
+            .fetch_options(fetch_opts())
+            .clone(INDEX_GIT_URL, &self.path)?;
         Ok(())
     }
 
@@ -267,7 +277,7 @@ impl Index {
         let repo = git2::Repository::discover(&self.path)?;
         let mut origin_remote = repo.find_remote("origin")
             .or_else(|_| repo.remote_anonymous(INDEX_GIT_URL))?;
-        origin_remote.fetch(&["master"], None, None)?;
+        origin_remote.fetch(&["master"], Some(&mut fetch_opts()), None)?;
         let oid = repo.refname_to_id("FETCH_HEAD")?;
         let object = repo.find_object(oid, None).unwrap();
         repo.reset(&object, git2::ResetType::Hard, None)?;
