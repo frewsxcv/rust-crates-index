@@ -55,7 +55,7 @@ error_chain! {
     }
 }
 
-static INDEX_GIT_URL: &'static str = "https://github.com/rust-lang/crates.io-index";
+static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
 
 /// A single version of a crate published to the index
@@ -138,24 +138,15 @@ impl Dependency {
     }
 
     pub fn target(&self) -> Option<&str> {
-        match self.target {
-            Some(ref s) => Some(s),
-            None => None,
-        }
+        self.target.as_deref()
     }
 
     pub fn kind(&self) -> Option<&str> {
-        match self.kind {
-            Some(ref s) => Some(s),
-            None => None,
-        }
+        self.kind.as_deref()
     }
 
     pub fn package(&self) -> Option<&str> {
-        match self.package {
-            Some(ref s) => Some(s),
-            None => None,
-        }
+        self.package.as_deref()
     }
 
     /// Returns the name of the crate providing the dependency.
@@ -346,7 +337,7 @@ impl Crate {
         if versions.is_empty() {
             return Err(io::Error::new(io::ErrorKind::Other, "crate must have versions"));
         }
-        Ok(Crate { versions: versions })
+        Ok(Crate { versions })
     }
 
     /// Published versions of this crate sorted chronologically by date published
