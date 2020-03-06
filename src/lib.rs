@@ -48,6 +48,9 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 extern crate home;
+extern crate smol_str;
+
+use smol_str::SmolStr;
 
 error_chain! {
     foreign_links {
@@ -57,14 +60,13 @@ error_chain! {
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
-
 /// A single version of a crate published to the index
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Version {
-    name: String,
-    vers: String,
+    name: SmolStr,
+    vers: SmolStr,
     deps: Vec<Dependency>,
-    cksum: String,
+    cksum: Box<str>,
     features: HashMap<String, Vec<String>>,
     yanked: bool,
 }
@@ -104,16 +106,16 @@ impl Version {
 /// A single dependency of a specific crate version
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Dependency {
-    name: String,
-    req: String,
+    name: SmolStr,
+    req: SmolStr,
     features: Vec<String>,
     optional: bool,
     default_features: bool,
-    target: Option<String>,
+    target: Option<Box<str>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    kind: Option<String>,
+    kind: Option<SmolStr>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    package: Option<String>,
+    package: Option<Box<str>>,
 }
 
 impl Dependency {
