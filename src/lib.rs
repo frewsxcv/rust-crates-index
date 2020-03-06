@@ -34,8 +34,8 @@
 //! ```
 
 use std::collections::HashMap;
-use std::fs;
-use std::io::{self, BufRead, BufReader};
+
+use std::io;
 use std::iter;
 use std::path::{Path, PathBuf};
 
@@ -339,11 +339,18 @@ impl Crate {
     ///
     /// The file must contain at least one version.
     pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
-        let index_path = index_path.as_ref();
-        let mut versions = vec![];
-        let file = fs::File::open(&index_path)?;
-        for line in BufReader::new(file).lines() {
-            let version: Version = serde_json::from_str(&line?).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let lines = std::fs::read(index_path)?;
+        // Trim last newline
+        let mut lines = &lines[..];
+        while lines.get(lines.len()-1) == Some(&b'\n') {
+            lines = &lines[..lines.len()-1];
+        }
+
+        #[inline(always)]
+        fn is_newline(&c: &u8) -> bool { c == b'\n' }
+        let mut versions = Vec::with_capacity(lines.split(is_newline).count());
+        for line in lines.split(is_newline) {
+            let version: Version = serde_json::from_slice(line).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             versions.push(version);
         }
         if versions.is_empty() {
