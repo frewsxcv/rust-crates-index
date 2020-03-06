@@ -65,7 +65,7 @@ static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 pub struct Version {
     name: SmolStr,
     vers: SmolStr,
-    deps: Vec<Dependency>,
+    deps: Box<[Dependency]>,
     cksum: Box<str>,
     features: HashMap<String, Vec<String>>,
     yanked: bool,
@@ -108,7 +108,7 @@ impl Version {
 pub struct Dependency {
     name: SmolStr,
     req: SmolStr,
-    features: Vec<String>,
+    features: Box<[String]>,
     optional: bool,
     default_features: bool,
     target: Option<Box<str>>,
@@ -325,7 +325,7 @@ impl Index {
 /// A single crate that contains many published versions
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Crate {
-    versions: Vec<Version>,
+    versions: Box<[Version]>,
 }
 
 impl Crate {
@@ -356,7 +356,10 @@ impl Crate {
         if versions.is_empty() {
             return Err(io::Error::new(io::ErrorKind::Other, "crate must have versions"));
         }
-        Ok(Crate { versions })
+        debug_assert_eq!(versions.len(), versions.capacity());
+        Ok(Crate {
+            versions: versions.into_boxed_slice(),
+        })
     }
 
     /// Published versions of this crate sorted chronologically by date published
