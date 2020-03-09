@@ -20,9 +20,7 @@
 //! ## Examples
 //!
 //! ```rust
-//! extern crate crates_index;
-//!
-//! let index = crates_index::Index::new("/tmp/_index");
+//! let index = crates_index::Index::new_cargo_default();
 //! if !index.exists() {
 //!    index.retrieve().expect("Could not fetch crates.io index");
 //! }
