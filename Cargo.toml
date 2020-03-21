@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "0.14.2"
+version = "0.14.3"
 authors = ["Corey Farwell <coreyf@rwell.org>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
 categories = ["development-tools", "database"]
@@ -10,14 +10,17 @@ license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
 
 [dependencies]
-git2 = "0.12.0"
+git2 = "0.13.0"
 glob = "0.3.0"
-serde_derive = "1.0.104"
+serde_derive = "1.0.105"
 serde_json = "1.0.48"
-serde = "1.0.104"
+serde = "1.0.105"
 error-chain = "0.12.2"
 home = "0.5.3"
 smol_str = { version = "0.1.15", features = ["serde"] }
 
 [dev-dependencies]
 tempdir = "0.3.7"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
