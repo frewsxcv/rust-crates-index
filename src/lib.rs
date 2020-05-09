@@ -301,17 +301,29 @@ impl Index {
 
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
-        let name_lower = crate_name.to_ascii_lowercase();
-        if !name_lower.is_ascii() {
+        if !crate_name.is_ascii() {
             return None;
         }
-        let path = match name_lower.len() {
+        let name_lower = crate_name.to_ascii_lowercase();
+        let mut rel_path = String::with_capacity(crate_name.len()+6);
+        match name_lower.len() {
             0 => return None,
-            1 => self.path.join("1"),
-            2 => self.path.join("2"),
-            3 => self.path.join("3").join(&name_lower[0..1]),
-            _ => self.path.join(&name_lower[0..2]).join(&name_lower[2..4]),
-        }.join(name_lower);
+            1 => rel_path.push('1'),
+            2 => rel_path.push('2'),
+            3 => {
+                rel_path.push('3');
+                rel_path.push(std::path::MAIN_SEPARATOR);
+                rel_path.push_str(&name_lower[0..1]);
+            },
+            _ => {
+                rel_path.push_str(&name_lower[0..2]);
+                rel_path.push(std::path::MAIN_SEPARATOR);
+                rel_path.push_str(&name_lower[2..4]);
+            },
+        };
+        rel_path.push(std::path::MAIN_SEPARATOR);
+        rel_path.push_str(&name_lower);
+        let path = self.path.join(rel_path);
         if path.exists() {
             Crate::new_checked(path.as_path()).ok()
         } else {
@@ -326,7 +338,7 @@ impl Index {
 
     /// Returns all the crate index file paths in the index
     pub fn crate_index_paths(&self) -> CrateIndexPaths {
-        CrateIndexPaths::new(self.path.clone()) // TODO: remove this clone
+        CrateIndexPaths::new(&self.path)
     }
 
     /// Get the index directory.
