@@ -352,10 +352,14 @@ impl Crate {
     /// Parse the file with crate versions.
     ///
     /// The file must contain at least one version.
+    #[inline]
     pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
         let lines = std::fs::read(index_path)?;
+        Self::from_slice(&lines)
+    }
+
+    pub(crate) fn from_slice(mut lines: &[u8]) -> io::Result<Crate> {
         // Trim last newline
-        let mut lines = &lines[..];
         while lines.get(lines.len()-1) == Some(&b'\n') {
             lines = &lines[..lines.len()-1];
         }
