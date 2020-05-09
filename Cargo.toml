@@ -8,6 +8,7 @@ categories = ["development-tools", "database"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
 license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
+edition = "2018"
 
 [dependencies]
 git2 = "0.13.0"
