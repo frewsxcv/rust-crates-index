@@ -71,31 +71,37 @@ pub struct Version {
 
 impl Version {
     /// Name of the crate
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Name of this version
+    #[inline]
     pub fn version(&self) -> &str {
         &self.vers
     }
 
     /// Dependencies for this version
+    #[inline]
     pub fn dependencies(&self) -> &[Dependency] {
         &self.deps
     }
 
     /// Checksum of the package for this version
+    #[inline]
     pub fn checksum(&self) -> &str {
         &self.cksum
     }
 
+    #[inline]
     pub fn features(&self) -> &HashMap<String, Vec<String>> {
         &self.features
     }
 
     /// Whether this version was [yanked](http://doc.crates.io/crates-io.html#cargo-yank) from the
     /// index
+    #[inline]
     pub fn is_yanked(&self) -> bool {
         self.yanked
     }
@@ -117,34 +123,42 @@ pub struct Dependency {
 }
 
 impl Dependency {
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline]
     pub fn requirement(&self) -> &str {
         &self.req
     }
 
+    #[inline]
     pub fn features(&self) -> &[String] {
         &self.features
     }
 
+    #[inline]
     pub fn is_optional(&self) -> bool {
         self.optional
     }
 
+    #[inline]
     pub fn has_default_features(&self) -> bool {
         self.default_features
     }
 
+    #[inline]
     pub fn target(&self) -> Option<&str> {
         self.target.as_deref()
     }
 
+    #[inline]
     pub fn kind(&self) -> Option<&str> {
         self.kind.as_deref()
     }
 
+    #[inline]
     pub fn package(&self) -> Option<&str> {
         self.package.as_deref()
     }
@@ -162,6 +176,7 @@ impl Dependency {
     ///
     /// ...which means that it uses the crate `serde` but imports
     /// it under the name `serde_lib`.
+    #[inline]
     pub fn crate_name(&self) -> &str {
         match self.package {
             Some(ref s) => s,
@@ -315,6 +330,7 @@ impl Index {
     }
 
     /// Get the index directory.
+    #[inline]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -361,6 +377,7 @@ impl Crate {
     }
 
     /// Published versions of this crate sorted chronologically by date published
+    #[inline]
     pub fn versions(&self) -> &[Version] {
         &self.versions
     }
@@ -368,15 +385,18 @@ impl Crate {
     /// Oldest version.
     ///
     /// Warning: may not be the lowest version number.
+    #[inline]
     pub fn earliest_version(&self) -> &Version {
         &self.versions[0]
     }
 
     /// Most recently published version. Warning: may not be the highest version.
+    #[inline]
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
 
+    #[inline]
     pub fn name(&self) -> &str {
         self.latest_version().name()
     }
