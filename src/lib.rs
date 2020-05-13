@@ -31,24 +31,15 @@
 //! }
 //! ```
 
-use std::collections::HashMap;
+#[macro_use]
+extern crate error_chain;
 
+use serde_derive::{Deserialize, Serialize};
+use smol_str::SmolStr;
+use std::collections::HashMap;
 use std::io;
 use std::iter;
 use std::path::{Path, PathBuf};
-
-#[macro_use]
-extern crate error_chain;
-extern crate git2;
-extern crate glob;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate serde;
-extern crate home;
-extern crate smol_str;
-
-use smol_str::SmolStr;
 
 error_chain! {
     foreign_links {
@@ -185,7 +176,6 @@ impl Dependency {
     }
 }
 
-
 /// Constructed from `Index::crates`
 ///
 /// Silently ignores crates that can't be loaded/parsed
@@ -196,13 +186,12 @@ impl Iterator for Crates {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(p) = self.0.next() {
             if let Ok(c) = Crate::new_checked(&p) {
-                return Some(c)
+                return Some(c);
             }
         }
         None
     }
 }
-
 
 /// Constructed from `Index::crate_index_paths`
 pub struct CrateIndexPaths(iter::Chain<glob::Paths, glob::Paths>);
@@ -421,8 +410,7 @@ impl Crate {
 #[cfg(test)]
 mod test {
     use super::Index;
-    extern crate tempdir;
-    use self::tempdir::TempDir;
+    use tempdir::TempDir;
 
     #[test]
     fn test_dependencies() {
