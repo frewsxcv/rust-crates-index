@@ -108,7 +108,7 @@ pub struct Dependency {
     default_features: bool,
     target: Option<Box<str>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    kind: Option<SmolStr>,
+    kind: Option<DependencyKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
     package: Option<Box<str>>,
 }
@@ -145,8 +145,8 @@ impl Dependency {
     }
 
     #[inline]
-    pub fn kind(&self) -> Option<&str> {
-        self.kind.as_deref()
+    pub fn kind(&self) -> DependencyKind {
+        self.kind.unwrap_or_default()
     }
 
     #[inline]
@@ -173,6 +173,20 @@ impl Dependency {
             Some(ref s) => s,
             None => self.name(),
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[serde(rename_all="lowercase")]
+pub enum DependencyKind {
+    Normal,
+    Dev,
+    Build,
+}
+
+impl Default for DependencyKind {
+    fn default() -> Self {
+        Self::Normal
     }
 }
 
@@ -486,7 +500,10 @@ mod test {
         assert!(index.exists());
 
         for path in index.crate_index_paths() {
-            Crate::new(&path).unwrap();
+            if let Err(e) = Crate::new(&path) {
+                let _ = tmp_dir.into_path();
+                panic!("{} {}", e, path.display());
+            }
         }
     }
 }
