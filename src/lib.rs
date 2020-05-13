@@ -52,7 +52,8 @@ pub struct Version {
     name: SmolStr,
     vers: SmolStr,
     deps: Box<[Dependency]>,
-    cksum: Box<str>,
+    #[serde(with = "hex")]
+    cksum: [u8; 32],
     features: HashMap<String, Vec<String>>,
     yanked: bool,
 }
@@ -77,8 +78,10 @@ impl Version {
     }
 
     /// Checksum of the package for this version
+    ///
+    /// SHA256 of the .crate file
     #[inline]
-    pub fn checksum(&self) -> &str {
+    pub fn checksum(&self) -> &[u8; 32] {
         &self.cksum
     }
 
