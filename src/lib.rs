@@ -31,20 +31,17 @@
 //! }
 //! ```
 
-#[macro_use]
-extern crate error_chain;
-
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::collections::HashMap;
+use std::fmt;
 use std::io;
 use std::iter;
 use std::path::{Path, PathBuf};
 
-error_chain! {
-    foreign_links {
-        Git(git2::Error);
-    }
+#[derive(Debug)]
+pub enum Error {
+    Git(git2::Error),
 }
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -259,7 +256,7 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn retrieve(&self) -> Result<()> {
+    pub fn retrieve(&self) -> Result<(), Error> {
         git2::build::RepoBuilder::new()
             .fetch_options(fetch_opts())
             .clone(INDEX_GIT_URL, &self.path)?;
@@ -267,7 +264,7 @@ impl Index {
     }
 
     /// Assumes the index already exists at `self.path`, and updates it
-    pub fn update(&self) -> Result<()> {
+    pub fn update(&self) -> Result<(), Error> {
         debug_assert!(self.exists());
         let repo = git2::Repository::discover(&self.path)?;
         let mut origin_remote = repo.find_remote("origin")
@@ -280,7 +277,7 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn retrieve_or_update(&self) -> Result<()> {
+    pub fn retrieve_or_update(&self) -> Result<(), Error> {
         if self.exists() {
             self.update()
         } else {
@@ -404,6 +401,28 @@ impl Crate {
     #[inline]
     pub fn name(&self) -> &str {
         self.latest_version().name()
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Git(e) => fmt::Display::fmt(&e, f),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Git(e) => Some(e),
+        }
+    }
+}
+
+impl From<git2::Error> for Error {
+    fn from(e: git2::Error) -> Self {
+        Self::Git(e)
     }
 }
 
