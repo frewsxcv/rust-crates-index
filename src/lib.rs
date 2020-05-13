@@ -185,7 +185,7 @@ impl Iterator for Crates {
     type Item = Crate;
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(p) = self.0.next() {
-            if let Ok(c) = Crate::new_checked(&p) {
+            if let Ok(c) = Crate::new(&p) {
                 return Some(c);
             }
         }
@@ -314,7 +314,7 @@ impl Index {
         rel_path.push_str(&name_lower);
         let path = self.path.join(rel_path);
         if path.exists() {
-            Crate::new_checked(path.as_path()).ok()
+            Crate::new(path.as_path()).ok()
         } else {
             None
         }
@@ -344,19 +344,19 @@ pub struct Crate {
 }
 
 impl Crate {
-    #[doc(hidden)]
-    #[deprecated(note = "this may panic. use new_checked() instead")]
-    pub fn new<P: AsRef<Path>>(index_path: P) -> Crate {
-        Self::new_checked(index_path).unwrap()
-    }
-
     /// Parse the file with crate versions.
     ///
     /// The file must contain at least one version.
     #[inline]
-    pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
+    pub fn new<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
         let lines = std::fs::read(index_path)?;
         Self::from_slice(&lines)
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "new_checked() is no longer needed, you can use new() now")]
+    pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
+        Self::new(index_path)
     }
 
     pub(crate) fn from_slice(mut lines: &[u8]) -> io::Result<Crate> {
@@ -432,6 +432,7 @@ impl From<git2::Error> for Error {
 #[cfg(test)]
 mod test {
     use super::Index;
+    use super::Crate;
     use tempdir::TempDir;
 
     #[test]
@@ -476,12 +477,16 @@ mod test {
     }
 
     #[test]
-    fn test_exists() {
+    fn test_can_parse_all() {
         let tmp_dir = TempDir::new("test3").unwrap();
 
         let index = Index::new(tmp_dir.path());
         assert!(!index.exists());
         index.retrieve().unwrap();
         assert!(index.exists());
+
+        for path in index.crate_index_paths() {
+            Crate::new(&path).unwrap();
+        }
     }
 }
