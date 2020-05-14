@@ -31,20 +31,17 @@
 //! }
 //! ```
 
-#[macro_use]
-extern crate error_chain;
-
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::collections::HashMap;
+use std::fmt;
 use std::io;
 use std::iter;
 use std::path::{Path, PathBuf};
 
-error_chain! {
-    foreign_links {
-        Git(git2::Error);
-    }
+#[derive(Debug)]
+pub enum Error {
+    Git(git2::Error),
 }
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -55,7 +52,8 @@ pub struct Version {
     name: SmolStr,
     vers: SmolStr,
     deps: Box<[Dependency]>,
-    cksum: Box<str>,
+    #[serde(with = "hex")]
+    cksum: [u8; 32],
     features: HashMap<String, Vec<String>>,
     yanked: bool,
 }
@@ -80,8 +78,10 @@ impl Version {
     }
 
     /// Checksum of the package for this version
+    ///
+    /// SHA256 of the .crate file
     #[inline]
-    pub fn checksum(&self) -> &str {
+    pub fn checksum(&self) -> &[u8; 32] {
         &self.cksum
     }
 
@@ -108,7 +108,7 @@ pub struct Dependency {
     default_features: bool,
     target: Option<Box<str>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    kind: Option<SmolStr>,
+    kind: Option<DependencyKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
     package: Option<Box<str>>,
 }
@@ -145,8 +145,8 @@ impl Dependency {
     }
 
     #[inline]
-    pub fn kind(&self) -> Option<&str> {
-        self.kind.as_deref()
+    pub fn kind(&self) -> DependencyKind {
+        self.kind.unwrap_or_default()
     }
 
     #[inline]
@@ -176,6 +176,20 @@ impl Dependency {
     }
 }
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[serde(rename_all="lowercase")]
+pub enum DependencyKind {
+    Normal,
+    Dev,
+    Build,
+}
+
+impl Default for DependencyKind {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
 /// Constructed from `Index::crates`
 ///
 /// Silently ignores crates that can't be loaded/parsed
@@ -185,7 +199,7 @@ impl Iterator for Crates {
     type Item = Crate;
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(p) = self.0.next() {
-            if let Ok(c) = Crate::new_checked(&p) {
+            if let Ok(c) = Crate::new(&p) {
                 return Some(c);
             }
         }
@@ -259,7 +273,7 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn retrieve(&self) -> Result<()> {
+    pub fn retrieve(&self) -> Result<(), Error> {
         git2::build::RepoBuilder::new()
             .fetch_options(fetch_opts())
             .clone(INDEX_GIT_URL, &self.path)?;
@@ -267,7 +281,7 @@ impl Index {
     }
 
     /// Assumes the index already exists at `self.path`, and updates it
-    pub fn update(&self) -> Result<()> {
+    pub fn update(&self) -> Result<(), Error> {
         debug_assert!(self.exists());
         let repo = git2::Repository::discover(&self.path)?;
         let mut origin_remote = repo.find_remote("origin")
@@ -280,7 +294,7 @@ impl Index {
     }
 
     /// Downloads the index to the path specified from the constructor
-    pub fn retrieve_or_update(&self) -> Result<()> {
+    pub fn retrieve_or_update(&self) -> Result<(), Error> {
         if self.exists() {
             self.update()
         } else {
@@ -314,7 +328,7 @@ impl Index {
         rel_path.push_str(&name_lower);
         let path = self.path.join(rel_path);
         if path.exists() {
-            Crate::new_checked(path.as_path()).ok()
+            Crate::new(path.as_path()).ok()
         } else {
             None
         }
@@ -344,19 +358,19 @@ pub struct Crate {
 }
 
 impl Crate {
-    #[doc(hidden)]
-    #[deprecated(note = "this may panic. use new_checked() instead")]
-    pub fn new<P: AsRef<Path>>(index_path: P) -> Crate {
-        Self::new_checked(index_path).unwrap()
-    }
-
     /// Parse the file with crate versions.
     ///
     /// The file must contain at least one version.
     #[inline]
-    pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
+    pub fn new<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
         let lines = std::fs::read(index_path)?;
         Self::from_slice(&lines)
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "new_checked() is no longer needed, you can use new() now")]
+    pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
+        Self::new(index_path)
     }
 
     pub(crate) fn from_slice(mut lines: &[u8]) -> io::Result<Crate> {
@@ -407,9 +421,32 @@ impl Crate {
     }
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Git(e) => fmt::Display::fmt(&e, f),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Git(e) => Some(e),
+        }
+    }
+}
+
+impl From<git2::Error> for Error {
+    fn from(e: git2::Error) -> Self {
+        Self::Git(e)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::Index;
+    use super::Crate;
     use tempdir::TempDir;
 
     #[test]
@@ -454,12 +491,19 @@ mod test {
     }
 
     #[test]
-    fn test_exists() {
+    fn test_can_parse_all() {
         let tmp_dir = TempDir::new("test3").unwrap();
 
         let index = Index::new(tmp_dir.path());
         assert!(!index.exists());
         index.retrieve().unwrap();
         assert!(index.exists());
+
+        for path in index.crate_index_paths() {
+            if let Err(e) = Crate::new(&path) {
+                let _ = tmp_dir.into_path();
+                panic!("{} {}", e, path.display());
+            }
+        }
     }
 }
