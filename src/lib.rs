@@ -373,16 +373,17 @@ impl Crate {
         Self::new(index_path)
     }
 
-    pub(crate) fn from_slice(mut lines: &[u8]) -> io::Result<Crate> {
+    /// Parse crate file from in-memory JSON data
+    pub fn from_slice(mut bytes: &[u8]) -> io::Result<Crate> {
         // Trim last newline
-        while lines.get(lines.len()-1) == Some(&b'\n') {
-            lines = &lines[..lines.len()-1];
+        while bytes.last() == Some(&b'\n') {
+            bytes = &bytes[..bytes.len()-1];
         }
 
         #[inline(always)]
         fn is_newline(&c: &u8) -> bool { c == b'\n' }
-        let mut versions = Vec::with_capacity(lines.split(is_newline).count());
-        for line in lines.split(is_newline) {
+        let mut versions = Vec::with_capacity(bytes.split(is_newline).count());
+        for line in bytes.split(is_newline) {
             let version: Version = serde_json::from_slice(line).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             versions.push(version);
         }
