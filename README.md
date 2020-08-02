@@ -11,15 +11,13 @@ Much of this code was extracted from [github.com/huonw/crates.io-graph](https://
 ## Examples
 
 ```rust
-extern crate crates_index;
-
 let index = crates_index::Index::new("_index".into());
 if !index.exists() {
     index.retrieve().expect("Could not retrieve crates.io index");
 }
 for crate_ in index.crates() {
-    let latest_version = crate_.latest_version();
-    println!("crate name: {}", latest_version.name());
+    let most_recent = crate_.latest_version();
+    println!("crate name: {}", most_recent.name());
     println!("crate version: {}", latest_version.version());
 }
 ```
