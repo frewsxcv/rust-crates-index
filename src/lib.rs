@@ -209,7 +209,7 @@ impl Iterator for Crates {
 }
 
 /// Constructed from `Index::crate_index_paths`
-pub struct CrateIndexPaths(iter::Chain<glob::Paths, glob::Paths>);
+pub struct CrateIndexPaths(iter::Chain<iter::Chain<glob::Paths, glob::Paths>, glob::Paths>);
 
 impl CrateIndexPaths {
     fn new<P: AsRef<Path>>(path: P) -> CrateIndexPaths {
@@ -217,13 +217,19 @@ impl CrateIndexPaths {
         match_options.require_literal_leading_dot = true;
         let path = path.as_ref();
 
-        let glob_pattern = format!("{}/*/*/*", path.to_str().unwrap());
-        let index_paths1 = glob::glob_with(&glob_pattern, match_options).unwrap();
+        // > 3 characters
+        let index_paths1 =
+            glob::glob_with(&format!("{}/*/*/*", path.to_str().unwrap()), match_options).unwrap();
 
-        let glob_pattern = format!("{}/[12]/*", path.to_str().unwrap());
-        let index_paths2 = glob::glob_with(&glob_pattern, match_options).unwrap();
+        // 1 or 2
+        let index_paths2 =
+            glob::glob_with(&format!("{}/[12]/*", path.to_str().unwrap()), match_options).unwrap();
 
-        CrateIndexPaths(index_paths1.chain(index_paths2))
+        // 3
+        let index_paths3 =
+            glob::glob_with(&format!("{}/3/*/*", path.to_str().unwrap()), match_options).unwrap();
+
+        CrateIndexPaths(index_paths1.chain(index_paths2).chain(index_paths3))
     }
 }
 
