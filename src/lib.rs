@@ -34,11 +34,11 @@
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
-use std::collections::HashMap;
-use std::fmt;
-use std::io;
-use std::iter;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    fmt, io, iter,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -494,8 +494,7 @@ impl From<git2::Error> for Error {
 
 #[cfg(test)]
 mod test {
-    use super::Crate;
-    use super::Index;
+    use super::{Crate, Index};
     use tempdir::TempDir;
 
     #[test]
