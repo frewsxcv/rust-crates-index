@@ -432,6 +432,7 @@ impl Crate {
 
     /// Returns the highest version as per semantic release specification,
     /// filtering out versions with pre-release identifiers.
+    #[inline]
     pub fn highest_stable_version(&self) -> Option<SemverVersion> {
         self.versions.iter()
             .map(|v| SemverVersion::parse(&v.vers).ok())
