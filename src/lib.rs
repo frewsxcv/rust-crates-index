@@ -177,7 +177,7 @@ impl Dependency {
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
-#[serde(rename_all="lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum DependencyKind {
     Normal,
     Dev,
@@ -256,7 +256,12 @@ impl Index {
     /// Use Cargo's own index in `CARGO_HOME` (`~/.cargo/registry/index`)
     pub fn new_cargo_default() -> Index {
         let cargo_home = home::cargo_home().unwrap_or_default();
-        Self::new(cargo_home.join("registry").join("index").join("github.com-1ecc6299db9ec823"))
+        Self::new(
+            cargo_home
+                .join("registry")
+                .join("index")
+                .join("github.com-1ecc6299db9ec823"),
+        )
     }
 
     /// Determines if a crates.io repository exists at `self.path`
@@ -264,10 +269,13 @@ impl Index {
         git2::Repository::discover(&self.path)
             .map(|repository| {
                 repository
-                    .find_remote("origin").ok()
+                    .find_remote("origin")
+                    .ok()
                     // Cargo creates a checkout without an origin set,
                     // so default to true in case of missing origin
-                    .map_or(true, |remote| remote.url().map_or(true, |url| url == INDEX_GIT_URL))
+                    .map_or(true, |remote| {
+                        remote.url().map_or(true, |url| url == INDEX_GIT_URL)
+                    })
             })
             .unwrap_or(false)
     }
@@ -284,7 +292,8 @@ impl Index {
     pub fn update(&self) -> Result<(), Error> {
         debug_assert!(self.exists());
         let repo = git2::Repository::discover(&self.path)?;
-        let mut origin_remote = repo.find_remote("origin")
+        let mut origin_remote = repo
+            .find_remote("origin")
             .or_else(|_| repo.remote_anonymous(INDEX_GIT_URL))?;
         origin_remote.fetch(&["master"], Some(&mut fetch_opts()), None)?;
         let oid = repo.refname_to_id("FETCH_HEAD")?;
@@ -308,7 +317,7 @@ impl Index {
             return None;
         }
         let name_lower = crate_name.to_ascii_lowercase();
-        let mut rel_path = String::with_capacity(crate_name.len()+6);
+        let mut rel_path = String::with_capacity(crate_name.len() + 6);
         match name_lower.len() {
             0 => return None,
             1 => rel_path.push('1'),
@@ -317,12 +326,12 @@ impl Index {
                 rel_path.push('3');
                 rel_path.push(std::path::MAIN_SEPARATOR);
                 rel_path.push_str(&name_lower[0..1]);
-            },
+            }
             _ => {
                 rel_path.push_str(&name_lower[0..2]);
                 rel_path.push(std::path::MAIN_SEPARATOR);
                 rel_path.push_str(&name_lower[2..4]);
-            },
+            }
         };
         rel_path.push(std::path::MAIN_SEPARATOR);
         rel_path.push_str(&name_lower);
@@ -377,18 +386,24 @@ impl Crate {
     pub fn from_slice(mut bytes: &[u8]) -> io::Result<Crate> {
         // Trim last newline
         while bytes.last() == Some(&b'\n') {
-            bytes = &bytes[..bytes.len()-1];
+            bytes = &bytes[..bytes.len() - 1];
         }
 
         #[inline(always)]
-        fn is_newline(&c: &u8) -> bool { c == b'\n' }
+        fn is_newline(&c: &u8) -> bool {
+            c == b'\n'
+        }
         let mut versions = Vec::with_capacity(bytes.split(is_newline).count());
         for line in bytes.split(is_newline) {
-            let version: Version = serde_json::from_slice(line).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            let version: Version = serde_json::from_slice(line)
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             versions.push(version);
         }
         if versions.is_empty() {
-            return Err(io::Error::new(io::ErrorKind::Other, "crate must have versions"));
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "crate must have versions",
+            ));
         }
         debug_assert_eq!(versions.len(), versions.capacity());
         Ok(Crate {
@@ -446,8 +461,8 @@ impl From<git2::Error> for Error {
 
 #[cfg(test)]
 mod test {
-    use super::Index;
     use super::Crate;
+    use super::Index;
     use tempdir::TempDir;
 
     #[test]
@@ -455,17 +470,33 @@ mod test {
         let tmp_dir = TempDir::new("test1").unwrap();
 
         let index = Index::new(tmp_dir.path());
-        index.retrieve_or_update().expect("could not fetch crates io index");
+        index
+            .retrieve_or_update()
+            .expect("could not fetch crates io index");
         // let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
-        let crate_ = index.crate_("sval").expect("Could not find the crate libnotify in the index");
+        let crate_ = index
+            .crate_("sval")
+            .expect("Could not find the crate libnotify in the index");
         let _ = format!("supports debug {:?}", crate_);
 
-        let version = crate_.versions().iter().find(|v| v.version() == "0.0.1")
+        let version = crate_
+            .versions()
+            .iter()
+            .find(|v| v.version() == "0.0.1")
             .expect("Version 0.0.1 of sval does not exist?");
-        let dep_with_package_name = version.dependencies().iter().find(|d| d.name() == "serde_lib")
+        let dep_with_package_name = version
+            .dependencies()
+            .iter()
+            .find(|d| d.name() == "serde_lib")
             .expect("sval does not have expected dependency?");
-        assert_ne!(dep_with_package_name.name(), dep_with_package_name.package().unwrap());
-        assert_eq!(dep_with_package_name.crate_name(), dep_with_package_name.package().unwrap());
+        assert_ne!(
+            dep_with_package_name.name(),
+            dep_with_package_name.package().unwrap()
+        );
+        assert_eq!(
+            dep_with_package_name.crate_name(),
+            dep_with_package_name.package().unwrap()
+        );
     }
 
     #[test]
@@ -473,16 +504,29 @@ mod test {
         let tmp_dir = TempDir::new("test2").unwrap();
 
         let index = Index::new(tmp_dir.path());
-        index.retrieve_or_update().expect("could not fetch crates io index");
+        index
+            .retrieve_or_update()
+            .expect("could not fetch crates io index");
         assert!(index.exists());
-        index.retrieve_or_update().expect("could not fetch crates io index");
+        index
+            .retrieve_or_update()
+            .expect("could not fetch crates io index");
         assert!(index.exists());
     }
 
     #[test]
     fn test_cargo_default_updates() {
         let index = Index::new_cargo_default();
-        index.update().map_err(|e| format!("could not fetch cargo's index in {}: {}", index.path().display(), e)).unwrap();
+        index
+            .update()
+            .map_err(|e| {
+                format!(
+                    "could not fetch cargo's index in {}: {}",
+                    index.path().display(),
+                    e
+                )
+            })
+            .unwrap();
         assert!(index.crate_("crates-index").is_some());
         assert!(index.crate_("toml").is_some());
         assert!(index.crate_("gcc").is_some());
