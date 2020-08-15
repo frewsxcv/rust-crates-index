@@ -31,6 +31,7 @@
 //! }
 //! ```
 
+use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::collections::HashMap;
@@ -414,6 +415,30 @@ impl Crate {
     #[inline]
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
+    }
+
+    /// Returns the highest version as per semantic versioning specification.
+    #[inline]
+    pub fn highest_version(&self) -> SemverVersion {
+        self.versions.iter()
+            .map(|v| SemverVersion::parse(&v.vers).ok())
+            .flatten()
+            .max()
+            // Safety: Versions inside the index will always adhere to 
+            // semantic versioning. If a crate is inside the index, at 
+            // least one version is available.
+            .unwrap()
+    }
+
+    /// Returns the highest version as per semantic versioning specification,
+    /// filtering out versions with pre-release identifiers.
+    #[inline]
+    pub fn highest_stable_version(&self) -> Option<SemverVersion> {
+        self.versions.iter()
+            .map(|v| SemverVersion::parse(&v.vers).ok())
+            .flatten()
+            .filter(|v| !v.is_prerelease())
+            .max()
     }
 
     #[inline]
