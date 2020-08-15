@@ -31,6 +31,7 @@
 //! }
 //! ```
 
+use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::collections::HashMap;
@@ -414,6 +415,19 @@ impl Crate {
     #[inline]
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
+    }
+
+    #[inline]
+    pub fn latest_semver_version(&self) -> Option<SemverVersion> {
+        self.versions.iter()
+            .map(|v| SemverVersion::parse(&v.vers).ok())
+            .flatten()
+            .max()
+    }
+
+    #[inline]
+    pub fn latest_semver_version_unchecked(&self) -> SemverVersion {
+        self.latest_semver_version().unwrap()
     }
 
     #[inline]
