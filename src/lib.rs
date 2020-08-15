@@ -418,16 +418,21 @@ impl Crate {
     }
 
     #[inline]
-    pub fn latest_semver_version(&self) -> Option<SemverVersion> {
+    pub fn highest_version(&self) -> SemverVersion {
         self.versions.iter()
             .map(|v| SemverVersion::parse(&v.vers).ok())
             .flatten()
             .max()
+            // Safety: Versions inside the index will always adhere to semantic versioning. If a crate is inside the index, at least one version is inside of it.
+            .unwrap()
     }
 
-    #[inline]
-    pub fn latest_semver_version_unchecked(&self) -> SemverVersion {
-        self.latest_semver_version().unwrap()
+    pub fn highest_stable_version(&self) -> Option<SemverVersion> {
+        self.versions.iter()
+            .map(|v| SemverVersion::parse(&v.vers).ok())
+            .flatten()
+            .filter(|v| !v.is_prerelease())
+            .max()
     }
 
     #[inline]
