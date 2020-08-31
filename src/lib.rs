@@ -40,9 +40,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod bare_index;
+
+pub use bare_index::BareIndex;
+
 #[derive(Debug)]
 pub enum Error {
     Git(git2::Error),
+    Url(String),
 }
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -320,33 +325,16 @@ impl Index {
 
     /// Retrieve a single crate by name (case insensitive) from the index
     pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
-        if !crate_name.is_ascii() {
-            return None;
-        }
-        let name_lower = crate_name.to_ascii_lowercase();
-        let mut rel_path = String::with_capacity(crate_name.len() + 6);
-        match name_lower.len() {
-            0 => return None,
-            1 => rel_path.push('1'),
-            2 => rel_path.push('2'),
-            3 => {
-                rel_path.push('3');
-                rel_path.push(std::path::MAIN_SEPARATOR);
-                rel_path.push_str(&name_lower[0..1]);
+        match crate_name_to_relative_path(crate_name) {
+            Some(rel_path) => {
+                let path = self.path.join(rel_path);
+                if path.exists() {
+                    Crate::new(path.as_path()).ok()
+                } else {
+                    None
+                }
             }
-            _ => {
-                rel_path.push_str(&name_lower[0..2]);
-                rel_path.push(std::path::MAIN_SEPARATOR);
-                rel_path.push_str(&name_lower[2..4]);
-            }
-        };
-        rel_path.push(std::path::MAIN_SEPARATOR);
-        rel_path.push_str(&name_lower);
-        let path = self.path.join(rel_path);
-        if path.exists() {
-            Crate::new(path.as_path()).ok()
-        } else {
-            None
+            None => None,
         }
     }
 
@@ -365,6 +353,34 @@ impl Index {
     pub fn path(&self) -> &Path {
         &self.path
     }
+}
+
+fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
+    if !crate_name.is_ascii() {
+        return None;
+    }
+
+    let name_lower = crate_name.to_ascii_lowercase();
+    let mut rel_path = String::with_capacity(crate_name.len() + 6);
+    match name_lower.len() {
+        0 => return None,
+        1 => rel_path.push('1'),
+        2 => rel_path.push('2'),
+        3 => {
+            rel_path.push('3');
+            rel_path.push(std::path::MAIN_SEPARATOR);
+            rel_path.push_str(&name_lower[0..1]);
+        }
+        _ => {
+            rel_path.push_str(&name_lower[0..2]);
+            rel_path.push(std::path::MAIN_SEPARATOR);
+            rel_path.push_str(&name_lower[2..4]);
+        }
+    };
+    rel_path.push(std::path::MAIN_SEPARATOR);
+    rel_path.push_str(&name_lower);
+
+    Some(rel_path)
 }
 
 /// A single crate that contains many published versions
@@ -414,6 +430,86 @@ impl Crate {
         }
         debug_assert_eq!(versions.len(), versions.capacity());
         Ok(Crate {
+            versions: versions.into_boxed_slice(),
+        })
+    }
+
+    /// Parse crate index entry from a .cache file, this can fail for a number of reasons
+    ///
+    /// 1. There is no entry for this crate
+    /// 2. The entry was created with an older commit and might be outdated
+    /// 3. The entry is a newer version than what can be read, would only
+    /// happen if a future version of cargo changed the format of the cache entries
+    /// 4. The cache entry is malformed somehow
+    pub fn from_cache_slice(mut bytes: &[u8], index_version: &str) -> io::Result<Crate> {
+        const CURRENT_CACHE_VERSION: u8 = 1;
+
+        // See src/cargo/sources/registry/index.rs
+        let (first_byte, rest) = bytes
+            .split_first()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "malformed cache"))?;
+
+        if *first_byte != CURRENT_CACHE_VERSION {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "looks like a different Cargo's cache, bailing out",
+            ));
+        }
+
+        fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = &'a [u8]> + 'a {
+            struct Split<'a> {
+                haystack: &'a [u8],
+                needle: u8,
+            }
+
+            impl<'a> Iterator for Split<'a> {
+                type Item = &'a [u8];
+
+                fn next(&mut self) -> Option<&'a [u8]> {
+                    if self.haystack.is_empty() {
+                        return None;
+                    }
+                    let (ret, remaining) = match memchr::memchr(self.needle, self.haystack) {
+                        Some(pos) => (&self.haystack[..pos], &self.haystack[pos + 1..]),
+                        None => (self.haystack, &[][..]),
+                    };
+                    self.haystack = remaining;
+                    Some(ret)
+                }
+            }
+
+            Split { haystack, needle }
+        }
+
+        let mut iter = split(rest, 0);
+        if let Some(update) = iter.next() {
+            if update != index_version.as_bytes() {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "cache out of date: current index ({}) != cache ({})",
+                        index_version,
+                        std::str::from_utf8(update)
+                            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
+                    ),
+                ))?;
+            }
+        } else {
+            return Err(io::Error::new(io::ErrorKind::Other, "malformed file"));
+        }
+
+        let mut versions = Vec::new();
+
+        // Each entry is a tuple of (semver, version_json)
+        while let Some(version) = iter.next() {
+            iter.next()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "malformed file"))?;
+            let version: Version = serde_json::from_slice(version)
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            versions.push(version);
+        }
+
+        Ok(Self {
             versions: versions.into_boxed_slice(),
         })
     }
@@ -474,6 +570,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Git(e) => fmt::Display::fmt(&e, f),
+            Self::Url(u) => f.write_str(&u),
         }
     }
 }
@@ -482,6 +579,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Git(e) => Some(e),
+            Self::Url(_) => None,
         }
     }
 }
