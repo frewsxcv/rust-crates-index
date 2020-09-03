@@ -1,5 +1,5 @@
 use crate::{Crate, Error};
-use std::path::PathBuf;
+use std::{io, path::{Path, PathBuf}};
 
 pub struct BareIndex {
     path: PathBuf,
@@ -27,8 +27,83 @@ impl BareIndex {
 
     /// Opens the local index, which acts as a kind of lock for source control
     /// operations
-    pub fn open(&'a self) -> BareIndexRepo<'a> {
+    pub fn open_or_clone(&self) -> Result<BareIndexRepo<'_>, Error> {
         BareIndexRepo::new(self)
+    }
+}
+
+pub struct BareIndexRepo<'a> {
+    inner: &'a BareIndex,
+    head: git2::Oid,
+    repo: git2::Repository,
+    tree: Option<git2::Tree<'static>>,
+    head_str: String,
+}
+
+impl<'a> BareIndexRepo<'a> {
+    fn new(index: &'a BareIndex) -> Result<Self, Error> {
+        let exists = git2::Repository::discover(&index.path)
+            .map(|repository| {
+                repository
+                    .find_remote("origin")
+                    .ok()
+                    // Cargo creates a checkout without an origin set,
+                    // so default to true in case of missing origin
+                    .map_or(true, |remote| {
+                        remote.url().map_or(true, |url| url == index.url)
+                    })
+            })
+            .unwrap_or(false);
+
+        if !exists {
+            git2::build::RepoBuilder::new()
+                .fetch_options(crate::fetch_opts())
+                .bare(true)
+                .clone(&index.url, &index.path)?;
+        }
+
+        let repo = git2::Repository::open(&index.path)?;
+        let head = repo.refname_to_id("FETCH_HEAD")?;
+        let head_str = head.to_string();
+
+        let tree = {
+            let commit = repo.find_commit(head)?;
+            let tree = commit.tree()?;
+
+            unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) }
+        };
+
+        Ok(Self {
+            inner: index,
+            head,
+            head_str,
+            repo,
+            tree: Some(tree),
+        })
+    }
+
+    pub fn fetch(&mut self) -> Result<(), Error> {
+        {
+            let mut origin_remote = self.repo
+            .find_remote("origin")
+            .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
+
+            origin_remote.fetch(&["master"], Some(&mut crate::fetch_opts()), None)?;
+        }
+
+        let head = self.repo.refname_to_id("FETCH_HEAD")?;
+        let head_str = head.to_string();
+
+        let commit = self.repo.find_commit(head)?;
+        let tree = commit.tree()?;
+
+        let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
+
+        self.head = head;
+        self.head_str = head_str;
+        self.tree = Some(tree);
+
+        Ok(())
     }
 
     pub fn krate(&self, name: &str) -> Option<Crate> {
@@ -40,61 +115,38 @@ impl BareIndex {
         // Attempt to load the .cache/ entry first, this is purely an acceleration
         // mechanism and can fail for a few reasons that are non-fatal
         {
-            let mut cache_path = self.path.join(".cache");
-            cache_path.push(rel_path);
+            let mut cache_path = self.inner.path.join(".cache");
+            cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Some(krate) = Crate::from_cache_slice(&cache_bytes) {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, &self.head_str) {
                     return Some(krate);
                 }
             }
         }
 
-        // // Fallback to reading the blob directly if we don't have a valid cache entry
-        // let repo = self.repo()?;
-        // let tree = self.tree()?;
-        // let entry = tree.get_path(path)?;
-        // let object = entry.to_object(repo)?;
-        // let blob = match object.as_blob() {
-        //     Some(blob) => blob,
-        //     None => anyhow::bail!("path `{}` is not a blob in the git repo", path.display()),
-        // };
+        // Fallback to reading the blob directly via git if we don't have a
+        // valid cache entry
+        self.krate_from_blob(&rel_path).ok()
+    }
 
-        unimplemented!()
+    fn krate_from_blob(&self, path: &str) -> Result<Crate, Error> {
+        let entry = self.tree.as_ref().unwrap().get_path(&Path::new(path))?;
+        let object = entry.to_object(&self.repo)?;
+        let blob = object.as_blob().ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
+
+        Crate::from_slice(blob.content()).map_err(Error::Io)
     }
 }
 
-pub struct BareIndexRepo<'a> {
-    inner: &'a BareIndex,
-    head: Option<git2::Oid>,
-    repo: Option<git2::Repository>,
+impl<'a> Drop for BareIndexRepo<'a> {
+    fn drop(&mut self) {
+        // Just be sure to drop this before our other fields
+        self.tree.take();
+    }
 }
 
-impl<'a> BareIndexRepo<'a> {
-    fn new(index: &'a BareIndex) -> Self {
-        Self {
-            inner: index,
-            head: None,
-            repo: None,
-        }
-    }
-
-    pub fn exists(&self) -> bool {
-        git2::Repository::discover(&self.inner.path)
-            .map(|repository| {
-                repository
-                    .find_remote("origin")
-                    .ok()
-                    // Cargo creates a checkout without an origin set,
-                    // so default to true in case of missing origin
-                    .map_or(true, |remote| {
-                        remote.url().map_or(true, |url| url == self.inner.url)
-                    })
-            })
-            .unwrap_or(false)
-    }
-
-/// Converts a full url, eg, into the root directory name where cargo itself
-/// will fetch it on disk
+/// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
+/// the root directory name where cargo itself will fetch it on disk
 fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     fn to_hex(num: u64) -> String {
         const CHARS: &[u8] = b"0123456789abcdef";
@@ -177,7 +229,6 @@ fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(query);
     }
 
-    println!("hashing {}", canonical);
     let ident = to_hex(hash_u64(&canonical));
 
     if canonical.ends_with('/') {
@@ -218,7 +269,7 @@ mod test {
         );
 
         // Ensure we actually strip off the irrelevant parts of a url, note that
-        // the .git suffix is not part of the canonical url, but it used when hashing
+        // the .git suffix is not part of the canonical url, but *is* used when hashing
         assert_eq!(
             super::url_to_local_dir(&format!(
                 "registry+{}.git?one=1&two=2#fragment",

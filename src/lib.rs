@@ -36,19 +36,15 @@ use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::{
     collections::HashMap,
-    fmt, io, iter,
+    io, iter,
     path::{Path, PathBuf},
 };
 
 mod bare_index;
+mod error;
 
-pub use bare_index::BareIndex;
-
-#[derive(Debug)]
-pub enum Error {
-    Git(git2::Error),
-    Url(String),
-}
+pub use bare_index::{BareIndex, BareIndexRepo};
+pub use error::Error;
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
@@ -441,7 +437,7 @@ impl Crate {
     /// 3. The entry is a newer version than what can be read, would only
     /// happen if a future version of cargo changed the format of the cache entries
     /// 4. The cache entry is malformed somehow
-    pub fn from_cache_slice(mut bytes: &[u8], index_version: &str) -> io::Result<Crate> {
+    pub fn from_cache_slice(bytes: &[u8], index_version: &str) -> io::Result<Crate> {
         const CURRENT_CACHE_VERSION: u8 = 1;
 
         // See src/cargo/sources/registry/index.rs
@@ -492,7 +488,7 @@ impl Crate {
                         std::str::from_utf8(update)
                             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
                     ),
-                ))?;
+                ));
             }
         } else {
             return Err(io::Error::new(io::ErrorKind::Other, "malformed file"));
@@ -563,30 +559,6 @@ impl Crate {
     #[inline]
     pub fn name(&self) -> &str {
         self.latest_version().name()
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Git(e) => fmt::Display::fmt(&e, f),
-            Self::Url(u) => f.write_str(&u),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Git(e) => Some(e),
-            Self::Url(_) => None,
-        }
-    }
-}
-
-impl From<git2::Error> for Error {
-    fn from(e: git2::Error) -> Self {
-        Self::Git(e)
     }
 }
 
