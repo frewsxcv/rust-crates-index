@@ -3,7 +3,7 @@ use std::{io, path::{Path, PathBuf}};
 
 pub struct BareIndex {
     path: PathBuf,
-    url: String,
+    pub url: String,
 }
 
 impl BareIndex {
