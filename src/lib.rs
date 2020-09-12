@@ -497,7 +497,7 @@ impl Crate {
         let mut versions = Vec::new();
 
         // Each entry is a tuple of (semver, version_json)
-        while let Some(version) = iter.next() {
+        while let Some(_version) = iter.next() {
             let version_slice = iter
                 .next()
                 .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "malformed file"))?;
