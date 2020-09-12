@@ -498,7 +498,8 @@ impl Crate {
 
         // Each entry is a tuple of (semver, version_json)
         while let Some(version) = iter.next() {
-            let version_slice = iter.next()
+            let version_slice = iter
+                .next()
                 .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "malformed file"))?;
             let version: Version = serde_json::from_slice(version_slice)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;

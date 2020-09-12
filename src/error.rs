@@ -1,5 +1,5 @@
-use std::{fmt, io::Error as IoErr};
 use git2::Error as GitErr;
+use std::{fmt, io::Error as IoErr};
 
 #[derive(Debug)]
 pub enum Error {

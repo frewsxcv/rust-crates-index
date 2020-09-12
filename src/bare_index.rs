@@ -1,5 +1,8 @@
 use crate::{Crate, Error};
-use std::{io, path::{Path, PathBuf}};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 pub struct BareIndex {
     path: PathBuf,
@@ -73,7 +76,9 @@ impl<'a> BareIndexRepo<'a> {
         }
 
         let repo = git2::Repository::open(&index.path)?;
-        let head = repo.refname_to_id("FETCH_HEAD").or_else(|_| repo.refname_to_id("HEAD"))?;
+        let head = repo
+            .refname_to_id("FETCH_HEAD")
+            .or_else(|_| repo.refname_to_id("HEAD"))?;
         let head_str = head.to_string();
 
         let tree = {
@@ -97,14 +102,18 @@ impl<'a> BareIndexRepo<'a> {
     /// from the repository, as their commit version will no longer match.
     pub fn fetch(&mut self) -> Result<(), Error> {
         {
-            let mut origin_remote = self.repo
-            .find_remote("origin")
-            .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
+            let mut origin_remote = self
+                .repo
+                .find_remote("origin")
+                .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
 
             origin_remote.fetch(&["master"], Some(&mut crate::fetch_opts()), None)?;
         }
 
-        let head = self.repo.refname_to_id("FETCH_HEAD").or_else(|_| self.repo.refname_to_id("HEAD"))?;
+        let head = self
+            .repo
+            .refname_to_id("FETCH_HEAD")
+            .or_else(|_| self.repo.refname_to_id("HEAD"))?;
         let head_str = head.to_string();
 
         let commit = self.repo.find_commit(head)?;
@@ -148,7 +157,9 @@ impl<'a> BareIndexRepo<'a> {
     fn krate_from_blob(&self, path: &str) -> Result<Crate, Error> {
         let entry = self.tree.as_ref().unwrap().get_path(&Path::new(path))?;
         let object = entry.to_object(&self.repo)?;
-        let blob = object.as_blob().ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
+        let blob = object
+            .as_blob()
+            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
 
         Crate::from_slice(blob.content()).map_err(Error::Io)
     }
@@ -307,7 +318,9 @@ mod test {
 
         let index = BareIndex::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL);
 
-        let mut repo = index.open_or_clone().expect("Failed to clone crates.io index");
+        let mut repo = index
+            .open_or_clone()
+            .expect("Failed to clone crates.io index");
 
         fn test_sval(repo: &super::BareIndexRepo<'_>) {
             let krate = repo
@@ -350,10 +363,14 @@ mod test {
         let index = BareIndex::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL);
 
         {
-            let _ = index.open_or_clone().expect("Failed to clone crates.io index");
+            let _ = index
+                .open_or_clone()
+                .expect("Failed to clone crates.io index");
         }
 
-        let mut repo = index.open_or_clone().expect("Failed to open crates.io index");
+        let mut repo = index
+            .open_or_clone()
+            .expect("Failed to open crates.io index");
 
         fn test_sval(repo: &super::BareIndexRepo<'_>) {
             let krate = repo
