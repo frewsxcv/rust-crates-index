@@ -27,3 +27,6 @@ tempdir = "0.3.7"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[features]
+vendored-openssl = ["git2/vendored-openssl"]
