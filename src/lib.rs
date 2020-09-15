@@ -571,6 +571,7 @@ mod test {
     #[test]
     fn test_can_parse_all() {
         let tmp_dir = TempDir::new("test3").unwrap();
+        let mut found_gcc_crate = false;
 
         let index = Index::new(tmp_dir.path());
         assert!(!index.exists());
@@ -578,10 +579,19 @@ mod test {
         assert!(index.exists());
 
         for path in index.crate_index_paths() {
-            if let Err(e) = Crate::new(&path) {
-                let _ = tmp_dir.into_path();
-                panic!("{} {}", e, path.display());
+            match Crate::new(&path) {
+                Ok(c) => {
+                    if c.name() == "gcc" {
+                        found_gcc_crate = true;
+                    }
+                }
+                Err(e) => {
+                    let _ = tmp_dir.into_path();
+                    panic!("{} {}", e, path.display());
+                }
             }
         }
+
+        assert!(found_gcc_crate);
     }
 }
