@@ -49,6 +49,9 @@ pub struct BareIndexRepo<'a> {
     inner: &'a BareIndex,
     head: git2::Oid,
     repo: git2::Repository,
+    /// This is safe as we implement Drop manually, dropping this tree
+    /// reference before we drop the actual repo that its lifetime is actually
+    /// tied to, which is basically the same way that cargo works
     tree: Option<git2::Tree<'static>>,
     head_str: String,
 }
@@ -77,6 +80,7 @@ impl<'a> BareIndexRepo<'a> {
 
         let repo = git2::Repository::open(&index.path)?;
         let head = repo
+            // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
             .refname_to_id("FETCH_HEAD")
             .or_else(|_| repo.refname_to_id("HEAD"))?;
         let head_str = head.to_string();
@@ -85,6 +89,7 @@ impl<'a> BareIndexRepo<'a> {
             let commit = repo.find_commit(head)?;
             let tree = commit.tree()?;
 
+            // See comment on self.tree
             unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) }
         };
 
@@ -107,7 +112,11 @@ impl<'a> BareIndexRepo<'a> {
                 .find_remote("origin")
                 .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
 
-            origin_remote.fetch(&["master"], Some(&mut crate::fetch_opts()), None)?;
+            origin_remote.fetch(
+                &["+refs/heads/*:refs/remotes/origin/*"],
+                Some(&mut crate::fetch_opts()),
+                None,
+            )?;
         }
 
         let head = self
@@ -119,6 +128,7 @@ impl<'a> BareIndexRepo<'a> {
         let commit = self.repo.find_commit(head)?;
         let tree = commit.tree()?;
 
+        // See comment on self.tree
         let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
 
         self.head = head;
