@@ -35,8 +35,9 @@ impl BareIndex {
 
     /// Creates an index for the default crates.io registry, using the same
     /// disk location as cargo itself.
-    pub fn new_cargo_default() -> Result<Self, Error> {
-        Self::from_url(crate::INDEX_GIT_URL)
+    pub fn new_cargo_default() -> Self {
+        // UNWRAP: The default index git URL is known to safely convert to a path.
+        Self::from_url(crate::INDEX_GIT_URL).unwrap()
     }
 
     /// Opens the local index, which acts as a kind of lock for source control
