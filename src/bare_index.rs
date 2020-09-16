@@ -33,8 +33,9 @@ impl BareIndex {
         }
     }
 
-    /// Creates and index for the default crates.io registry
-    pub fn crates_io() -> Result<Self, Error> {
+    /// Creates an index for the default crates.io registry, using the same
+    /// disk location as cargo itself.
+    pub fn new_cargo_default() -> Result<Self, Error> {
         Self::from_url(crate::INDEX_GIT_URL)
     }
 
@@ -105,7 +106,7 @@ impl<'a> BareIndexRepo<'a> {
     /// Fetches latest from the remote index repository. Note that using this
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
-    pub fn fetch(&mut self) -> Result<(), Error> {
+    pub fn retrieve(&mut self) -> Result<(), Error> {
         {
             let mut origin_remote = self
                 .repo
@@ -141,7 +142,7 @@ impl<'a> BareIndexRepo<'a> {
     /// Reads a crate from the index, it will attempt to use a cached entry if
     /// one is available, otherwise it will fallback to reading the crate
     /// directly from the git blob containing the crate information.
-    pub fn krate(&self, name: &str) -> Option<Crate> {
+    pub fn crate_(&self, name: &str) -> Option<Crate> {
         let rel_path = match crate::crate_name_to_relative_path(name) {
             Some(rp) => rp,
             None => return None,
@@ -334,7 +335,7 @@ mod test {
 
         fn test_sval(repo: &super::BareIndexRepo<'_>) {
             let krate = repo
-                .krate("sval")
+                .crate_("sval")
                 .expect("Could not find the crate sval in the index");
 
             let version = krate
@@ -359,7 +360,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.fetch().expect("Failed to fetch crates.io index");
+        repo.retrieve().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
@@ -384,7 +385,7 @@ mod test {
 
         fn test_sval(repo: &super::BareIndexRepo<'_>) {
             let krate = repo
-                .krate("sval")
+                .crate_("sval")
                 .expect("Could not find the crate sval in the index");
 
             let version = krate
@@ -409,7 +410,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.fetch().expect("Failed to fetch crates.io index");
+        repo.retrieve().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
