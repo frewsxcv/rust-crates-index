@@ -47,15 +47,18 @@ impl BareIndex {
     }
 }
 
+/// Self-referential struct where `Tree` borrows from `Repository`
+struct UnsafeRepoTree {
+    /// Warning: order of the fields is necessary for safety. `tree` must Drop before `repo`.
+    tree: git2::Tree<'static>,
+    repo: git2::Repository,
+}
+
 pub struct BareIndexRepo<'a> {
     inner: &'a BareIndex,
     head: git2::Oid,
-    repo: git2::Repository,
-    /// This is safe as we implement Drop manually, dropping this tree
-    /// reference before we drop the actual repo that its lifetime is actually
-    /// tied to, which is basically the same way that cargo works
-    tree: Option<git2::Tree<'static>>,
     head_str: String,
+    rt: UnsafeRepoTree,
 }
 
 impl<'a> BareIndexRepo<'a> {
@@ -91,7 +94,7 @@ impl<'a> BareIndexRepo<'a> {
             let commit = repo.find_commit(head)?;
             let tree = commit.tree()?;
 
-            // See comment on self.tree
+            // See `UnsafeRepoTree`
             unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) }
         };
 
@@ -99,8 +102,10 @@ impl<'a> BareIndexRepo<'a> {
             inner: index,
             head,
             head_str,
-            repo,
-            tree: Some(tree),
+            rt: UnsafeRepoTree {
+                repo,
+                tree,
+            },
         })
     }
 
@@ -110,9 +115,9 @@ impl<'a> BareIndexRepo<'a> {
     pub fn retrieve(&mut self) -> Result<(), Error> {
         {
             let mut origin_remote = self
-                .repo
+                .rt.repo
                 .find_remote("origin")
-                .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
+                .or_else(|_| self.rt.repo.remote_anonymous(&self.inner.url))?;
 
             origin_remote.fetch(
                 &["+refs/heads/*:refs/remotes/origin/*"],
@@ -122,20 +127,20 @@ impl<'a> BareIndexRepo<'a> {
         }
 
         let head = self
-            .repo
+            .rt.repo
             .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.repo.refname_to_id("HEAD"))?;
+            .or_else(|_| self.rt.repo.refname_to_id("HEAD"))?;
         let head_str = head.to_string();
 
-        let commit = self.repo.find_commit(head)?;
+        let commit = self.rt.repo.find_commit(head)?;
         let tree = commit.tree()?;
 
-        // See comment on self.tree
+        // See `UnsafeRepoTree`
         let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
 
         self.head = head;
         self.head_str = head_str;
-        self.tree = Some(tree);
+        self.rt.tree = tree;
 
         Ok(())
     }
@@ -167,20 +172,13 @@ impl<'a> BareIndexRepo<'a> {
     }
 
     fn krate_from_blob(&self, path: &str) -> Result<Crate, Error> {
-        let entry = self.tree.as_ref().unwrap().get_path(&Path::new(path))?;
-        let object = entry.to_object(&self.repo)?;
+        let entry = self.rt.tree.get_path(&Path::new(path))?;
+        let object = entry.to_object(&self.rt.repo)?;
         let blob = object
             .as_blob()
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
 
         Crate::from_slice(blob.content()).map_err(Error::Io)
-    }
-}
-
-impl<'a> Drop for BareIndexRepo<'a> {
-    fn drop(&mut self) {
-        // Just be sure to drop this before our other fields
-        self.tree.take();
     }
 }
 
