@@ -33,7 +33,7 @@
 
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
-use smol_str::SmolStr;
+use smartstring::alias::String as SmolStr;
 use std::{
     collections::HashMap,
     io, iter,
