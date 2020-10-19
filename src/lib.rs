@@ -192,7 +192,7 @@ impl Default for DependencyKind {
     }
 }
 
-/// Constructed from `Index::crates`
+/// Constructed from [`Index::crates`]
 ///
 /// Silently ignores crates that can't be loaded/parsed
 pub struct Crates(CrateIndexPaths);
@@ -209,7 +209,7 @@ impl Iterator for Crates {
     }
 }
 
-/// Constructed from `Index::crate_index_paths`
+/// Constructed from [`Index::crate_index_paths`]
 pub struct CrateIndexPaths(iter::Chain<iter::Chain<glob::Paths, glob::Paths>, glob::Paths>);
 
 impl CrateIndexPaths {

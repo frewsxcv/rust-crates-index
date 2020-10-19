@@ -4,6 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Access to a "bare" git index that fetches files directly from the repo instead of local checkout
+///
+/// Uses Cargo's cache
 pub struct BareIndex {
     path: PathBuf,
     pub url: String,
@@ -54,6 +57,7 @@ struct UnsafeRepoTree {
     repo: git2::Repository,
 }
 
+/// Opened instance of [`BareIndex`]
 pub struct BareIndexRepo<'a> {
     inner: &'a BareIndex,
     head: git2::Oid,
