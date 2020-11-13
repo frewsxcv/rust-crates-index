@@ -80,14 +80,26 @@ impl<'a> BareIndexRepo<'a> {
             })
             .unwrap_or(false);
 
-        if !exists {
-            git2::build::RepoBuilder::new()
-                .fetch_options(crate::fetch_opts())
-                .bare(true)
-                .clone(&index.url, &index.path)?;
-        }
+        let repo = if !exists {
+            let mut opts = git2::RepositoryInitOptions::new();
+            opts.external_template(false);
+            let repo = git2::Repository::init_opts(&index.path, &opts)?;
+            {
+                let mut origin_remote = repo
+                    .find_remote("origin")
+                    .or_else(|_| repo.remote_anonymous(&index.url))?;
 
-        let repo = git2::Repository::open(&index.path)?;
+                origin_remote.fetch(
+                    &["HEAD:refs/remotes/origin/HEAD"],
+                    Some(&mut crate::fetch_opts()),
+                    None,
+                )?;
+            }
+            repo
+        } else {
+            git2::Repository::open(&index.path)?
+        };
+
         let head = repo
             // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
             .refname_to_id("FETCH_HEAD")
@@ -106,10 +118,7 @@ impl<'a> BareIndexRepo<'a> {
             inner: index,
             head,
             head_str,
-            rt: UnsafeRepoTree {
-                repo,
-                tree,
-            },
+            rt: UnsafeRepoTree { repo, tree },
         })
     }
 
@@ -119,7 +128,8 @@ impl<'a> BareIndexRepo<'a> {
     pub fn retrieve(&mut self) -> Result<(), Error> {
         {
             let mut origin_remote = self
-                .rt.repo
+                .rt
+                .repo
                 .find_remote("origin")
                 .or_else(|_| self.rt.repo.remote_anonymous(&self.inner.url))?;
 
@@ -131,7 +141,8 @@ impl<'a> BareIndexRepo<'a> {
         }
 
         let head = self
-            .rt.repo
+            .rt
+            .repo
             .refname_to_id("FETCH_HEAD")
             .or_else(|_| self.rt.repo.refname_to_id("HEAD"))?;
         let head_str = head.to_string();

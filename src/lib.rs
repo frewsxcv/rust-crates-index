@@ -290,9 +290,10 @@ impl Index {
 
     /// Downloads the index to the path specified from the constructor
     pub fn retrieve(&self) -> Result<(), Error> {
-        git2::build::RepoBuilder::new()
-            .fetch_options(fetch_opts())
-            .clone(INDEX_GIT_URL, &self.path)?;
+        let mut opts = git2::RepositoryInitOptions::new();
+        opts.external_template(false);
+        git2::Repository::init_opts(&self.path, &opts)?;
+        self.update()?;
         Ok(())
     }
 
