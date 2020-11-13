@@ -58,6 +58,8 @@ pub struct Version {
     cksum: [u8; 32],
     features: HashMap<String, Vec<String>>,
     yanked: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    links: Option<Box<str>>,
 }
 
 impl Version {
@@ -90,6 +92,11 @@ impl Version {
     #[inline]
     pub fn features(&self) -> &HashMap<String, Vec<String>> {
         &self.features
+    }
+
+    #[inline]
+    pub fn links(&self) -> Option<&str> {
+        self.links.as_deref()
     }
 
     /// Whether this version was [yanked](http://doc.crates.io/crates-io.html#cargo-yank) from the
