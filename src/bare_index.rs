@@ -184,6 +184,38 @@ impl<'a> BareIndexRepo<'a> {
 
         Crate::from_slice(blob.content()).map_err(Error::Io)
     }
+
+    /// Retrieve an iterator over all the crates in the index.
+    /// skips crates that can not be parsed.
+    pub fn crates(&self) -> Crates<'_> {
+        let tree = self.rt.tree.clone().into_object();
+        Crates {
+            stack: vec![tree],
+            rt: &self.rt,
+        }
+    }
+}
+
+pub struct Crates<'a> {
+    stack: Vec<git2::Object<'a>>,
+    rt: &'a UnsafeRepoTree,
+}
+
+impl<'a> Iterator for Crates<'a> {
+    type Item = Crate;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let last = self.stack.pop()?;
+        if let Some(tree) = last.as_tree() {
+            for entry in tree.iter().rev() {
+                self.stack.push(entry.to_object(&self.rt.repo).unwrap());
+            }
+            return self.next();
+        }
+        last.as_blob()
+            .and_then(|blob| Crate::from_slice(blob.content()).ok())
+            .or_else(|| self.next())
+    }
 }
 
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
@@ -322,6 +354,29 @@ mod test {
                 crate::INDEX_GIT_URL.to_owned()
             )
         );
+    }
+
+    #[test]
+    fn bare_iterator() {
+        use super::BareIndex;
+
+        let tmp_dir = tempdir::TempDir::new("bare_iterator").unwrap();
+
+        let index = BareIndex::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL);
+
+        let repo = index
+            .open_or_clone()
+            .expect("Failed to clone crates.io index");
+
+        let mut found_gcc_crate = false;
+
+        for c in repo.crates() {
+            if c.name() == "gcc" {
+                found_gcc_crate = true;
+            }
+        }
+
+        assert!(found_gcc_crate);
     }
 
     #[test]
