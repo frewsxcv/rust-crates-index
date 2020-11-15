@@ -18,6 +18,12 @@ pub struct Index {
 }
 
 impl Index {
+    #[doc(hidden)]
+    #[deprecated(note = "use new_cargo_default()")]
+    pub fn new<P: Into<PathBuf>>(path: P) -> Self {
+        Self::from_path_and_url(path.into(), crate::INDEX_GIT_URL.into()).unwrap()
+    }
+
     /// Creates an index for the default crates.io registry, using the same
     /// disk location as Cargo itself.
     ///
@@ -97,6 +103,24 @@ impl Index {
             head_str: head.to_string(),
             rt: UnsafeRepoTree { repo, tree },
         })
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "use update()")]
+    pub fn retrieve_or_update(&mut self) -> Result<(), Error> {
+        self.update()
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "it's always retrieved. there's no need to call it any more")]
+    pub fn retrieve(&self) -> Result<(), Error> {
+        Ok(())
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "it's always retrieved, so it's assumed to always exist")]
+    pub fn exists(&self) -> bool {
+        true
     }
 
     /// Fetches latest from the remote index repository. Note that using this
@@ -193,6 +217,12 @@ impl Index {
             stack,
             rt: &self.rt,
         }
+    }
+
+    /// Get the index directory.
+    #[inline]
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
 
