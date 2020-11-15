@@ -83,7 +83,7 @@ impl<'a> BareIndexRepo<'a> {
             })
             .unwrap_or(false);
 
-        let repo = if !exists {
+        let (repo, head) = if !exists {
             let mut opts = git2::RepositoryInitOptions::new();
             opts.external_template(false);
             let repo = git2::Repository::init_opts(&index.path, &opts)?;
@@ -98,16 +98,15 @@ impl<'a> BareIndexRepo<'a> {
                     None,
                 )?;
             }
-            repo
-        } else {
-            git2::Repository::open(&index.path)?
-        };
 
-        let head = repo
-            // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
+            let head = repo.refname_to_id("FETCH_HEAD")
+                .or_else(|_| repo.refname_to_id("HEAD"))?;
+            (repo, head)
+        } else {
+            let repo = git2::Repository::open(&index.path)?;
+            let head = repo.refname_to_id("HEAD")?;
+            (repo, head)
+        };
 
         let tree = {
             let commit = repo.find_commit(head)?;
@@ -120,7 +119,7 @@ impl<'a> BareIndexRepo<'a> {
         Ok(Self {
             inner: index,
             head,
-            head_str,
+            head_str: head.to_string(),
             rt: UnsafeRepoTree { repo, tree },
         })
     }
@@ -129,27 +128,7 @@ impl<'a> BareIndexRepo<'a> {
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
     pub fn retrieve(&mut self) -> Result<(), Error> {
-        {
-            let mut origin_remote = self
-                .rt
-                .repo
-                .find_remote("origin")
-                .or_else(|_| self.rt.repo.remote_anonymous(&self.inner.url))?;
-
-            origin_remote.fetch(
-                &["+HEAD:refs/remotes/origin/HEAD"],
-                Some(&mut crate::fetch_opts()),
-                None,
-            )?;
-        }
-
-        let head = self
-            .rt
-            .repo
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.rt.repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
-
+        let head = Self::fetch_remote_head(&self.rt.repo, &self.inner.url)?;
         let commit = self.rt.repo.find_commit(head)?;
         let tree = commit.tree()?;
 
@@ -157,10 +136,26 @@ impl<'a> BareIndexRepo<'a> {
         let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
 
         self.head = head;
-        self.head_str = head_str;
+        self.head_str = head.to_string();
         self.rt.tree = tree;
 
         Ok(())
+    }
+
+    /// Returns new HEAD
+    fn fetch_remote_head(repo: &git2::Repository, url: &str) -> Result<git2::Oid, git2::Error> {
+        let mut origin_remote = repo
+            .find_remote("origin")
+            .or_else(|_| repo.remote_anonymous(url))?;
+
+        origin_remote.fetch(
+            &["+HEAD:refs/remotes/origin/HEAD"],
+            Some(&mut crate::fetch_opts()),
+            None,
+        )?;
+
+        repo.refname_to_id("FETCH_HEAD")
+            .or_else(|_| repo.refname_to_id("HEAD"))
     }
 
     /// Reads a crate from the index, it will attempt to use a cached entry if
