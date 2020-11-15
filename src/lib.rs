@@ -20,7 +20,7 @@
 //! ## Examples
 //!
 //! ```rust
-//! let index = crates_index::Index::new_cargo_default();
+//! let index = crates_index::Index::new_cargo_default().unwrap();
 //! if !index.exists() {
 //!    index.retrieve().expect("Could not fetch crates.io index");
 //! }
@@ -34,18 +34,18 @@
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smartstring::alias::String as SmolStr;
+use std::collections::HashMap;
 use std::collections::HashSet;
+use std::io;
+use std::path::Path;
 use std::sync::Arc;
-use std::{
-    collections::HashMap,
-    io, iter,
-    path::{Path, PathBuf},
-};
 
 mod bare_index;
 mod error;
 
-pub use bare_index::Index as BareIndex;
+pub use bare_index::Crates;
+pub use bare_index::Index;
+
 pub use error::Error;
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -206,167 +206,12 @@ impl Default for DependencyKind {
     }
 }
 
-/// Constructed from [`Index::crates`]
-///
-/// Silently ignores crates that can't be loaded/parsed
-pub struct Crates(CrateIndexPaths);
-
-impl Iterator for Crates {
-    type Item = Crate;
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(p) = self.0.next() {
-            if let Ok(c) = Crate::new(&p) {
-                return Some(c);
-            }
-        }
-        None
-    }
-}
-
-/// Constructed from [`Index::crate_index_paths`]
-struct CrateIndexPaths(iter::Chain<iter::Chain<glob::Paths, glob::Paths>, glob::Paths>);
-
-impl CrateIndexPaths {
-    fn new<P: AsRef<Path>>(path: P) -> CrateIndexPaths {
-        let mut match_options = glob::MatchOptions::new();
-        match_options.require_literal_leading_dot = true;
-        let path = path.as_ref();
-
-        // > 3 characters
-        let index_paths1 =
-            glob::glob_with(&format!("{}/*/*/*", path.to_str().unwrap()), match_options).unwrap();
-
-        // 1 or 2
-        let index_paths2 =
-            glob::glob_with(&format!("{}/[12]/*", path.to_str().unwrap()), match_options).unwrap();
-
-        // 3
-        let index_paths3 =
-            glob::glob_with(&format!("{}/3/*/*", path.to_str().unwrap()), match_options).unwrap();
-
-        CrateIndexPaths(index_paths1.chain(index_paths2).chain(index_paths3))
-    }
-}
-
-impl Iterator for CrateIndexPaths {
-    type Item = PathBuf;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|glob_result| glob_result.unwrap())
-    }
-}
-
 fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
     let mut proxy_opts = git2::ProxyOptions::new();
     proxy_opts.auto();
     let mut fetch_opts = git2::FetchOptions::new();
     fetch_opts.proxy_options(proxy_opts);
     fetch_opts
-}
-
-/// Wrapper around managing the crates.io-index git repository
-#[derive(Debug, Clone, PartialEq)]
-pub struct Index {
-    path: PathBuf,
-}
-
-impl Index {
-    /// Construct a new Index supplying a path where the index lives or should live
-    #[inline]
-    pub fn new<P: Into<PathBuf>>(path: P) -> Index {
-        Index { path: path.into() }
-    }
-
-    /// Use Cargo's own index in `CARGO_HOME` (`~/.cargo/registry/index`)
-    pub fn new_cargo_default() -> Index {
-        let cargo_home = home::cargo_home().unwrap_or_default();
-        Self::new(
-            cargo_home
-                .join("registry")
-                .join("index")
-                .join("github.com-1ecc6299db9ec823"),
-        )
-    }
-
-    /// Determines if a crates.io repository exists at `self.path`
-    pub fn exists(&self) -> bool {
-        git2::Repository::discover(&self.path)
-            .map(|repository| {
-                repository
-                    .find_remote("origin")
-                    .ok()
-                    // Cargo creates a checkout without an origin set,
-                    // so default to true in case of missing origin
-                    .map_or(true, |remote| {
-                        remote.url().map_or(true, |url| url == INDEX_GIT_URL)
-                    })
-            })
-            .unwrap_or(false)
-    }
-
-    /// Downloads the index to the path specified from the constructor
-    pub fn retrieve(&self) -> Result<(), Error> {
-        let mut opts = git2::RepositoryInitOptions::new();
-        opts.external_template(false);
-        git2::Repository::init_opts(&self.path, &opts)?;
-        self.update()?;
-        Ok(())
-    }
-
-    /// Assumes the index already exists at `self.path`, and updates it
-    pub fn update(&self) -> Result<(), Error> {
-        debug_assert!(self.exists());
-        let repo = git2::Repository::discover(&self.path)?;
-        let mut origin_remote = repo
-            .find_remote("origin")
-            .or_else(|_| repo.remote_anonymous(INDEX_GIT_URL))?;
-        origin_remote.fetch(&["HEAD"], Some(&mut fetch_opts()), None)?;
-        let oid = repo.refname_to_id("FETCH_HEAD")?;
-        let object = repo.find_object(oid, None).unwrap();
-        repo.reset(&object, git2::ResetType::Hard, None)?;
-        Ok(())
-    }
-
-    /// Downloads the index to the path specified from the constructor
-    pub fn retrieve_or_update(&self) -> Result<(), Error> {
-        if self.exists() {
-            self.update()
-        } else {
-            self.retrieve()
-        }
-    }
-
-    /// Retrieve a single crate by name (case insensitive) from the index
-    pub fn crate_(&self, crate_name: &str) -> Option<Crate> {
-        match crate_name_to_relative_path(crate_name) {
-            Some(rel_path) => {
-                let path = self.path.join(rel_path);
-                if path.exists() {
-                    Crate::new(path.as_path()).ok()
-                } else {
-                    None
-                }
-            }
-            None => None,
-        }
-    }
-
-    /// Retrieve an iterator over all the crates in the index
-    #[inline]
-    pub fn crates(&self) -> Crates {
-        Crates(CrateIndexPaths::new(&self.path))
-    }
-
-    /// Get the index directory.
-    #[inline]
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    /// Get the global configuration of the index.
-    pub fn index_config(&self) -> Result<IndexConfig, Error> {
-        let content = std::fs::read(self.path().join("config.json")).map_err(Error::Io)?;
-        serde_json::from_slice(&content).map_err(Error::Json)
-    }
 }
 
 fn crate_prefix(crate_name: &str, separator: char) -> Option<SmolStr> {
@@ -638,7 +483,8 @@ impl IndexConfig {
 
 #[cfg(test)]
 mod test {
-    use super::{Crate, Index};
+    use super::Crate;
+    use super::Index;
     use tempdir::TempDir;
 
     #[test]
@@ -653,13 +499,8 @@ mod test {
 
     #[test]
     fn test_dependencies() {
-        let tmp_dir = TempDir::new("test1").unwrap();
+        let index = Index::new_cargo_default().unwrap();
 
-        let index = Index::new(tmp_dir.path());
-        index
-            .retrieve_or_update()
-            .expect("could not fetch crates io index");
-        // let crate_ = index.crates().nth(0).expect("could not find a crate in the index");
         let crate_ = index
             .crate_("sval")
             .expect("Could not find the crate libnotify in the index");
@@ -686,23 +527,8 @@ mod test {
     }
 
     #[test]
-    fn test_retrieve_or_update() {
-        let tmp_dir = TempDir::new("test2").unwrap();
-
-        let index = Index::new(tmp_dir.path());
-        index
-            .retrieve_or_update()
-            .expect("could not fetch crates io index");
-        assert!(index.exists());
-        index
-            .retrieve_or_update()
-            .expect("could not fetch crates io index");
-        assert!(index.exists());
-    }
-
-    #[test]
     fn test_cargo_default_updates() {
-        let index = Index::new_cargo_default();
+        let mut index = Index::new_cargo_default().unwrap();
         index
             .update()
             .map_err(|e| {
@@ -726,22 +552,16 @@ mod test {
         let tmp_dir = TempDir::new("test3").unwrap();
         let mut found_gcc_crate = false;
 
-        let index = Index::new(tmp_dir.path());
-        assert!(!index.exists());
-        index.retrieve().unwrap();
-        assert!(index.exists());
+        let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
 
-        for path in crate::CrateIndexPaths::new(index.path()) {
-            match Crate::new(&path) {
+        for c in index.crates_refs() {
+            match c.parse() {
                 Ok(c) => {
                     if c.name() == "gcc" {
                         found_gcc_crate = true;
                     }
                 }
-                Err(e) => {
-                    let _ = tmp_dir.into_path();
-                    panic!("{} {}", e, path.display());
-                }
+                Err(e) => panic!("can't parse :( {:?}: {}", c, e),
             }
         }
 

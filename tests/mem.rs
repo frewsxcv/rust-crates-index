@@ -7,8 +7,7 @@ static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value(
 
 #[test]
 fn mem_usage() {
-    let index = Index::new_cargo_default();
-    assert!(index.exists());
+    let index = Index::new_cargo_default().unwrap();
 
     let before = ALLOCATOR.allocated();
     let all_crates: Vec<_> = index.crates().collect();
