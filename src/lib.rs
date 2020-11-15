@@ -349,6 +349,7 @@ impl Index {
     }
 
     /// Returns all the crate index file paths in the index
+    #[deprecated(note = "This method won't work with BareIndex")]
     pub fn crate_index_paths(&self) -> CrateIndexPaths {
         CrateIndexPaths::new(&self.path)
     }
@@ -646,6 +647,7 @@ mod test {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_can_parse_all() {
         let tmp_dir = TempDir::new("test3").unwrap();
         let mut found_gcc_crate = false;
