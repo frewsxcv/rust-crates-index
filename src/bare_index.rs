@@ -226,14 +226,18 @@ impl<'a> Iterator for CrateBlobs<'a> {
     type Item = CrateBlob<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let last = self.stack.pop()?;
-        if let Some(tree) = last.as_tree() {
-            for entry in tree.iter().rev() {
-                self.stack.push(entry.to_object(&self.rt.repo).unwrap());
+        while let Some(last) = self.stack.pop() {
+            match last.as_tree() {
+                None => return Some(CrateBlob(last)),
+                Some(tree) => {
+                    for entry in tree.iter().rev() {
+                        self.stack.push(entry.to_object(&self.rt.repo).unwrap());
+                    }
+                    continue;
+                }
             }
-            return self.next();
         }
-        Some(CrateBlob(last))
+        None
     }
 }
 
