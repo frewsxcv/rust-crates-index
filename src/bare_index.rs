@@ -175,10 +175,10 @@ impl<'a> BareIndexRepo<'a> {
 
         // Fallback to reading the blob directly via git if we don't have a
         // valid cache entry
-        self.krate_from_blob(&rel_path).ok()
+        self.crate_from_rel_path(&rel_path).ok()
     }
 
-    fn krate_from_blob(&self, path: &str) -> Result<Crate, Error> {
+    fn crate_from_rel_path(&self, path: &str) -> Result<Crate, Error> {
         let entry = self.rt.tree.get_path(&Path::new(path))?;
         let object = entry.to_object(&self.rt.repo)?;
         let blob = object
