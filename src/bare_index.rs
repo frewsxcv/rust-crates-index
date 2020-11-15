@@ -1,4 +1,5 @@
 use crate::{Crate, Error, IndexConfig};
+use std::fmt;
 use std::marker::PhantomPinned;
 use std::{
     io,
@@ -240,7 +241,7 @@ impl Index {
 
     /// update an iterator over all the crates in the index.
     /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
-    fn crates_refs(&self) -> CrateRefs<'_> {
+    pub(crate) fn crates_refs(&self) -> CratesRefs<'_> {
         let mut stack = Vec::with_capacity(800);
         // Scan only directories at top level (skip config.json, etc.)
         for entry in self.rt.tree.iter() {
@@ -249,7 +250,7 @@ impl Index {
                 stack.push(entry);
             }
         }
-        CrateRefs {
+        CratesRefs {
             stack,
             rt: &self.rt,
         }
@@ -269,13 +270,13 @@ impl Index {
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
 ///
 /// See [`CrateRef::parse`].
-struct CrateRefs<'a> {
+pub(crate) struct CratesRefs<'a> {
     stack: Vec<git2::Object<'a>>,
     rt: &'a UnsafeRepoTree,
 }
 
 /// Opaque representation of a crate in the index. See [`CrateRef::parse`].
-pub(crate) struct CrateRef<'a>(pub(crate) git2::Object<'a>);
+pub(crate) struct CrateRef<'a>(git2::Object<'a>);
 
 impl CrateRef<'_> {
     #[inline]
@@ -291,7 +292,7 @@ impl CrateRef<'_> {
     }
 }
 
-impl<'a> Iterator for CrateRefs<'a> {
+impl<'a> Iterator for CratesRefs<'a> {
     type Item = CrateRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -310,9 +311,18 @@ impl<'a> Iterator for CrateRefs<'a> {
     }
 }
 
+impl fmt::Debug for CrateRef<'_> {
+    #[cold]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CrateRef")
+            .field("oid", &self.0.id())
+            .finish()
+    }
+}
+
 /// Iterator over all crates in the index. Skips crates that failed to parse.
 pub struct Crates<'a> {
-    blobs: CrateRefs<'a>,
+    blobs: CratesRefs<'a>,
 }
 
 impl<'a> Iterator for Crates<'a> {
