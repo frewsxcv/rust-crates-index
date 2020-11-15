@@ -264,6 +264,7 @@ pub struct Index {
 
 impl Index {
     /// Construct a new Index supplying a path where the index lives or should live
+    #[inline]
     pub fn new<P: Into<PathBuf>>(path: P) -> Index {
         Index { path: path.into() }
     }
@@ -342,8 +343,9 @@ impl Index {
     }
 
     /// Retrieve an iterator over all the crates in the index
+    #[inline]
     pub fn crates(&self) -> Crates {
-        Crates(self.crate_index_paths())
+        Crates(CrateIndexPaths::new(&self.path))
     }
 
     /// Returns all the crate index file paths in the index
@@ -539,7 +541,6 @@ impl Crate {
     }
 
     /// Returns the highest version as per semantic versioning specification.
-    #[inline]
     pub fn highest_version(&self) -> SemverVersion {
         self.versions
             .iter()
@@ -554,7 +555,6 @@ impl Crate {
 
     /// Returns the highest version as per semantic versioning specification,
     /// filtering out versions with pre-release identifiers.
-    #[inline]
     pub fn highest_stable_version(&self) -> Option<SemverVersion> {
         self.versions
             .iter()
