@@ -127,7 +127,7 @@ impl<'a> BareIndexRepo<'a> {
                 .or_else(|_| self.rt.repo.remote_anonymous(&self.inner.url))?;
 
             origin_remote.fetch(
-                &["+refs/heads/*:refs/remotes/origin/*"],
+                &["+HEAD:refs/remotes/origin/HEAD"],
                 Some(&mut crate::fetch_opts()),
                 None,
             )?;
