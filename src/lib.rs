@@ -31,6 +31,7 @@
 //! }
 //! ```
 
+use crate::bare_index::CrateBlob;
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smartstring::alias::String as SmolStr;
@@ -438,6 +439,13 @@ impl Crate {
         Ok(Crate {
             versions: versions.into_boxed_slice(),
         })
+    }
+
+    /// Parse a crate from [`BareIndex::crates_blobs`] iterator
+    #[inline]
+    fn from_blob(blob: &CrateBlob<'_>) -> Option<Crate> {
+        let blob = blob.0.as_blob()?;
+        Crate::from_slice(blob.content()).ok()
     }
 
     /// Parse crate index entry from a .cache file, this can fail for a number of reasons

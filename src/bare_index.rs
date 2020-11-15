@@ -190,7 +190,16 @@ impl<'a> BareIndexRepo<'a> {
 
     /// Retrieve an iterator over all the crates in the index.
     /// skips crates that can not be parsed.
+    #[inline]
     pub fn crates(&self) -> Crates<'_> {
+        Crates {
+            blobs: self.crates_blobs(),
+        }
+    }
+
+    /// Retrieve an iterator over all the crates in the index.
+    /// Returns opaque blob for each crate, which can be used with [`Crate::from_blob`]
+    fn crates_blobs(&self) -> CrateBlobs<'_> {
         let mut stack = Vec::with_capacity(800);
         // Scan only directories at top level (skip config.json, etc.)
         for entry in self.rt.tree.iter() {
@@ -199,20 +208,22 @@ impl<'a> BareIndexRepo<'a> {
                 stack.push(entry);
             }
         }
-        Crates {
+        CrateBlobs {
             stack,
             rt: &self.rt,
         }
     }
 }
 
-pub struct Crates<'a> {
+struct CrateBlobs<'a> {
     stack: Vec<git2::Object<'a>>,
     rt: &'a UnsafeRepoTree,
 }
 
-impl<'a> Iterator for Crates<'a> {
-    type Item = Crate;
+pub(crate) struct CrateBlob<'a>(pub(crate) git2::Object<'a>);
+
+impl<'a> Iterator for CrateBlobs<'a> {
+    type Item = CrateBlob<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let last = self.stack.pop()?;
@@ -222,9 +233,24 @@ impl<'a> Iterator for Crates<'a> {
             }
             return self.next();
         }
-        last.as_blob()
-            .and_then(|blob| Crate::from_slice(blob.content()).ok())
-            .or_else(|| self.next())
+        Some(CrateBlob(last))
+    }
+}
+
+pub struct Crates<'a> {
+    blobs: CrateBlobs<'a>,
+}
+
+impl<'a> Iterator for Crates<'a> {
+    type Item = Crate;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(next) = self.blobs.next() {
+            if let Some(k) = Crate::from_blob(&next) {
+                return Some(k);
+            }
+        }
+        None
     }
 }
 
