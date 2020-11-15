@@ -114,7 +114,7 @@ impl<'a> BareIndexRepo<'a> {
     /// Fetches latest from the remote index repository. Note that using this
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
-    pub fn retrieve(&mut self) -> Result<(), Error> {
+    pub fn update(&mut self) -> Result<(), Error> {
         let head = Self::fetch_remote_head(&self.rt.repo, &self.inner.url)?;
         let commit = self.rt.repo.find_commit(head)?;
         let tree = commit.tree()?;
@@ -468,7 +468,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.retrieve().expect("Failed to fetch crates.io index");
+        repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
@@ -518,7 +518,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.retrieve().expect("Failed to fetch crates.io index");
+        repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
