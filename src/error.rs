@@ -11,6 +11,7 @@ pub enum Error {
 }
 
 impl fmt::Display for Error {
+    #[cold]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Git(e) => fmt::Display::fmt(&e, f),
@@ -22,6 +23,7 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {
+    #[cold]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Git(e) => Some(e),
@@ -32,6 +34,7 @@ impl std::error::Error for Error {
 }
 
 impl From<GitErr> for Error {
+    #[cold]
     fn from(e: GitErr) -> Self {
         Self::Git(e)
     }
