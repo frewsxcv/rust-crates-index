@@ -193,13 +193,13 @@ impl<'a> BareIndexRepo<'a> {
     #[inline]
     pub fn crates(&self) -> Crates<'_> {
         Crates {
-            blobs: self.crates_blobs(),
+            blobs: self.crates_refs(),
         }
     }
 
     /// Retrieve an iterator over all the crates in the index.
-    /// Returns opaque blob for each crate, which can be used with [`Crate::from_blob`]
-    fn crates_blobs(&self) -> CrateBlobs<'_> {
+    /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
+    fn crates_refs(&self) -> CrateRefs<'_> {
         let mut stack = Vec::with_capacity(800);
         // Scan only directories at top level (skip config.json, etc.)
         for entry in self.rt.tree.iter() {
@@ -208,27 +208,44 @@ impl<'a> BareIndexRepo<'a> {
                 stack.push(entry);
             }
         }
-        CrateBlobs {
+        CrateRefs {
             stack,
             rt: &self.rt,
         }
     }
 }
 
-struct CrateBlobs<'a> {
+/// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
+///
+/// See [`CrateRef::parse`].
+struct CrateRefs<'a> {
     stack: Vec<git2::Object<'a>>,
     rt: &'a UnsafeRepoTree,
 }
 
-pub(crate) struct CrateBlob<'a>(pub(crate) git2::Object<'a>);
+/// Opaque representation of a crate in the index. See [`CrateRef::parse`].
+pub(crate) struct CrateRef<'a>(pub(crate) git2::Object<'a>);
 
-impl<'a> Iterator for CrateBlobs<'a> {
-    type Item = CrateBlob<'a>;
+impl CrateRef<'_> {
+    #[inline]
+    /// Parse a crate from [`BareIndex::crates_blobs`] iterator
+    pub fn parse(&self) -> Option<Crate> {
+        Crate::from_slice(self.as_slice()?).ok()
+    }
+
+    /// Raw crate data that can be parsed with [`Crate::from_slice`]
+    pub fn as_slice(&self) -> Option<&[u8]> {
+        Some(self.0.as_blob()?.content())
+    }
+}
+
+impl<'a> Iterator for CrateRefs<'a> {
+    type Item = CrateRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(last) = self.stack.pop() {
             match last.as_tree() {
-                None => return Some(CrateBlob(last)),
+                None => return Some(CrateRef(last)),
                 Some(tree) => {
                     for entry in tree.iter().rev() {
                         self.stack.push(entry.to_object(&self.rt.repo).unwrap());
@@ -242,7 +259,7 @@ impl<'a> Iterator for CrateBlobs<'a> {
 }
 
 pub struct Crates<'a> {
-    blobs: CrateBlobs<'a>,
+    blobs: CrateRefs<'a>,
 }
 
 impl<'a> Iterator for Crates<'a> {
@@ -250,7 +267,7 @@ impl<'a> Iterator for Crates<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.blobs.next() {
-            if let Some(k) = Crate::from_blob(&next) {
+            if let Some(k) = CrateRef::parse(&next) {
                 return Some(k);
             }
         }
