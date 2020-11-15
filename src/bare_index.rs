@@ -188,9 +188,16 @@ impl<'a> BareIndexRepo<'a> {
     /// Retrieve an iterator over all the crates in the index.
     /// skips crates that can not be parsed.
     pub fn crates(&self) -> Crates<'_> {
-        let tree = self.rt.tree.clone().into_object();
+        let mut stack = Vec::with_capacity(800);
+        // Scan only directories at top level (skip config.json, etc.)
+        for entry in self.rt.tree.iter() {
+            let entry = entry.to_object(&self.rt.repo).unwrap();
+            if entry.as_tree().is_some() {
+                stack.push(entry);
+            }
+        }
         Crates {
-            stack: vec![tree],
+            stack,
             rt: &self.rt,
         }
     }
