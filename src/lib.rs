@@ -44,6 +44,9 @@ mod bare_index;
 mod error;
 
 pub use bare_index::Index as BareIndex;
+pub use bare_index::CrateRef;
+pub use bare_index::CratesRefs;
+
 pub use error::Error;
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
