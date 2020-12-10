@@ -13,7 +13,9 @@ on:
 jobs:
   test:
     name: Test
+    timeout-minutes: 600
     strategy:
+      max-parallel: 6
       matrix:
         rust:
           - stable
