@@ -4,17 +4,39 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Access to a "bare" git index that fetches files directly from the repo instead of local checkout
+/// Wrapper around managing the crates.io-index git repository
 ///
-/// Uses Cargo's cache
-pub struct BareIndex {
+/// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
+/// Uses Cargo's cache.
+pub struct Index {
     path: PathBuf,
-    pub url: String,
+    url: String,
+
+    head: git2::Oid,
+    head_str: String,
+    rt: UnsafeRepoTree,
 }
 
-impl BareIndex {
+impl Index {
+    #[doc(hidden)]
+    #[deprecated(note = "use new_cargo_default()")]
+    pub fn new<P: Into<PathBuf>>(path: P) -> Self {
+        Self::from_path_and_url(path.into(), crate::INDEX_GIT_URL.into()).unwrap()
+    }
+
+    /// Creates an index for the default crates.io registry, using the same
+    /// disk location as Cargo itself.
+    ///
+    /// This is the recommended way to access Cargo's index.
+    #[inline]
+    pub fn new_cargo_default() -> Result<Self, Error> {
+        Self::from_url(crate::INDEX_GIT_URL)
+    }
+
     /// Creates a bare index from a provided URL, opening the same location on
-    /// disk that cargo uses for that registry index.
+    /// disk that Cargo uses for that registry index.
+    ///
+    /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
         let (dir_name, canonical_url) = url_to_local_dir(url)?;
         let mut path = home::cargo_home().unwrap_or_default();
@@ -22,34 +44,13 @@ impl BareIndex {
         path.push("registry/index");
         path.push(dir_name);
 
-        Ok(Self {
-            path,
-            url: canonical_url,
-        })
+        Self::from_path_and_url(path, canonical_url)
     }
 
     /// Creates a bare index at the provided path with the specified repository URL.
     #[inline]
-    pub fn with_path(path: PathBuf, url: &str) -> Self {
-        Self {
-            path,
-            url: url.to_owned(),
-        }
-    }
-
-    /// Creates an index for the default crates.io registry, using the same
-    /// disk location as cargo itself.
-    #[inline]
-    pub fn new_cargo_default() -> Self {
-        // UNWRAP: The default index git URL is known to safely convert to a path.
-        Self::from_url(crate::INDEX_GIT_URL).unwrap()
-    }
-
-    /// Opens the local index, which acts as a kind of lock for source control
-    /// operations
-    #[inline]
-    pub fn open_or_clone(&self) -> Result<BareIndexRepo<'_>, Error> {
-        BareIndexRepo::new(self)
+    pub fn with_path<P: Into<PathBuf>, S: Into<String>>(path: P, url: S) -> Result<Self, Error> {
+        Self::from_path_and_url(path.into(), url.into())
     }
 }
 
@@ -60,17 +61,9 @@ struct UnsafeRepoTree {
     repo: git2::Repository,
 }
 
-/// Opened instance of [`BareIndex`]
-pub struct BareIndexRepo<'a> {
-    inner: &'a BareIndex,
-    head: git2::Oid,
-    head_str: String,
-    rt: UnsafeRepoTree,
-}
-
-impl<'a> BareIndexRepo<'a> {
-    fn new(index: &'a BareIndex) -> Result<Self, Error> {
-        let exists = git2::Repository::discover(&index.path)
+impl Index {
+    fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
+        let exists = git2::Repository::discover(&path)
             .map(|repository| {
                 repository
                     .find_remote("origin")
@@ -78,36 +71,22 @@ impl<'a> BareIndexRepo<'a> {
                     // Cargo creates a checkout without an origin set,
                     // so default to true in case of missing origin
                     .map_or(true, |remote| {
-                        remote.url().map_or(true, |url| url == index.url)
+                        remote.url().map_or(true, |url| url == url)
                     })
             })
             .unwrap_or(false);
 
-        let repo = if !exists {
+        let (repo, head) = if !exists {
             let mut opts = git2::RepositoryInitOptions::new();
             opts.external_template(false);
-            let repo = git2::Repository::init_opts(&index.path, &opts)?;
-            {
-                let mut origin_remote = repo
-                    .find_remote("origin")
-                    .or_else(|_| repo.remote_anonymous(&index.url))?;
-
-                origin_remote.fetch(
-                    &["HEAD:refs/remotes/origin/HEAD"],
-                    Some(&mut crate::fetch_opts()),
-                    None,
-                )?;
-            }
-            repo
+            let repo = git2::Repository::init_opts(&path, &opts)?;
+            let head = Self::fetch_remote_head(&repo, &url)?;
+            (repo, head)
         } else {
-            git2::Repository::open(&index.path)?
+            let repo = git2::Repository::open(&path)?;
+            let head = repo.refname_to_id("HEAD")?;
+            (repo, head)
         };
-
-        let head = repo
-            // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
 
         let tree = {
             let commit = repo.find_commit(head)?;
@@ -118,38 +97,37 @@ impl<'a> BareIndexRepo<'a> {
         };
 
         Ok(Self {
-            inner: index,
+            path,
+            url,
             head,
-            head_str,
+            head_str: head.to_string(),
             rt: UnsafeRepoTree { repo, tree },
         })
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "use update()")]
+    pub fn retrieve_or_update(&mut self) -> Result<(), Error> {
+        self.update()
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "it's always retrieved. there's no need to call it any more")]
+    pub fn retrieve(&self) -> Result<(), Error> {
+        Ok(())
+    }
+
+    #[doc(hidden)]
+    #[deprecated(note = "it's always retrieved, so it's assumed to always exist")]
+    pub fn exists(&self) -> bool {
+        true
     }
 
     /// Fetches latest from the remote index repository. Note that using this
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
-    pub fn retrieve(&mut self) -> Result<(), Error> {
-        {
-            let mut origin_remote = self
-                .rt
-                .repo
-                .find_remote("origin")
-                .or_else(|_| self.rt.repo.remote_anonymous(&self.inner.url))?;
-
-            origin_remote.fetch(
-                &["+HEAD:refs/remotes/origin/HEAD"],
-                Some(&mut crate::fetch_opts()),
-                None,
-            )?;
-        }
-
-        let head = self
-            .rt
-            .repo
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.rt.repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
-
+    pub fn update(&mut self) -> Result<(), Error> {
+        let head = Self::fetch_remote_head(&self.rt.repo, &self.url)?;
         let commit = self.rt.repo.find_commit(head)?;
         let tree = commit.tree()?;
 
@@ -157,10 +135,26 @@ impl<'a> BareIndexRepo<'a> {
         let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
 
         self.head = head;
-        self.head_str = head_str;
+        self.head_str = head.to_string();
         self.rt.tree = tree;
 
         Ok(())
+    }
+
+    /// Returns new HEAD
+    fn fetch_remote_head(repo: &git2::Repository, url: &str) -> Result<git2::Oid, git2::Error> {
+        let mut origin_remote = repo
+            .find_remote("origin")
+            .or_else(|_| repo.remote_anonymous(url))?;
+
+        origin_remote.fetch(
+            &["+HEAD:refs/remotes/origin/HEAD"],
+            Some(&mut crate::fetch_opts()),
+            None,
+        )?;
+
+        repo.refname_to_id("FETCH_HEAD")
+            .or_else(|_| repo.refname_to_id("HEAD"))
     }
 
     /// Reads a crate from the index, it will attempt to use a cached entry if
@@ -175,7 +169,7 @@ impl<'a> BareIndexRepo<'a> {
         // Attempt to load the .cache/ entry first, this is purely an acceleration
         // mechanism and can fail for a few reasons that are non-fatal
         {
-            let mut cache_path = self.inner.path.join(".cache");
+            let mut cache_path = self.path.join(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
                 if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, &self.head_str) {
@@ -200,7 +194,7 @@ impl<'a> BareIndexRepo<'a> {
     }
 
     /// Retrieve an iterator over all the crates in the index.
-    /// skips crates that can not be parsed.
+    /// Skips crates that can not be parsed.
     #[inline]
     pub fn crates(&self) -> Crates<'_> {
         Crates {
@@ -210,7 +204,7 @@ impl<'a> BareIndexRepo<'a> {
 
     /// Retrieve an iterator over all the crates in the index.
     /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
-    fn crates_refs(&self) -> CrateRefs<'_> {
+    pub fn crates_refs(&self) -> CratesRefs<'_> {
         let mut stack = Vec::with_capacity(800);
         // Scan only directories at top level (skip config.json, etc.)
         for entry in self.rt.tree.iter() {
@@ -219,27 +213,33 @@ impl<'a> BareIndexRepo<'a> {
                 stack.push(entry);
             }
         }
-        CrateRefs {
+        CratesRefs {
             stack,
             rt: &self.rt,
         }
+    }
+
+    /// Get the index directory.
+    #[inline]
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
 
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
 ///
 /// See [`CrateRef::parse`].
-struct CrateRefs<'a> {
+pub struct CratesRefs<'a> {
     stack: Vec<git2::Object<'a>>,
     rt: &'a UnsafeRepoTree,
 }
 
 /// Opaque representation of a crate in the index. See [`CrateRef::parse`].
-pub(crate) struct CrateRef<'a>(pub(crate) git2::Object<'a>);
+pub struct CrateRef<'a>(git2::Object<'a>);
 
 impl CrateRef<'_> {
     #[inline]
-    /// Parse a crate from [`BareIndex::crates_blobs`] iterator
+    /// Parse a crate from [`Index::crates_blobs`] iterator
     pub fn parse(&self) -> Option<Crate> {
         Crate::from_slice(self.as_slice()?).ok()
     }
@@ -250,7 +250,7 @@ impl CrateRef<'_> {
     }
 }
 
-impl<'a> Iterator for CrateRefs<'a> {
+impl<'a> Iterator for CratesRefs<'a> {
     type Item = CrateRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -269,8 +269,9 @@ impl<'a> Iterator for CrateRefs<'a> {
     }
 }
 
+/// Iterator over all crates in the index. Skips crates that failed to parse.
 pub struct Crates<'a> {
-    blobs: CrateRefs<'a>,
+    blobs: CratesRefs<'a>,
 }
 
 impl<'a> Iterator for Crates<'a> {
@@ -426,14 +427,11 @@ mod test {
 
     #[test]
     fn bare_iterator() {
-        use super::BareIndex;
+        use super::Index;
 
         let tmp_dir = tempdir::TempDir::new("bare_iterator").unwrap();
 
-        let index = BareIndex::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL);
-
-        let repo = index
-            .open_or_clone()
+        let repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to clone crates.io index");
 
         let mut found_gcc_crate = false;
@@ -449,17 +447,14 @@ mod test {
 
     #[test]
     fn clones_bare_index() {
-        use super::BareIndex;
+        use super::Index;
 
         let tmp_dir = tempdir::TempDir::new("clones_bare_index").unwrap();
 
-        let index = BareIndex::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL);
-
-        let mut repo = index
-            .open_or_clone()
+        let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to clone crates.io index");
 
-        fn test_sval(repo: &super::BareIndexRepo<'_>) {
+        fn test_sval(repo: &Index) {
             let krate = repo
                 .crate_("sval")
                 .expect("Could not find the crate sval in the index");
@@ -486,30 +481,21 @@ mod test {
 
         test_sval(&repo);
 
-        repo.retrieve().expect("Failed to fetch crates.io index");
+        repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
 
     #[test]
     fn opens_bare_index() {
-        use super::BareIndex;
+        use super::Index;
 
         let tmp_dir = tempdir::TempDir::new("opens_bare_index").unwrap();
 
-        let index = BareIndex::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL);
-
-        {
-            let _ = index
-                .open_or_clone()
-                .expect("Failed to clone crates.io index");
-        }
-
-        let mut repo = index
-            .open_or_clone()
+        let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to open crates.io index");
 
-        fn test_sval(repo: &super::BareIndexRepo<'_>) {
+        fn test_sval(repo: &Index) {
             let krate = repo
                 .crate_("sval")
                 .expect("Could not find the crate sval in the index");
@@ -536,7 +522,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.retrieve().expect("Failed to fetch crates.io index");
+        repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
