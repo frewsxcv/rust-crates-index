@@ -312,7 +312,7 @@ impl Index {
         let mut origin_remote = repo
             .find_remote("origin")
             .or_else(|_| repo.remote_anonymous(INDEX_GIT_URL))?;
-        origin_remote.fetch(&["master"], Some(&mut fetch_opts()), None)?;
+        origin_remote.fetch(&["HEAD"], Some(&mut fetch_opts()), None)?;
         let oid = repo.refname_to_id("FETCH_HEAD")?;
         let object = repo.find_object(oid, None).unwrap();
         repo.reset(&object, git2::ResetType::Hard, None)?;
