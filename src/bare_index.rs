@@ -63,7 +63,6 @@ struct UnsafeRepoTree {
 /// Opened instance of [`BareIndex`]
 pub struct BareIndexRepo<'a> {
     inner: &'a BareIndex,
-    head: git2::Oid,
     head_str: String,
     rt: UnsafeRepoTree,
 }
@@ -119,7 +118,6 @@ impl<'a> BareIndexRepo<'a> {
 
         Ok(Self {
             inner: index,
-            head,
             head_str,
             rt: UnsafeRepoTree { repo, tree },
         })
@@ -156,7 +154,6 @@ impl<'a> BareIndexRepo<'a> {
         // See `UnsafeRepoTree`
         let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
 
-        self.head = head;
         self.head_str = head_str;
         self.rt.tree = tree;
 
