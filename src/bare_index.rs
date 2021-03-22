@@ -1,4 +1,5 @@
 use crate::{Crate, Error};
+use std::marker::PhantomPinned;
 use std::{
     io,
     path::{Path, PathBuf},
@@ -57,7 +58,9 @@ impl BareIndex {
 struct UnsafeRepoTree {
     /// Warning: order of the fields is necessary for safety. `tree` must Drop before `repo`.
     tree: git2::Tree<'static>,
-    repo: git2::Repository,
+    repo: Box<git2::Repository>,
+    // Currently !Unpin is Rust's heuristic for self-referential structs
+    _self_referential: PhantomPinned,
 }
 
 /// Opened instance of [`BareIndex`]
@@ -102,6 +105,10 @@ impl<'a> BareIndexRepo<'a> {
             git2::Repository::open(&index.path)?
         };
 
+        // It's going to be used in a self-referential type. Boxing prevents it from being moved
+        // and adds a layer of indirection that will hopefully not upset noalias analysis.
+        let repo = Box::new(repo);
+
         let head = repo
             // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
             .refname_to_id("FETCH_HEAD")
@@ -119,7 +126,11 @@ impl<'a> BareIndexRepo<'a> {
         Ok(Self {
             inner: index,
             head_str,
-            rt: UnsafeRepoTree { repo, tree },
+            rt: UnsafeRepoTree {
+                repo,
+                tree,
+                _self_referential: PhantomPinned,
+            },
         })
     }
 
