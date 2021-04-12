@@ -105,6 +105,10 @@ impl Version {
     pub fn is_yanked(&self) -> bool {
         self.yanked
     }
+
+    pub fn download_url(&self, index: &IndexConfig) -> Option<String> {
+        index.download_url(&self.name, &self.vers)
+    }
 }
 
 /// A single dependency of a specific crate version
@@ -360,6 +364,37 @@ impl Index {
     pub fn path(&self) -> &Path {
         &self.path
     }
+
+    /// Get the global configuration of the index.
+    pub fn index_config(&self) -> Result<IndexConfig, Error> {
+        let content = std::fs::read(self.path().join("config.json")).map_err(Error::Io)?;
+        serde_json::from_slice(&content).map_err(Error::Json)
+    }
+}
+
+fn crate_prefix(crate_name: &str, separator: char) -> Option<SmolStr> {
+    if !crate_name.is_ascii() {
+        return None;
+    }
+
+    let mut accumulator = SmolStr::new();
+
+    match crate_name.len() {
+        0 => return None,
+        1 => accumulator.push('1'),
+        2 => accumulator.push('2'),
+        3 => {
+            accumulator.push('3');
+            accumulator.push(separator);
+            accumulator.push_str(&crate_name[0..1]);
+        }
+        _ => {
+            accumulator.push_str(&crate_name[0..2]);
+            accumulator.push(separator);
+            accumulator.push_str(&crate_name[2..4]);
+        }
+    };
+    Some(accumulator)
 }
 
 fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
@@ -369,21 +404,7 @@ fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
 
     let name_lower = crate_name.to_ascii_lowercase();
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
-    match name_lower.len() {
-        0 => return None,
-        1 => rel_path.push('1'),
-        2 => rel_path.push('2'),
-        3 => {
-            rel_path.push('3');
-            rel_path.push(std::path::MAIN_SEPARATOR);
-            rel_path.push_str(&name_lower[0..1]);
-        }
-        _ => {
-            rel_path.push_str(&name_lower[0..2]);
-            rel_path.push(std::path::MAIN_SEPARATOR);
-            rel_path.push_str(&name_lower[2..4]);
-        }
-    };
+    rel_path.push_str(&crate_prefix(&name_lower, std::path::MAIN_SEPARATOR)?);
     rel_path.push(std::path::MAIN_SEPARATOR);
     rel_path.push_str(&name_lower);
 
@@ -569,6 +590,45 @@ impl Crate {
     #[inline]
     pub fn name(&self) -> &str {
         self.latest_version().name()
+    }
+}
+
+/// Global configuration of an index, reflecting the contents of config.json as specified at
+/// https://doc.rust-lang.org/cargo/reference/registries.html#index-format
+#[derive(Clone, Debug, Deserialize)]
+pub struct IndexConfig {
+    pub dl: String,
+    pub api: Option<String>,
+}
+
+impl IndexConfig {
+    /// Get the URL from where the specified package can be downloaded.
+    /// This method assumes the particular version is present in the registry,
+    /// and does not verify that it is.
+    pub fn download_url(&self, name: &str, version: &str) -> Option<String> {
+        if !self.dl.contains("{crate}")
+            && !self.dl.contains("{version}")
+            && !self.dl.contains("{prefix}")
+            && !self.dl.contains("{lowerprefix}")
+        {
+            let mut new = String::with_capacity(self.dl.len() + name.len() + version.len() + 10);
+            new.push_str(&self.dl);
+            new.push('/');
+            new.push_str(name);
+            new.push('/');
+            new.push_str(version);
+            new.push_str("/download");
+            return Some(new);
+        } else {
+            let prefix = crate_prefix(name, '/')?;
+            Some(
+                self.dl
+                    .replace("{crate}", name)
+                    .replace("{version}", version)
+                    .replace("{prefix}", &prefix)
+                    .replace("{lowerprefix}", &prefix.to_ascii_lowercase()),
+            )
+        }
     }
 }
 
