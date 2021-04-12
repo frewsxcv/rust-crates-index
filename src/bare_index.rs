@@ -1,4 +1,4 @@
-use crate::{Crate, Error};
+use crate::{Crate, Error, IndexConfig};
 use std::marker::PhantomPinned;
 use std::{
     io,
@@ -231,6 +231,16 @@ impl<'a> BareIndexRepo<'a> {
             stack,
             rt: &self.rt,
         }
+    }
+
+    /// Get the global configuration of the index.
+    pub fn index_config(&self) -> Result<IndexConfig, Error> {
+        let entry = self.rt.tree.get_path(&Path::new("config.json"))?;
+        let object = entry.to_object(&self.rt.repo)?;
+        let blob = object
+            .as_blob()
+            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
+        serde_json::from_slice(blob.content()).map_err(Error::Json)
     }
 }
 
