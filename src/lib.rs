@@ -34,6 +34,8 @@
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smartstring::alias::String as SmolStr;
+use std::collections::HashSet;
+use std::sync::Arc;
 use std::{
     collections::HashMap,
     io, iter,
@@ -53,13 +55,13 @@ static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 pub struct Version {
     name: SmolStr,
     vers: SmolStr,
-    deps: Box<[Dependency]>,
+    deps: Arc<[Dependency]>,
+    features: Arc<HashMap<String, Vec<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    links: Option<Box<SmolStr>>,
     #[serde(with = "hex")]
     cksum: [u8; 32],
-    features: HashMap<String, Vec<String>>,
     yanked: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    links: Option<Box<str>>,
 }
 
 impl Version {
@@ -96,7 +98,7 @@ impl Version {
 
     #[inline]
     pub fn links(&self) -> Option<&str> {
-        self.links.as_deref()
+        self.links.as_ref().map(|s| s.as_str())
     }
 
     /// Whether this version was [yanked](http://doc.crates.io/crates-io.html#cargo-yank) from the
@@ -112,18 +114,19 @@ impl Version {
 }
 
 /// A single dependency of a specific crate version
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Dependency {
     name: SmolStr,
     req: SmolStr,
     features: Box<[String]>,
-    optional: bool,
-    default_features: bool,
-    target: Option<Box<str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package: Option<Box<SmolStr>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<DependencyKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    package: Option<Box<str>>,
+    target: Option<Box<SmolStr>>,
+    optional: bool,
+    default_features: bool,
 }
 
 impl Dependency {
@@ -154,7 +157,7 @@ impl Dependency {
 
     #[inline]
     pub fn target(&self) -> Option<&str> {
-        self.target.as_deref()
+        self.target.as_ref().map(|s| s.as_str())
     }
 
     #[inline]
@@ -164,7 +167,7 @@ impl Dependency {
 
     #[inline]
     pub fn package(&self) -> Option<&str> {
-        self.package.as_deref()
+        self.package.as_ref().map(|s| s.as_str())
     }
 
     /// Returns the name of the crate providing the dependency.
@@ -444,10 +447,25 @@ impl Crate {
         fn is_newline(&c: &u8) -> bool {
             c == b'\n'
         }
-        let mut versions = Vec::with_capacity(bytes.split(is_newline).count());
+        let num_versions = bytes.split(is_newline).count();
+        let mut deps_dedupe = HashSet::with_capacity(num_versions);
+        let mut features_dedupe = Vec::new();
+        let mut versions = Vec::with_capacity(num_versions);
         for line in bytes.split(is_newline) {
-            let version: Version = serde_json::from_slice(line)
+            let mut version: Version = serde_json::from_slice(line)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+            // Many versions have identical dependencies and features
+            if let Some(has_deps) = deps_dedupe.get(&version.deps) {
+                version.deps = Arc::clone(has_deps);
+            } else {
+                deps_dedupe.insert(Arc::clone(&version.deps));
+            }
+            if let Some(has_feats) = features_dedupe.iter().find(|v| *v == &version.features) {
+                version.features = Arc::clone(has_feats);
+            } else {
+                features_dedupe.push(Arc::clone(&version.features));
+            }
             versions.push(version);
         }
         if versions.is_empty() {
