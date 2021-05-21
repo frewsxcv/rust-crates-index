@@ -52,6 +52,12 @@ impl BareIndex {
     pub fn open_or_clone(&self) -> Result<BareIndexRepo<'_>, Error> {
         BareIndexRepo::new(self)
     }
+
+    /// Get the index directory.
+    #[inline]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 /// Self-referential struct where `Tree` borrows from `Repository`
