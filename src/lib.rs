@@ -475,7 +475,7 @@ impl Crate {
     /// 3. The entry is a newer version than what can be read, would only
     /// happen if a future version of cargo changed the format of the cache entries
     /// 4. The cache entry is malformed somehow
-    pub fn from_cache_slice(bytes: &[u8], index_version: &str) -> io::Result<Crate> {
+    pub(crate) fn from_cache_slice(bytes: &[u8], index_version: &str) -> io::Result<Crate> {
         const CURRENT_CACHE_VERSION: u8 = 1;
 
         // See src/cargo/sources/registry/index.rs
