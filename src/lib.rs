@@ -601,7 +601,7 @@ impl Crate {
             .iter()
             .map(|v| SemverVersion::parse(&v.vers).ok())
             .flatten()
-            .filter(|v| !v.is_prerelease())
+            .filter(|v| v.pre.is_empty())
             .max()
     }
 
