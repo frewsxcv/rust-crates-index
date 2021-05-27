@@ -569,13 +569,11 @@ impl Crate {
         &self.versions[self.versions.len() - 1]
     }
 
-    /// Returns the highest version as per semantic versioning specification.
-    pub fn highest_version(&self) -> SemverVersion {
+    /// Returns the highest version as per semantic versioning specification, including unstable versions.
+    pub fn highest_version(&self) -> &Version {
         self.versions
             .iter()
-            .map(|v| SemverVersion::parse(&v.vers).ok())
-            .flatten()
-            .max()
+            .max_by_key(|v| SemverVersion::parse(&v.vers).ok())
             // Safety: Versions inside the index will always adhere to
             // semantic versioning. If a crate is inside the index, at
             // least one version is available.
@@ -584,18 +582,18 @@ impl Crate {
 
     /// Returns the highest version as per semantic versioning specification,
     /// filtering out versions with pre-release identifiers.
-    pub fn highest_stable_version(&self) -> Option<SemverVersion> {
+    pub fn highest_stable_version(&self) -> Option<&Version> {
         self.versions
             .iter()
-            .map(|v| SemverVersion::parse(&v.vers).ok())
-            .flatten()
-            .filter(|v| v.pre.is_empty())
-            .max()
+            .filter_map(|v| Some((v, SemverVersion::parse(&v.vers).ok()?)))
+            .filter(|(_, sem)| sem.pre.is_empty())
+            .max_by(|a, b| a.1.cmp(&b.1))
+            .map(|(v, _)| v)
     }
 
     #[inline]
     pub fn name(&self) -> &str {
-        self.latest_version().name()
+        self.versions[0].name()
     }
 }
 
@@ -642,6 +640,16 @@ impl IndexConfig {
 mod test {
     use super::{Crate, Index};
     use tempdir::TempDir;
+
+    #[test]
+    fn semver() {
+        let c = Crate::from_slice(r#"{"vers":"1.0.0", "name":"test", "deps":[], "features":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "yanked":false}
+            {"vers":"1.2.0-alpha.1", "name":"test", "deps":[], "features":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "yanked":false}
+            {"vers":"1.0.1", "name":"test", "deps":[], "features":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "yanked":false}"#.as_bytes()).unwrap();
+        assert_eq!(c.latest_version().version(), "1.0.1");
+        assert_eq!(c.highest_version().version(), "1.2.0-alpha.1");
+        assert_eq!(c.highest_stable_version().unwrap().version(), "1.0.1");
+    }
 
     #[test]
     fn test_dependencies() {
