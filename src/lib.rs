@@ -224,7 +224,7 @@ impl Iterator for Crates {
 }
 
 /// Constructed from [`Index::crate_index_paths`]
-pub struct CrateIndexPaths(iter::Chain<iter::Chain<glob::Paths, glob::Paths>, glob::Paths>);
+struct CrateIndexPaths(iter::Chain<iter::Chain<glob::Paths, glob::Paths>, glob::Paths>);
 
 impl CrateIndexPaths {
     fn new<P: AsRef<Path>>(path: P) -> CrateIndexPaths {
@@ -356,12 +356,6 @@ impl Index {
         Crates(CrateIndexPaths::new(&self.path))
     }
 
-    /// Returns all the crate index file paths in the index
-    #[deprecated(note = "This method won't work with BareIndex")]
-    pub fn crate_index_paths(&self) -> CrateIndexPaths {
-        CrateIndexPaths::new(&self.path)
-    }
-
     /// Get the index directory.
     #[inline]
     pub fn path(&self) -> &Path {
@@ -428,12 +422,6 @@ impl Crate {
     pub fn new<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
         let lines = std::fs::read(index_path)?;
         Self::from_slice(&lines)
-    }
-
-    #[doc(hidden)]
-    #[deprecated(note = "new_checked() is no longer needed, you can use new() now")]
-    pub fn new_checked<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
-        Self::new(index_path)
     }
 
     /// Parse crate file from in-memory JSON data
@@ -726,7 +714,6 @@ mod test {
     }
 
     #[test]
-    #[allow(deprecated)]
     fn test_can_parse_all() {
         let tmp_dir = TempDir::new("test3").unwrap();
         let mut found_gcc_crate = false;
@@ -736,7 +723,7 @@ mod test {
         index.retrieve().unwrap();
         assert!(index.exists());
 
-        for path in index.crate_index_paths() {
+        for path in crate::CrateIndexPaths::new(index.path()) {
             match Crate::new(&path) {
                 Ok(c) => {
                     if c.name() == "gcc" {
