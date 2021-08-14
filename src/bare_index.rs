@@ -146,31 +146,8 @@ impl<'a> BareIndexRepo<'a> {
     /// Fetches latest from the remote index repository. Note that using this
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
-    pub fn retrieve(&mut self) -> Result<(), Error> {
-        {
-            let mut origin_remote = self
-                .rt
-                .repo
-                .find_remote("origin")
-                .or_else(|_| self.rt.repo.remote_anonymous(&self.inner.url))?;
-
-            origin_remote.fetch(
-                &[
-                    "HEAD:refs/remotes/origin/HEAD",
-                    "master:refs/remotes/origin/master",
-                ],
-                Some(&mut crate::fetch_opts()),
-                None,
-            )?;
-        }
-
-        let head = self
-            .rt
-            .repo
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.rt.repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
-
+    pub fn update(&mut self) -> Result<(), Error> {
+        let head = Self::fetch_remote_head(&self.rt.repo, &self.inner.url)?;
         let commit = self.rt.repo.find_commit(head)?;
         let tree = commit.tree()?;
 
@@ -219,7 +196,7 @@ impl<'a> BareIndexRepo<'a> {
         Crate::from_slice(blob.content()).map_err(Error::Io)
     }
 
-    /// Retrieve an iterator over all the crates in the index.
+    /// update an iterator over all the crates in the index.
     /// skips crates that can not be parsed.
     #[inline]
     pub fn crates(&self) -> Crates<'_> {
@@ -228,7 +205,7 @@ impl<'a> BareIndexRepo<'a> {
         }
     }
 
-    /// Retrieve an iterator over all the crates in the index.
+    /// update an iterator over all the crates in the index.
     /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
     fn crates_refs(&self) -> CrateRefs<'_> {
         let mut stack = Vec::with_capacity(800);
@@ -516,7 +493,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.retrieve().expect("Failed to fetch crates.io index");
+        repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
@@ -566,7 +543,7 @@ mod test {
 
         test_sval(&repo);
 
-        repo.retrieve().expect("Failed to fetch crates.io index");
+        repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
     }
