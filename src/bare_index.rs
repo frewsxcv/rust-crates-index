@@ -206,7 +206,10 @@ impl Index {
         // Attempt to load the .cache/ entry first, this is purely an acceleration
         // mechanism and can fail for a few reasons that are non-fatal
         {
-            let mut cache_path = self.path.join(".cache");
+            // avoid realloc on each push
+            let mut cache_path = PathBuf::with_capacity(path_min_byte_len(&self.path) + 8 + rel_path.len());
+            cache_path.push(&self.path);
+            cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
                 if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, &self.head_str) {
@@ -268,6 +271,17 @@ impl Index {
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
         serde_json::from_slice(blob.content()).map_err(Error::Json)
     }
+}
+
+#[cfg(unix)]
+fn path_min_byte_len(path: &Path) -> usize {
+    use std::os::unix::prelude::OsStrExt;
+    path.as_os_str().as_bytes().len()
+}
+
+#[cfg(not(unix))]
+fn path_min_byte_len(path: &Path) -> usize {
+    path.to_str().map_or(0, |p| p.len())
 }
 
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
