@@ -243,11 +243,14 @@ impl Index {
     /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
     pub(crate) fn crates_refs(&self) -> CratesRefs<'_> {
         let mut stack = Vec::with_capacity(800);
-        // Scan only directories at top level (skip config.json, etc.)
         for entry in self.rt.tree.iter() {
-            let entry = entry.to_object(&self.rt.repo).unwrap();
-            if entry.as_tree().is_some() {
-                stack.push(entry);
+            // crates are in short dirs, skip .git/.cache
+            if entry.name_bytes().len() <= 2 {
+                let entry = entry.to_object(&self.rt.repo).expect("repo integrity");
+                // Scan only directories at top level
+                if entry.as_tree().is_some() {
+                    stack.push(entry);
+                }
             }
         }
         CratesRefs {
