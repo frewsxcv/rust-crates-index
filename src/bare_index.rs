@@ -475,7 +475,7 @@ mod test {
             .unwrap(),
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
-                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index".to_owned()
+                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
             )
         );
 
