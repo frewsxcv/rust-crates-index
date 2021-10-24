@@ -31,6 +31,7 @@
 //! }
 //! ```
 
+use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smartstring::alias::String as SmolStr;
@@ -211,6 +212,26 @@ fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
     proxy_opts.auto();
     let mut fetch_opts = git2::FetchOptions::new();
     fetch_opts.proxy_options(proxy_opts);
+
+    let mut remote_callbacks = RemoteCallbacks::new();
+    remote_callbacks.credentials(|url, username_from_url, _allowed_types| {
+        let config = Config::open_default()?;
+        match CredentialHelper::new(url)
+            .config(&config)
+            .username(username_from_url)
+            .execute()
+        {
+            Some((username, password)) => {
+                let cred = Cred::userpass_plaintext(&username, &password)?;
+                Ok(cred)
+            }
+            None => Err(git2::Error::from_str(
+                "failed to acquire username/password from local configuration",
+            )),
+        }
+    });
+    fetch_opts.remote_callbacks(remote_callbacks);
+
     fetch_opts
 }
 
