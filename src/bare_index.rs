@@ -445,7 +445,8 @@ fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.pop();
     }
 
-    if canonical.ends_with(".git") {
+    if canonical.contains("github.com/") && canonical.ends_with(".git") {
+        // Only GitHub (crates.io) repositories have their .git suffix truncated
         canonical.truncate(canonical.len() - 4);
     }
 
