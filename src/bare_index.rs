@@ -207,7 +207,8 @@ impl Index {
         // mechanism and can fail for a few reasons that are non-fatal
         {
             // avoid realloc on each push
-            let mut cache_path = PathBuf::with_capacity(path_min_byte_len(&self.path) + 8 + rel_path.len());
+            let mut cache_path =
+                PathBuf::with_capacity(path_min_byte_len(&self.path) + 8 + rel_path.len());
             cache_path.push(&self.path);
             cache_path.push(".cache");
             cache_path.push(&rel_path);
@@ -475,7 +476,7 @@ mod test {
             .unwrap(),
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
-                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index".to_owned()
+                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
             )
         );
 
