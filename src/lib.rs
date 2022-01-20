@@ -30,6 +30,7 @@
 //!    println!("crate version: {}", latest_version.version());
 //! }
 //! ```
+#![forbid(unsafe_code)]
 
 use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
@@ -575,7 +576,7 @@ mod test {
 
         let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
 
-        for c in index.crates_refs() {
+        for c in index.crates_refs().unwrap() {
             match c.parse() {
                 Ok(c) => {
                     if c.name() == "gcc" {

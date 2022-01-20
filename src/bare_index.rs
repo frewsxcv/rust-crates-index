@@ -1,6 +1,6 @@
 use crate::{Crate, Error, IndexConfig};
 use std::fmt;
-use std::marker::PhantomPinned;
+
 use std::{
     io,
     path::{Path, PathBuf},
@@ -14,8 +14,9 @@ pub struct Index {
     path: PathBuf,
     url: String,
 
+    repo: git2::Repository,
+    head: git2::Oid,
     head_str: String,
-    rt: UnsafeRepoTree,
 }
 
 impl Index {
@@ -61,15 +62,6 @@ impl Index {
     }
 }
 
-/// Self-referential struct where `Tree` borrows from `Repository`
-struct UnsafeRepoTree {
-    /// Warning: order of the fields is necessary for safety. `tree` must Drop before `repo`.
-    tree: git2::Tree<'static>,
-    repo: Box<git2::Repository>,
-    // Currently !Unpin is Rust's heuristic for self-referential structs
-    _self_referential: PhantomPinned,
-}
-
 impl Index {
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
         let exists = git2::Repository::discover(&path)
@@ -106,34 +98,24 @@ impl Index {
             git2::Repository::open(&path)?
         };
 
-        // It's going to be used in a self-referential type. Boxing prevents it from being moved
-        // and adds a layer of indirection that will hopefully not upset noalias analysis.
-        let repo = Box::new(repo);
-
         let head = repo
             // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
             .refname_to_id("FETCH_HEAD")
             .or_else(|_| repo.refname_to_id("HEAD"))?;
         let head_str = head.to_string();
 
-        let tree = {
-            let commit = repo.find_commit(head)?;
-            let tree = commit.tree()?;
-
-            // See `UnsafeRepoTree`
-            unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) }
-        };
-
         Ok(Self {
             path,
             url,
             head_str,
-            rt: UnsafeRepoTree {
-                repo,
-                tree,
-                _self_referential: PhantomPinned,
-            },
+            repo,
+            head,
         })
+    }
+
+    fn tree(&self) -> Result<git2::Tree<'_>, git2::Error> {
+        let commit = self.repo.find_commit(self.head)?;
+        commit.tree()
     }
 
     #[doc(hidden)]
@@ -160,10 +142,9 @@ impl Index {
     pub fn update(&mut self) -> Result<(), Error> {
         {
             let mut origin_remote = self
-                .rt
                 .repo
                 .find_remote("origin")
-                .or_else(|_| self.rt.repo.remote_anonymous(&self.url))?;
+                .or_else(|_| self.repo.remote_anonymous(&self.url))?;
 
             origin_remote.fetch(
                 &[
@@ -175,21 +156,12 @@ impl Index {
             )?;
         }
 
-        let head = self
-            .rt
-            .repo
+        let head = self.repo
             .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.rt.repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
+            .or_else(|_| self.repo.refname_to_id("HEAD"))?;
 
-        let commit = self.rt.repo.find_commit(head)?;
-        let tree = commit.tree()?;
-
-        // See `UnsafeRepoTree`
-        let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
-
-        self.head_str = head_str;
-        self.rt.tree = tree;
+        self.head = head;
+        self.head_str = self.head.to_string();
 
         Ok(())
     }
@@ -197,6 +169,9 @@ impl Index {
     /// Reads a crate from the index, it will attempt to use a cached entry if
     /// one is available, otherwise it will fallback to reading the crate
     /// directly from the git blob containing the crate information.
+    ///
+    /// Use this only if you need to get very few crates. If you're going
+    /// to read majority of crates, prefer the [`crates()`] iterator.
     pub fn crate_(&self, name: &str) -> Option<Crate> {
         let rel_path = match crate::crate_name_to_relative_path(name) {
             Some(rp) => rp,
@@ -224,8 +199,8 @@ impl Index {
     }
 
     fn crate_from_rel_path(&self, path: &str) -> Result<Crate, Error> {
-        let entry = self.rt.tree.get_path(&Path::new(path))?;
-        let object = entry.to_object(&self.rt.repo)?;
+        let entry = self.tree()?.get_path(&Path::new(path))?;
+        let object = entry.to_object(&self.repo)?;
         let blob = object
             .as_blob()
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
@@ -238,34 +213,34 @@ impl Index {
     #[inline]
     pub fn crates(&self) -> Crates<'_> {
         Crates {
-            blobs: self.crates_refs(),
+            blobs: self.crates_refs().expect("HEAD commit disappeared"),
         }
     }
 
     /// update an iterator over all the crates in the index.
     /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
-    pub(crate) fn crates_refs(&self) -> CratesRefs<'_> {
+    pub(crate) fn crates_refs(&self) -> Result<CratesRefs<'_>, git2::Error> {
         let mut stack = Vec::with_capacity(800);
-        for entry in self.rt.tree.iter() {
+        for entry in self.tree()?.iter() {
             // crates are in short dirs, skip .git/.cache
             if entry.name_bytes().len() <= 2 {
-                let entry = entry.to_object(&self.rt.repo).expect("repo integrity");
+                let entry = entry.to_object(&self.repo).expect("repo integrity");
                 // Scan only directories at top level
                 if entry.as_tree().is_some() {
                     stack.push(entry);
                 }
             }
         }
-        CratesRefs {
+        Ok(CratesRefs {
             stack,
-            rt: &self.rt,
-        }
+            repo: &self.repo,
+        })
     }
 
     /// Get the global configuration of the index.
     pub fn index_config(&self) -> Result<IndexConfig, Error> {
-        let entry = self.rt.tree.get_path(&Path::new("config.json"))?;
-        let object = entry.to_object(&self.rt.repo)?;
+        let entry = self.tree()?.get_path(&Path::new("config.json"))?;
+        let object = entry.to_object(&self.repo)?;
         let blob = object
             .as_blob()
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
@@ -289,7 +264,7 @@ fn path_min_byte_len(path: &Path) -> usize {
 /// See [`CrateRef::parse`].
 pub(crate) struct CratesRefs<'a> {
     stack: Vec<git2::Object<'a>>,
-    rt: &'a UnsafeRepoTree,
+    repo: &'a git2::Repository,
 }
 
 /// Opaque representation of a crate in the index. See [`CrateRef::parse`].
@@ -318,7 +293,7 @@ impl<'a> Iterator for CratesRefs<'a> {
                 None => return Some(CrateRef(last)),
                 Some(tree) => {
                     for entry in tree.iter().rev() {
-                        self.stack.push(entry.to_object(&self.rt.repo).unwrap());
+                        self.stack.push(entry.to_object(&self.repo).unwrap());
                     }
                     continue;
                 }

@@ -14,5 +14,5 @@ fn mem_usage() {
     let after = ALLOCATOR.allocated();
     let used = after - before;
     eprintln!("used mem: {}B for {} crates", used, all_crates.len());
-    assert!(used / all_crates.len() < 4300);
+    assert!(used / all_crates.len() < 4500);
 }

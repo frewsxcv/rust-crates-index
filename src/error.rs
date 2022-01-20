@@ -39,3 +39,9 @@ impl From<GitErr> for Error {
         Self::Git(e)
     }
 }
+
+#[test]
+fn error_is_send() {
+    fn is_send<T: Send>() {}
+    is_send::<Error>();
+}
