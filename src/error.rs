@@ -2,11 +2,16 @@ use git2::Error as GitErr;
 use serde_json::Error as SerdeJsonError;
 use std::{fmt, io::Error as IoErr};
 
+/// Oops
 #[derive(Debug)]
 pub enum Error {
+    /// git2 library failed. If problems persist, delete `~/.cargo/registry`
     Git(GitErr),
+    /// `Index::from_url` got a bogus URL
     Url(String),
+    /// Filesystem error
     Io(IoErr),
+    /// If this happens, the registry is seriously corrupted. Delete `~/.cargo/registry`.
     Json(SerdeJsonError),
 }
 

@@ -31,6 +31,7 @@
 //! }
 //! ```
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
@@ -93,11 +94,19 @@ impl Version {
         &self.cksum
     }
 
+    /// Explicit features this crate has. This list is not exhaustive,
+    /// because any optional dependency becomes a feature automatically.
+    ///
+    /// `default` is a special feature name for implicitly enabled features.
     #[inline]
     pub fn features(&self) -> &HashMap<String, Vec<String>> {
         &self.features
     }
 
+    /// Exclusivity flag. If this is a sys crate, it informs it
+    /// conflicts with any other crate with the same links string.
+    ///
+    /// It does not involve linker or libraries in any way.
     #[inline]
     pub fn links(&self) -> Option<&str> {
         self.links.as_ref().map(|s| s.as_str())
@@ -110,6 +119,7 @@ impl Version {
         self.yanked
     }
 
+    /// Where to find crate tarball
     pub fn download_url(&self, index: &IndexConfig) -> Option<String> {
         index.download_url(&self.name, &self.vers)
     }
@@ -132,41 +142,52 @@ pub struct Dependency {
 }
 
 impl Dependency {
+    /// Dependency's arbitrary nickname (it may be an alias). Use [`crate_name`] for actual crate name.
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Semver version pattern
     #[inline]
     pub fn requirement(&self) -> &str {
         &self.req
     }
 
+    /// Features unconditionally enabled when using this dependency,
+    /// in addition to [`has_default_features`] and features enabled through
+    /// parent crate's feature list.
     #[inline]
     pub fn features(&self) -> &[String] {
         &self.features
     }
 
+    /// If it's optional, it implies a feature of its [`name`], and can be enabled through
+    /// the crate's features.
     #[inline]
     pub fn is_optional(&self) -> bool {
         self.optional
     }
 
+    /// If `true` (default), enable `default` feature of this dependency
     #[inline]
     pub fn has_default_features(&self) -> bool {
         self.default_features
     }
 
+    /// This dependency is only used when compiling for this `cfg` expression
     #[inline]
     pub fn target(&self) -> Option<&str> {
         self.target.as_ref().map(|s| s.as_str())
     }
 
+    /// Dev or not
     #[inline]
     pub fn kind(&self) -> DependencyKind {
         self.kind.unwrap_or_default()
     }
 
+    /// Set if dependency's crate name is different from the `name` (alias)
     #[inline]
     pub fn package(&self) -> Option<&str> {
         self.package.as_ref().map(|s| s.as_str())
@@ -194,11 +215,15 @@ impl Dependency {
     }
 }
 
+/// Section in which this dependency was defined
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum DependencyKind {
+    /// Used at run time
     Normal,
+    /// Not fetched and not used, except for when used direclty in a workspace
     Dev,
+    /// Used at build time, not available at run time
     Build,
 }
 
@@ -458,6 +483,7 @@ impl Crate {
             .map(|(v, _)| v)
     }
 
+    /// Crate's unique registry name. Case-sensitive, mostly.
     #[inline]
     pub fn name(&self) -> &str {
         self.versions[0].name()
@@ -468,7 +494,9 @@ impl Crate {
 /// https://doc.rust-lang.org/cargo/reference/registries.html#index-format
 #[derive(Clone, Debug, Deserialize)]
 pub struct IndexConfig {
+    /// Pattern for creating download URLs. Use [`download_url`] instead.
     pub dl: String,
+    /// Base URL for publishing, etc.
     pub api: Option<String>,
 }
 
