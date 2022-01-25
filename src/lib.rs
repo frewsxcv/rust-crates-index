@@ -53,17 +53,21 @@ pub use error::Error;
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
-/// A single version of a crate published to the index
+/// A single version of a crate (package) published to the index
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Version {
     name: SmolStr,
     vers: SmolStr,
     deps: Arc<[Dependency]>,
     features: Arc<HashMap<String, Vec<String>>>,
+    /// https://rust-lang.github.io/rfcs/3143-cargo-weak-namespaced-features.html#index-changes
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    features2: HashMap<String, Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     links: Option<Box<SmolStr>>,
     #[serde(with = "hex")]
     cksum: [u8; 32],
+    #[serde(default)]
     yanked: bool,
 }
 
@@ -334,6 +338,14 @@ impl Crate {
         for line in bytes.split(is_newline) {
             let mut version: Version = serde_json::from_slice(line)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+            if !version.features2.is_empty() {
+                if let Some(f1) = Arc::get_mut(&mut version.features) {
+                    for (key, mut val) in std::mem::take(&mut version.features2) {
+                        f1.entry(key).or_insert_with(Vec::new).append(&mut val);
+                    }
+                }
+            }
 
             // Many versions have identical dependencies and features
             if let Some(has_deps) = deps_dedupe.get(&version.deps) {
@@ -616,5 +628,16 @@ mod test {
         }
 
         assert!(found_gcc_crate);
+    }
+
+    #[test]
+    fn features2() {
+        let c = Crate::from_slice(br#"{"vers":"1.0.0", "name":"test", "deps":[], "features":{"a":["one"], "b":["x"]},"features2":{"a":["two"], "c":["y"]}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234"}"#).unwrap();
+        let f2 = c.latest_version().features();
+
+        assert_eq!(3, f2.len());
+        assert_eq!(["one", "two"], &f2["a"][..]);
+        assert_eq!(["x"], &f2["b"][..]);
+        assert_eq!(["y"], &f2["c"][..]);
     }
 }

@@ -34,4 +34,4 @@ default = ["git2/default"]
 vendored-openssl = ["git2/vendored-openssl"]
 
 [badges]
-maintenance = { status = "actively-maintained" }
+maintenance = { status = "actively-developed" }
