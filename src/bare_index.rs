@@ -156,7 +156,8 @@ impl Index {
             )?;
         }
 
-        let head = self.repo
+        let head = self
+            .repo
             .refname_to_id("FETCH_HEAD")
             .or_else(|_| self.repo.refname_to_id("HEAD"))?;
 
@@ -182,7 +183,8 @@ impl Index {
         // mechanism and can fail for a few reasons that are non-fatal
         {
             // avoid realloc on each push
-            let mut cache_path = PathBuf::with_capacity(path_min_byte_len(&self.path) + 8 + rel_path.len());
+            let mut cache_path =
+                PathBuf::with_capacity(path_min_byte_len(&self.path) + 8 + rel_path.len());
             cache_path.push(&self.path);
             cache_path.push(".cache");
             cache_path.push(&rel_path);

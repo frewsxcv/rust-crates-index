@@ -304,7 +304,7 @@ fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
     Some(rel_path)
 }
 
-/// A single crate that contains many published versions
+/// A single crate
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Crate {
     versions: Box<[Version]>,
@@ -453,27 +453,33 @@ impl Crate {
         })
     }
 
-    /// Published versions of this crate sorted chronologically by date published
+    /// Unconstrained All versions of this crate sorted chronologically by date originally published
+    ///
+    /// Warning: may be yanked or duplicate
     #[inline]
     pub fn versions(&self) -> &[Version] {
         &self.versions
     }
 
-    /// Oldest version.
+    /// Unconstrained Earliest version
     ///
-    /// Warning: may not be the lowest version number.
+    /// Warning: may not be the lowest version number and may be yanked or duplicate
     #[inline]
     pub fn earliest_version(&self) -> &Version {
         &self.versions[0]
     }
 
-    /// Most recently published version. Warning: may not be the highest version.
+    /// Unconstrained Latest version
+    ///
+    /// Warning: may not be the highest version and may be yanked or duplicate
     #[inline]
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
 
-    /// Returns the highest version as per semantic versioning specification, including unstable versions.
+    /// Returns the highest version as per semantic versioning specification
+    ///
+    /// Warning: may be unstable or yanked or duplicate
     pub fn highest_version(&self) -> &Version {
         self.versions
             .iter()
@@ -486,6 +492,8 @@ impl Crate {
 
     /// Returns the highest version as per semantic versioning specification,
     /// filtering out versions with pre-release identifiers.
+    ///
+    /// Warning: may be yanked or duplicate
     pub fn highest_stable_version(&self) -> Option<&Version> {
         self.versions
             .iter()
