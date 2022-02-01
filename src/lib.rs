@@ -60,9 +60,10 @@ pub struct Version {
     vers: SmolStr,
     deps: Arc<[Dependency]>,
     features: Arc<HashMap<String, Vec<String>>>,
+    /// It's wrapped in `Option<Box>` to reduce size of the struct when the field is unused (i.e. almost always)
     /// https://rust-lang.github.io/rfcs/3143-cargo-weak-namespaced-features.html#index-changes
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    features2: HashMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    features2: Option<Box<HashMap<String, Vec<String>>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     links: Option<Box<SmolStr>>,
     #[serde(with = "hex")]
@@ -329,9 +330,9 @@ impl Crate {
             let mut version: Version = serde_json::from_slice(line)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-            if !version.features2.is_empty() {
+            if let Some(features2) = version.features2.take() {
                 if let Some(f1) = Arc::get_mut(&mut version.features) {
-                    for (key, mut val) in std::mem::take(&mut version.features2) {
+                    for (key, mut val) in features2.into_iter() {
                         f1.entry(key).or_insert_with(Vec::new).append(&mut val);
                     }
                 }
