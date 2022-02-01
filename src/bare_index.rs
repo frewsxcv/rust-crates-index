@@ -174,17 +174,13 @@ impl Index {
     /// Use this only if you need to get very few crates. If you're going
     /// to read majority of crates, prefer the [`crates()`] iterator.
     pub fn crate_(&self, name: &str) -> Option<Crate> {
-        let rel_path = match crate::crate_name_to_relative_path(name) {
-            Some(rp) => rp,
-            None => return None,
-        };
+        let rel_path = crate::crate_name_to_relative_path(name)?;
 
         // Attempt to load the .cache/ entry first, this is purely an acceleration
         // mechanism and can fail for a few reasons that are non-fatal
         {
             // avoid realloc on each push
-            let mut cache_path =
-                PathBuf::with_capacity(path_min_byte_len(&self.path) + 8 + rel_path.len());
+            let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
             cache_path.push(&self.path);
             cache_path.push(".cache");
             cache_path.push(&rel_path);
@@ -251,13 +247,13 @@ impl Index {
 }
 
 #[cfg(unix)]
-fn path_min_byte_len(path: &Path) -> usize {
+fn path_max_byte_len(path: &Path) -> usize {
     use std::os::unix::prelude::OsStrExt;
     path.as_os_str().as_bytes().len()
 }
 
 #[cfg(not(unix))]
-fn path_min_byte_len(path: &Path) -> usize {
+fn path_max_byte_len(path: &Path) -> usize {
     path.to_str().map_or(0, |p| p.len())
 }
 

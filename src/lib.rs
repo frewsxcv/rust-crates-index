@@ -265,13 +265,7 @@ fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
     fetch_opts
 }
 
-fn crate_prefix(crate_name: &str, separator: char) -> Option<SmolStr> {
-    if !crate_name.is_ascii() {
-        return None;
-    }
-
-    let mut accumulator = SmolStr::new();
-
+fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> Option<()> {
     match crate_name.len() {
         0 => return None,
         1 => accumulator.push('1'),
@@ -279,25 +273,21 @@ fn crate_prefix(crate_name: &str, separator: char) -> Option<SmolStr> {
         3 => {
             accumulator.push('3');
             accumulator.push(separator);
-            accumulator.push_str(&crate_name[0..1]);
+            accumulator.push_str(crate_name.get(0..1)?);
         }
         _ => {
-            accumulator.push_str(&crate_name[0..2]);
+            accumulator.push_str(crate_name.get(0..2)?);
             accumulator.push(separator);
-            accumulator.push_str(&crate_name[2..4]);
+            accumulator.push_str(crate_name.get(2..4)?);
         }
     };
-    Some(accumulator)
+    Some(())
 }
 
 fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
-    if !crate_name.is_ascii() {
-        return None;
-    }
-
     let name_lower = crate_name.to_ascii_lowercase();
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
-    rel_path.push_str(&crate_prefix(&name_lower, std::path::MAIN_SEPARATOR)?);
+    crate_prefix(&mut rel_path, &name_lower, std::path::MAIN_SEPARATOR)?;
     rel_path.push(std::path::MAIN_SEPARATOR);
     rel_path.push_str(&name_lower);
 
@@ -539,7 +529,8 @@ impl IndexConfig {
             new.push_str("/download");
             return Some(new);
         } else {
-            let prefix = crate_prefix(name, '/')?;
+            let mut prefix = String::with_capacity(5);
+            crate_prefix(&mut prefix, name, '/')?;
             Some(
                 self.dl
                     .replace("{crate}", name)
