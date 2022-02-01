@@ -135,7 +135,8 @@ impl Version {
 pub struct Dependency {
     name: SmolStr,
     req: SmolStr,
-    features: Box<[String]>,
+    /// Double indirection to remove size from this struct, since the features are rarely set
+    features: Box<Box<[String]>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     package: Option<Box<SmolStr>>,
     #[serde(default)]
@@ -545,9 +546,15 @@ impl IndexConfig {
 
 #[cfg(test)]
 mod test {
-    use super::Crate;
-    use super::Index;
+    use super::*;
     use tempdir::TempDir;
+
+    #[test]
+    fn sizes() {
+        assert!(std::mem::size_of::<Version>() <= 128);
+        assert!(std::mem::size_of::<Crate>() <= 16);
+        assert!(std::mem::size_of::<Dependency>() <= 80);
+    }
 
     #[test]
     fn semver() {
