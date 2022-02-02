@@ -475,16 +475,22 @@ mod test {
 
         let repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to clone crates.io index");
+        assert_eq!("time", repo.crate_("time").unwrap().name());
 
         let mut found_gcc_crate = false;
+        let mut found_time_crate = false;
 
         for c in repo.crates() {
             if c.name() == "gcc" {
                 found_gcc_crate = true;
             }
+            if c.name() == "time" {
+                found_time_crate = true;
+            }
         }
 
         assert!(found_gcc_crate);
+        assert!(found_time_crate);
     }
 
     #[test]

@@ -139,8 +139,8 @@ pub struct Dependency {
     features: Box<Box<[String]>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     package: Option<Box<SmolStr>>,
-    #[serde(default)]
-    kind: DependencyKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kind: Option<DependencyKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
     target: Option<Box<SmolStr>>,
     optional: bool,
@@ -190,7 +190,7 @@ impl Dependency {
     /// Dev or not
     #[inline]
     pub fn kind(&self) -> DependencyKind {
-        self.kind
+        self.kind.unwrap_or_default()
     }
 
     /// Set if dependency's crate name is different from the `name` (alias)
