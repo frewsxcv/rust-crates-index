@@ -49,7 +49,7 @@ mod dedupe;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
-
+pub use error::CratesIterError;
 pub use error::Error;
 
 static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";

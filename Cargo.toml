@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "0.18.4"
+version = "0.18.5"
 homepage = "https://lib.rs/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -16,11 +16,13 @@ git2 = { version = "0.13.25", default-features = false }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.3"
 memchr = "2.4.1"
+num_cpus = "1.13.1"
+rayon = { version = "1.5.1", optional = true }
 rustc-hash = "1.1.0"
 semver = "1.0.4"
-serde = { version = "1.0.133", features = ["rc"] }
-serde_derive = "1.0.133"
-serde_json = "1.0.75"
+serde = { version = "1.0.136", features = ["rc"] }
+serde_derive = "1.0.136"
+serde_json = "1.0.78"
 smartstring = { version = "0.2.9", features = ["serde"] }
 
 [dev-dependencies]
@@ -31,7 +33,8 @@ cap = "0.1.0"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [features]
-default = ["git2/default"]
+default = ["git2/default", "parallel"]
+parallel = ["rayon"]
 vendored-openssl = ["git2/vendored-openssl"]
 
 [badges]

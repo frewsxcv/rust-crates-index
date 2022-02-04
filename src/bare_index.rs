@@ -1,5 +1,6 @@
 use crate::dedupe::DedupeContext;
-use crate::{Crate, Error, IndexConfig};
+use crate::{Crate, Error, CratesIterError, IndexConfig};
+use git2::Repository;
 use std::fmt;
 
 use std::{
@@ -207,34 +208,81 @@ impl Index {
         Crate::from_slice(blob.content()).map_err(Error::Io)
     }
 
-    /// update an iterator over all the crates in the index.
-    /// Skips crates that can not be parsed.
+    /// Single-threaded iterator over all the crates in the index.
+    ///
+    /// [`crates_parallel`] is typically 3 times faster.
+    ///
+    /// Skips crates that can not be parsed (but there shouldn't be any such crates in the crates-io index).
     #[inline]
     pub fn crates(&self) -> Crates<'_> {
         Crates {
             blobs: self.crates_refs().expect("HEAD commit disappeared"),
-            dedupe: DedupeContext::new(),
+            dedupe: MaybeOwned::Owned(DedupeContext::new()),
         }
+    }
+
+    /// Iterate over all crates using rayon
+    #[cfg(feature = "parallel")]
+    pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, CratesIterError>> + '_ {
+        use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
+
+        let tree_oids = match self.crates_top_level_refs() {
+            Ok(objs) => objs.into_iter().map(|obj| obj.id()).collect::<Vec<_>>(),
+            Err(_) => vec![git2::Oid::zero()], // intentionally broken oid to return error from the iterator
+        };
+
+        let path = self.repo.path();
+
+        tree_oids.into_par_iter()
+            .with_min_len(64)
+            .map_init(move || {
+                (Repository::open_bare(&path), DedupeContext::new())
+            }, |(repo, ctx), oid| {
+                let repo = match repo.as_ref() {
+                    Ok(repo) => repo,
+                    Err(_) => return vec![Err(CratesIterError)],
+                };
+                let mut stack = Vec::with_capacity(64);
+                match repo.find_object(oid, None) {
+                    Ok(obj) => stack.push(obj),
+                    Err(_) => return vec![Err(CratesIterError)],
+                };
+                let blobs = CratesRefs {
+                    stack,
+                    repo: &repo,
+                };
+                Crates {
+                    blobs,
+                    dedupe: MaybeOwned::Borrowed(ctx),
+                }.map(Ok).collect::<Vec<_>>()
+            })
+            .flat_map_iter(|chunk| {
+                chunk.into_iter()
+            })
     }
 
     /// update an iterator over all the crates in the index.
     /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
     pub(crate) fn crates_refs(&self) -> Result<CratesRefs<'_>, git2::Error> {
+        Ok(CratesRefs {
+            stack: self.crates_top_level_refs()?,
+            repo: &self.repo,
+        })
+    }
+
+    pub(crate) fn crates_top_level_refs(&self) -> Result<Vec<git2::Object<'_>>, git2::Error> {
         let mut stack = Vec::with_capacity(800);
         for entry in self.tree()?.iter() {
             // crates are in short dirs, skip .git/.cache
             if entry.name_bytes().len() <= 2 {
-                let entry = entry.to_object(&self.repo).expect("repo integrity");
+                let entry = entry.to_object(&self.repo)?;
                 // Scan only directories at top level
                 if entry.as_tree().is_some() {
                     stack.push(entry);
                 }
             }
         }
-        Ok(CratesRefs {
-            stack,
-            repo: &self.repo,
-        })
+        Ok(stack)
     }
 
     /// Get the global configuration of the index.
@@ -312,10 +360,15 @@ impl fmt::Debug for CrateRef<'_> {
     }
 }
 
+enum MaybeOwned<'a, T> {
+    Owned(T),
+    Borrowed(&'a mut T),
+}
+
 /// Iterator over all crates in the index. Skips crates that failed to parse.
 pub struct Crates<'a> {
     blobs: CratesRefs<'a>,
-    dedupe: DedupeContext,
+    dedupe: MaybeOwned<'a, DedupeContext>,
 }
 
 impl<'a> Iterator for Crates<'a> {
@@ -323,7 +376,11 @@ impl<'a> Iterator for Crates<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.blobs.next() {
-            if let Ok(k) = CrateRef::parse(&next, &mut self.dedupe) {
+            let dedupe = match &mut self.dedupe {
+                MaybeOwned::Owned(d) => d,
+                MaybeOwned::Borrowed(d) => d,
+            };
+            if let Ok(k) = CrateRef::parse(&next, dedupe) {
                 return Some(k);
             }
         }
