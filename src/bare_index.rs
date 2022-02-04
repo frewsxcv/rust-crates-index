@@ -1,3 +1,4 @@
+use crate::dedupe::DedupeContext;
 use crate::{Crate, Error, IndexConfig};
 use std::fmt;
 
@@ -212,6 +213,7 @@ impl Index {
     pub fn crates(&self) -> Crates<'_> {
         Crates {
             blobs: self.crates_refs().expect("HEAD commit disappeared"),
+            dedupe: DedupeContext::new(),
         }
     }
 
@@ -271,9 +273,9 @@ pub(crate) struct CrateRef<'a>(git2::Object<'a>);
 impl CrateRef<'_> {
     #[inline]
     /// Parse a crate from [`Index::crates_blobs`] iterator
-    pub fn parse(&self) -> io::Result<Crate> {
+    pub fn parse(&self, ctx: &mut DedupeContext) -> io::Result<Crate> {
         let blob = self.as_slice().ok_or(io::ErrorKind::InvalidData)?;
-        Crate::from_slice(blob)
+        Crate::from_slice_with_context(blob, ctx)
     }
 
     /// Raw crate data that can be parsed with [`Crate::from_slice`]
@@ -313,6 +315,7 @@ impl fmt::Debug for CrateRef<'_> {
 /// Iterator over all crates in the index. Skips crates that failed to parse.
 pub struct Crates<'a> {
     blobs: CratesRefs<'a>,
+    dedupe: DedupeContext,
 }
 
 impl<'a> Iterator for Crates<'a> {
@@ -320,7 +323,7 @@ impl<'a> Iterator for Crates<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.blobs.next() {
-            if let Ok(k) = CrateRef::parse(&next) {
+            if let Ok(k) = CrateRef::parse(&next, &mut self.dedupe) {
                 return Some(k);
             }
         }

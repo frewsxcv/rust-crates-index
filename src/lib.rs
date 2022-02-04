@@ -621,9 +621,10 @@ mod test {
         let mut found_gcc_crate = false;
 
         let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
+        let mut ctx = DedupeContext::new();
 
         for c in index.crates_refs().unwrap() {
-            match c.parse() {
+            match c.parse(&mut ctx) {
                 Ok(c) => {
                     if c.name() == "gcc" {
                         found_gcc_crate = true;
