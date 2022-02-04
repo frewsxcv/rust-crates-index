@@ -33,18 +33,19 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+use dedupe::DedupeContext;
 use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smartstring::alias::String as SmolStr;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io;
 use std::path::Path;
 use std::sync::Arc;
 
 mod bare_index;
 mod error;
+mod dedupe;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
@@ -313,7 +314,14 @@ impl Crate {
     }
 
     /// Parse crate file from in-memory JSON data
-    pub fn from_slice(mut bytes: &[u8]) -> io::Result<Crate> {
+    #[inline]
+    pub fn from_slice(bytes: &[u8]) -> io::Result<Crate> {
+        let mut dedupe = DedupeContext::new();
+        Self::from_slice_with_context(bytes, &mut dedupe)
+    }
+
+    /// Parse crate file from in-memory JSON data
+    pub(crate) fn from_slice_with_context(mut bytes: &[u8], dedupe: &mut DedupeContext) -> io::Result<Crate> {
         // Trim last newline
         while bytes.last() == Some(&b'\n') {
             bytes = &bytes[..bytes.len() - 1];
@@ -324,8 +332,6 @@ impl Crate {
             c == b'\n'
         }
         let num_versions = bytes.split(is_newline).count();
-        let mut deps_dedupe = HashSet::with_capacity(num_versions);
-        let mut features_dedupe = Vec::new();
         let mut versions = Vec::with_capacity(num_versions);
         for line in bytes.split(is_newline) {
             let mut version: Version = serde_json::from_slice(line)
@@ -340,16 +346,9 @@ impl Crate {
             }
 
             // Many versions have identical dependencies and features
-            if let Some(has_deps) = deps_dedupe.get(&version.deps) {
-                version.deps = Arc::clone(has_deps);
-            } else {
-                deps_dedupe.insert(Arc::clone(&version.deps));
-            }
-            if let Some(has_feats) = features_dedupe.iter().find(|v| *v == &version.features) {
-                version.features = Arc::clone(has_feats);
-            } else {
-                features_dedupe.push(Arc::clone(&version.features));
-            }
+            dedupe.deps(&mut version.deps);
+            dedupe.features(&mut version.features);
+
             versions.push(version);
         }
         if versions.is_empty() {
