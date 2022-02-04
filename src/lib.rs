@@ -276,23 +276,22 @@ fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> 
         3 => {
             accumulator.push('3');
             accumulator.push(separator);
-            accumulator.push_str(crate_name.get(0..1)?);
+            accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
         }
         _ => {
-            accumulator.push_str(crate_name.get(0..2)?);
+            accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
             accumulator.push(separator);
-            accumulator.push_str(crate_name.get(2..4)?);
+            accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
         }
     };
     Some(())
 }
 
 fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
-    let name_lower = crate_name.to_ascii_lowercase();
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
-    crate_prefix(&mut rel_path, &name_lower, std::path::MAIN_SEPARATOR)?;
+    crate_prefix(&mut rel_path, crate_name, std::path::MAIN_SEPARATOR)?;
     rel_path.push(std::path::MAIN_SEPARATOR);
-    rel_path.push_str(&name_lower);
+    rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
 
     Some(rel_path)
 }
