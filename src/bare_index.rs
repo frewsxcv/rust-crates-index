@@ -531,7 +531,7 @@ mod test {
     fn bare_iterator() {
         use super::Index;
 
-        let tmp_dir = tempdir::TempDir::new("bare_iterator").unwrap();
+        let tmp_dir = tempfile::TempDir::new().unwrap();
 
         let repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to clone crates.io index");
@@ -557,7 +557,7 @@ mod test {
     fn clones_bare_index() {
         use super::Index;
 
-        let tmp_dir = tempdir::TempDir::new("clones_bare_index").unwrap();
+        let tmp_dir = tempfile::TempDir::new().unwrap();
 
         let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to clone crates.io index");
@@ -598,7 +598,7 @@ mod test {
     fn opens_bare_index() {
         use super::Index;
 
-        let tmp_dir = tempdir::TempDir::new("opens_bare_index").unwrap();
+        let tmp_dir = tempfile::TempDir::new().unwrap();
 
         let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
             .expect("Failed to open crates.io index");

@@ -545,7 +545,7 @@ impl IndexConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn sizes() {
@@ -616,7 +616,7 @@ mod test {
 
     #[test]
     fn test_can_parse_all() {
-        let tmp_dir = TempDir::new("test3").unwrap();
+        let tmp_dir = TempDir::new().unwrap();
         let mut found_gcc_crate = false;
 
         let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
