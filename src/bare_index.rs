@@ -62,6 +62,13 @@ impl Index {
     pub fn path(&self) -> &Path {
         &self.path
     }
+
+    /// Get the index url.
+    #[inline]
+    #[must_use]
+    pub fn url(&self) -> &str {
+        &self.url
+    }
 }
 
 impl Index {
