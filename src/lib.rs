@@ -44,8 +44,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 mod bare_index;
-mod error;
 mod dedupe;
+mod error;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
@@ -276,12 +276,30 @@ fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> 
         3 => {
             accumulator.push('3');
             accumulator.push(separator);
-            accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..1)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
         }
         _ => {
-            accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..2)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
             accumulator.push(separator);
-            accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(2..4)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
         }
     };
     Some(())
@@ -291,7 +309,12 @@ fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
     crate_prefix(&mut rel_path, crate_name, std::path::MAIN_SEPARATOR)?;
     rel_path.push(std::path::MAIN_SEPARATOR);
-    rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
+    rel_path.extend(
+        crate_name
+            .as_bytes()
+            .iter()
+            .map(|c| c.to_ascii_lowercase() as char),
+    );
 
     Some(rel_path)
 }
@@ -320,7 +343,10 @@ impl Crate {
     }
 
     /// Parse crate file from in-memory JSON data
-    pub(crate) fn from_slice_with_context(mut bytes: &[u8], dedupe: &mut DedupeContext) -> io::Result<Crate> {
+    pub(crate) fn from_slice_with_context(
+        mut bytes: &[u8],
+        dedupe: &mut DedupeContext,
+    ) -> io::Result<Crate> {
         // Trim last newline
         while bytes.last() == Some(&b'\n') {
             bytes = &bytes[..bytes.len() - 1];

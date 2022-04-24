@@ -51,13 +51,11 @@ fn error_is_send() {
     is_send::<Error>();
 }
 
-
 /// Unknown error from `crates_parallel`
 #[derive(Debug)]
 pub struct CratesIterError;
 
-impl std::error::Error for CratesIterError {
-}
+impl std::error::Error for CratesIterError {}
 
 impl fmt::Display for CratesIterError {
     #[cold]
