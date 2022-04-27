@@ -1,5 +1,5 @@
 use crate::dedupe::DedupeContext;
-use crate::{Crate, Error, CratesIterError, IndexConfig};
+use crate::{Crate, CratesIterError, Error, IndexConfig};
 use git2::Repository;
 use std::fmt;
 
@@ -206,7 +206,7 @@ impl Index {
     }
 
     fn crate_from_rel_path(&self, path: &str) -> Result<Crate, Error> {
-        let entry = self.tree()?.get_path(&Path::new(path))?;
+        let entry = self.tree()?.get_path(Path::new(path))?;
         let object = entry.to_object(&self.repo)?;
         let blob = object
             .as_blob()
@@ -242,30 +242,28 @@ impl Index {
 
         tree_oids.into_par_iter()
             .with_min_len(64)
-            .map_init(move || {
-                (Repository::open_bare(&path), DedupeContext::new())
-            }, |(repo, ctx), oid| {
-                let repo = match repo.as_ref() {
-                    Ok(repo) => repo,
-                    Err(_) => return vec![Err(CratesIterError)],
-                };
-                let mut stack = Vec::with_capacity(64);
-                match repo.find_object(oid, None) {
-                    Ok(obj) => stack.push(obj),
-                    Err(_) => return vec![Err(CratesIterError)],
-                };
-                let blobs = CratesRefs {
-                    stack,
-                    repo: &repo,
-                };
-                Crates {
-                    blobs,
-                    dedupe: MaybeOwned::Borrowed(ctx),
-                }.map(Ok).collect::<Vec<_>>()
-            })
-            .flat_map_iter(|chunk| {
-                chunk.into_iter()
-            })
+            .map_init(
+                move || (Repository::open_bare(&path), DedupeContext::new()),
+                |(repo, ctx), oid| {
+                    let repo = match repo.as_ref() {
+                        Ok(repo) => repo,
+                        Err(_) => return vec![Err(CratesIterError)],
+                    };
+                    let mut stack = Vec::with_capacity(64);
+                    match repo.find_object(oid, None) {
+                        Ok(obj) => stack.push(obj),
+                        Err(_) => return vec![Err(CratesIterError)],
+                    };
+                    let blobs = CratesRefs { stack, repo };
+                    Crates {
+                        blobs,
+                        dedupe: MaybeOwned::Borrowed(ctx),
+                    }
+                    .map(Ok)
+                    .collect::<Vec<_>>()
+                },
+            )
+            .flat_map_iter(|chunk| chunk.into_iter())
     }
 
     /// update an iterator over all the crates in the index.
@@ -294,7 +292,7 @@ impl Index {
 
     /// Get the global configuration of the index.
     pub fn index_config(&self) -> Result<IndexConfig, Error> {
-        let entry = self.tree()?.get_path(&Path::new("config.json"))?;
+        let entry = self.tree()?.get_path(Path::new("config.json"))?;
         let object = entry.to_object(&self.repo)?;
         let blob = object
             .as_blob()
@@ -348,7 +346,7 @@ impl<'a> Iterator for CratesRefs<'a> {
                 None => return Some(CrateRef(last)),
                 Some(tree) => {
                     for entry in tree.iter().rev() {
-                        self.stack.push(entry.to_object(&self.repo).unwrap());
+                        self.stack.push(entry.to_object(self.repo).unwrap());
                     }
                     continue;
                 }
@@ -382,7 +380,7 @@ impl<'a> Iterator for Crates<'a> {
     type Item = Crate;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(next) = self.blobs.next() {
+        for next in self.blobs.by_ref() {
             let dedupe = match &mut self.dedupe {
                 MaybeOwned::Owned(d) => d,
                 MaybeOwned::Borrowed(d) => d,

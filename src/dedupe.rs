@@ -15,13 +15,13 @@ impl DedupeContext {
     #[inline]
     pub(crate) fn new() -> Self {
         Self {
-           deps: FxHashSet::default(),
-           features: FxHashSet::default(),
+            deps: FxHashSet::default(),
+            features: FxHashSet::default(),
         }
     }
 
     pub(crate) fn features(&mut self, features: &mut Arc<HashMap<String, Vec<String>>>) {
-        let features_to_dedupe = HashableHashMap::new(Arc::clone(&features));
+        let features_to_dedupe = HashableHashMap::new(Arc::clone(features));
         if let Some(has_feats) = self.features.get(&features_to_dedupe) {
             *features = Arc::clone(&has_feats.map);
         } else {
@@ -39,7 +39,7 @@ impl DedupeContext {
             if self.deps.len() > 16384 { // keeps peek memory low (must clear, remove is leaving tombstones)
                 self.deps.clear();
             }
-            self.deps.insert(Arc::clone(&deps));
+            self.deps.insert(Arc::clone(deps));
         }
     }
 }
@@ -66,8 +66,6 @@ impl<K: PartialEq + Hash + Eq, V: PartialEq + Hash + Eq> HashableHashMap<K, V> {
             v.hash(&mut hasher);
             hash ^= hasher.finish(); // XOR makes it order-independent
         }
-        Self {
-            hash, map
-        }
+        Self { hash, map }
     }
 }

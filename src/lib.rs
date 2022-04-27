@@ -44,8 +44,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 mod bare_index;
-mod error;
 mod dedupe;
+mod error;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
@@ -527,7 +527,7 @@ impl IndexConfig {
             new.push('/');
             new.push_str(version);
             new.push_str("/download");
-            return Some(new);
+            Some(new)
         } else {
             let mut prefix = String::with_capacity(5);
             crate_prefix(&mut prefix, name, '/')?;

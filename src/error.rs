@@ -20,7 +20,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Git(e) => fmt::Display::fmt(&e, f),
-            Self::Url(u) => f.write_str(&u),
+            Self::Url(u) => f.write_str(u),
             Self::Io(e) => fmt::Display::fmt(&e, f),
             Self::Json(e) => fmt::Display::fmt(&e, f),
         }
@@ -51,13 +51,11 @@ fn error_is_send() {
     is_send::<Error>();
 }
 
-
 /// Unknown error from `crates_parallel`
 #[derive(Debug)]
 pub struct CratesIterError;
 
-impl std::error::Error for CratesIterError {
-}
+impl std::error::Error for CratesIterError {}
 
 impl fmt::Display for CratesIterError {
     #[cold]
