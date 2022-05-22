@@ -19,16 +19,32 @@
 //!
 //! ## Examples
 //!
+//! ### Getting information about a single crate
+//!
 //! ```rust
-//! let index = crates_index::Index::new_cargo_default().unwrap();
-//! if !index.exists() {
-//!    index.retrieve().expect("Could not fetch crates.io index");
-//! }
+//! let index = crates_index::Index::new_cargo_default()?;
+//! let serde_crate = index.crate_("serde").expect("you should handle errors here");
+//! println!("Serde is at v{}", serde_crate.highest_stable_version().unwrap().version());
+//! # Ok::<_, crates_index::Error>(())
+//! ```
+//!
+//! ### Iterating over *all* crates in the index
+//!
+//! ```rust
+//! let index = crates_index::Index::new_cargo_default()?;
 //! for crate_ in index.crates() {
 //!    let latest_version = crate_.latest_version();
 //!    println!("crate name: {}", latest_version.name());
-//!    println!("crate version: {}", latest_version.version());
+//!    println!("most recently released version: {}", latest_version.version());
 //! }
+//!
+//! // or faster:
+//! use rayon::prelude::*;
+//! index.crates_parallel().for_each(|crate_| {
+//!     /* etc. */
+//! });
+//!
+//! # Ok::<_, crates_index::Error>(())
 //! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -62,7 +78,7 @@ pub struct Version {
     deps: Arc<[Dependency]>,
     features: Arc<HashMap<String, Vec<String>>>,
     /// It's wrapped in `Option<Box>` to reduce size of the struct when the field is unused (i.e. almost always)
-    /// https://rust-lang.github.io/rfcs/3143-cargo-weak-namespaced-features.html#index-changes
+    /// <https://rust-lang.github.io/rfcs/3143-cargo-weak-namespaced-features.html#index-changes>
     #[serde(default, skip_serializing_if = "Option::is_none")]
     features2: Option<Box<HashMap<String, Vec<String>>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -149,7 +165,7 @@ pub struct Dependency {
 }
 
 impl Dependency {
-    /// Dependency's arbitrary nickname (it may be an alias). Use [`crate_name`] for actual crate name.
+    /// Dependency's arbitrary nickname (it may be an alias). Use [`Dependency::crate_name`] for actual crate name.
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
@@ -162,14 +178,14 @@ impl Dependency {
     }
 
     /// Features unconditionally enabled when using this dependency,
-    /// in addition to [`has_default_features`] and features enabled through
+    /// in addition to [`Dependency::has_default_features`] and features enabled through
     /// parent crate's feature list.
     #[inline]
     pub fn features(&self) -> &[String] {
         &self.features
     }
 
-    /// If it's optional, it implies a feature of its [`name`], and can be enabled through
+    /// If it's optional, it implies a feature of its [`Dependency::name`], and can be enabled through
     /// the crate's features.
     #[inline]
     pub fn is_optional(&self) -> bool {
@@ -296,7 +312,7 @@ fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
     Some(rel_path)
 }
 
-/// A single crate
+/// A whole crate with all its versions
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Crate {
     versions: Box<[Version]>,
@@ -453,7 +469,7 @@ impl Crate {
 
     /// Unconstrained Earliest version
     ///
-    /// Warning: may not be the lowest version number and may be yanked or duplicate
+    /// Warning: may not be the lowest version number and may be yanked
     #[inline]
     pub fn earliest_version(&self) -> &Version {
         &self.versions[0]
@@ -461,15 +477,15 @@ impl Crate {
 
     /// Unconstrained Latest version
     ///
-    /// Warning: may not be the highest version and may be yanked or duplicate
+    /// Warning: may not be the highest version and may be yanked
     #[inline]
     pub fn latest_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
 
-    /// Returns the highest version as per semantic versioning specification
+    /// The highest version as per semantic versioning specification
     ///
-    /// Warning: may be unstable or yanked or duplicate
+    /// Warning: may be prerelease or yanked
     pub fn highest_version(&self) -> &Version {
         self.versions
             .iter()
@@ -483,7 +499,7 @@ impl Crate {
     /// Returns the highest version as per semantic versioning specification,
     /// filtering out versions with pre-release identifiers.
     ///
-    /// Warning: may be yanked or duplicate
+    /// Warning: may be yanked
     pub fn highest_stable_version(&self) -> Option<&Version> {
         self.versions
             .iter()
@@ -500,11 +516,10 @@ impl Crate {
     }
 }
 
-/// Global configuration of an index, reflecting the contents of config.json as specified at
-/// https://doc.rust-lang.org/cargo/reference/registries.html#index-format
+/// Global configuration of an index, reflecting the [contents of config.json](https://doc.rust-lang.org/cargo/reference/registries.html#index-format).
 #[derive(Clone, Debug, Deserialize)]
 pub struct IndexConfig {
-    /// Pattern for creating download URLs. Use [`download_url`] instead.
+    /// Pattern for creating download URLs. Use [`IndexConfig::download_url`] instead.
     pub dl: String,
     /// Base URL for publishing, etc.
     pub api: Option<String>,

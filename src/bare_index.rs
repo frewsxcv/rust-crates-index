@@ -181,7 +181,7 @@ impl Index {
     /// directly from the git blob containing the crate information.
     ///
     /// Use this only if you need to get very few crates. If you're going
-    /// to read majority of crates, prefer the [`crates()`] iterator.
+    /// to read majority of crates, prefer the [`Index::crates()`] iterator.
     pub fn crate_(&self, name: &str) -> Option<Crate> {
         let rel_path = crate::crate_name_to_relative_path(name)?;
 
@@ -217,7 +217,7 @@ impl Index {
 
     /// Single-threaded iterator over all the crates in the index.
     ///
-    /// [`crates_parallel`] is typically 3 times faster.
+    /// [`Index::crates_parallel`] is typically 3 times faster.
     ///
     /// Skips crates that can not be parsed (but there shouldn't be any such crates in the crates-io index).
     #[inline]
@@ -228,7 +228,9 @@ impl Index {
         }
     }
 
-    /// Iterate over all crates using rayon
+    /// Iterate over all crates using rayon.
+    ///
+    /// This method is available only if the "parallel" feature is enabled.
     #[cfg(feature = "parallel")]
     pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, CratesIterError>> + '_ {
         use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};

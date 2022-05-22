@@ -51,7 +51,7 @@ fn error_is_send() {
     is_send::<Error>();
 }
 
-/// Unknown error from `crates_parallel`
+/// Unknown error from [`crate::Index::crates_parallel`]
 #[derive(Debug)]
 pub struct CratesIterError;
 
