@@ -1,8 +1,10 @@
-# rust-crates-index
+# crates-index
 
 [![crates-index on Crates.io](https://img.shields.io/crates/v/crates-index.svg)](https://lib.rs/crates/crates-index)
 
 Library for retrieving and interacting with the [crates.io registry git-based index](https://github.com/rust-lang/crates.io-index).
+
+The index contains metadata for all Rust libraires and programs published on crates.io: their verisons, dependencies, and feature flags.
 
 [Documentation](https://docs.rs/crates-index/)
 
@@ -12,7 +14,7 @@ Library for retrieving and interacting with the [crates.io registry git-based in
 let index = crates_index::Index::new_cargo_default()?;
 
 for crate_releases in index.crates() {
-    let _ = crate_releases.latest_version(); // any version most recently published
+    let _ = crate_releases.most_recent_release(); // newest version
     let crate_version = crate_releases.highest_version(); // max version by semver
     println!("crate name: {}", crate_version.name());
     println!("crate version: {}", crate_version.version());

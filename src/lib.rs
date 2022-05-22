@@ -24,7 +24,7 @@
 //! ```rust
 //! let index = crates_index::Index::new_cargo_default()?;
 //! let serde_crate = index.crate_("serde").expect("you should handle errors here");
-//! println!("Serde is at v{}", serde_crate.highest_stable_version().unwrap().version());
+//! println!("Serde is at v{}", serde_crate.highest_normal_version().unwrap().version());
 //! # Ok::<_, crates_index::Error>(())
 //! ```
 //!
@@ -33,9 +33,9 @@
 //! ```rust
 //! let index = crates_index::Index::new_cargo_default()?;
 //! for crate_ in index.crates() {
-//!    let latest_version = crate_.latest_version();
-//!    println!("crate name: {}", latest_version.name());
-//!    println!("most recently released version: {}", latest_version.version());
+//!    let latest = crate_.most_recent_version();
+//!    println!("crate name: {}", latest.name());
+//!    println!("most recently released version: {}", latest.version());
 //! }
 //!
 //! // or faster:
@@ -319,22 +319,6 @@ pub struct Crate {
 }
 
 impl Crate {
-    /// Parse the file with crate versions.
-    ///
-    /// The file must contain at least one version.
-    #[inline]
-    pub fn new<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
-        let lines = std::fs::read(index_path)?;
-        Self::from_slice(&lines)
-    }
-
-    /// Parse crate file from in-memory JSON data
-    #[inline]
-    pub fn from_slice(bytes: &[u8]) -> io::Result<Crate> {
-        let mut dedupe = DedupeContext::new();
-        Self::from_slice_with_context(bytes, &mut dedupe)
-    }
-
     /// Parse crate file from in-memory JSON data
     pub(crate) fn from_slice_with_context(mut bytes: &[u8], dedupe: &mut DedupeContext) -> io::Result<Crate> {
         // Trim last newline
@@ -459,7 +443,7 @@ impl Crate {
         })
     }
 
-    /// Unconstrained All versions of this crate sorted chronologically by date originally published
+    /// All versions of this crate sorted chronologically by date originally published
     ///
     /// Warning: may be yanked or duplicate
     #[inline]
@@ -467,25 +451,9 @@ impl Crate {
         &self.versions
     }
 
-    /// Unconstrained Earliest version
-    ///
-    /// Warning: may not be the lowest version number and may be yanked
-    #[inline]
-    pub fn earliest_version(&self) -> &Version {
-        &self.versions[0]
-    }
-
-    /// Unconstrained Latest version
-    ///
-    /// Warning: may not be the highest version and may be yanked
-    #[inline]
-    pub fn latest_version(&self) -> &Version {
-        &self.versions[self.versions.len() - 1]
-    }
-
     /// The highest version as per semantic versioning specification
     ///
-    /// Warning: may be prerelease or yanked
+    /// Warning: may be pre-release or yanked
     pub fn highest_version(&self) -> &Version {
         self.versions
             .iter()
@@ -496,13 +464,16 @@ impl Crate {
             .unwrap()
     }
 
-    /// Returns the highest version as per semantic versioning specification,
-    /// filtering out versions with pre-release identifiers.
+    /// Returns crate version with the highest version number according to semver,
+    /// but excludes pre-release and yanked versions.
     ///
-    /// Warning: may be yanked
-    pub fn highest_stable_version(&self) -> Option<&Version> {
+    /// 0.x.y versions are included.
+    ///
+    /// May return `None` if the crate has only pre-release or yanked versions.
+    pub fn highest_normal_version(&self) -> Option<&Version> {
         self.versions
             .iter()
+            .filter(|v| !v.is_yanked())
             .filter_map(|v| Some((v, SemverVersion::parse(&v.vers).ok()?)))
             .filter(|(_, sem)| sem.pre.is_empty())
             .max_by(|a, b| a.1.cmp(&b.1))
@@ -513,6 +484,65 @@ impl Crate {
     #[inline]
     pub fn name(&self) -> &str {
         self.versions[0].name()
+    }
+
+    /// The last release by date, even if it's yanked or less than highest version.
+    ///
+    /// See [`Crate::highest_normal_version`]
+    #[inline]
+    pub fn most_recent_version(&self) -> &Version {
+        &self.versions[self.versions.len() - 1]
+    }
+
+    /// First version ever published. May be yanked.
+    ///
+    /// It is not guaranteed to be the lowest version number.
+    #[inline]
+    pub fn earliest_version(&self) -> &Version {
+        &self.versions[0]
+    }
+
+    /// Unconstrained Latest version
+    ///
+    /// Warning: may not be the highest version and may be yanked
+    #[cold]
+    #[doc(hidden)]
+    #[deprecated(note = "use most_recent_version")]
+    pub fn latest_version(&self) -> &Version {
+        self.most_recent_version()
+    }
+
+
+    /// Returns the highest version as per semantic versioning specification,
+    /// filtering out versions with pre-release identifiers.
+    ///
+    /// Warning: may be yanked
+    #[cold]
+    #[doc(hidden)]
+    #[deprecated(note = "use highest_normal_version")]
+    pub fn highest_stable_version(&self) -> Option<&Version> {
+        self.versions
+            .iter()
+            .filter_map(|v| Some((v, SemverVersion::parse(&v.vers).ok()?)))
+            .filter(|(_, sem)| sem.pre.is_empty())
+            .max_by(|a, b| a.1.cmp(&b.1))
+            .map(|(v, _)| v)
+    }
+
+    /// Parse an index file with all of crate's versions.
+    ///
+    /// The file must contain at least one version.
+    #[inline]
+    pub fn new<P: AsRef<Path>>(index_path: P) -> io::Result<Crate> {
+        let lines = std::fs::read(index_path)?;
+        Self::from_slice(&lines)
+    }
+
+    /// Parse crate file from in-memory JSON-lines data
+    #[inline]
+    pub fn from_slice(bytes: &[u8]) -> io::Result<Crate> {
+        let mut dedupe = DedupeContext::new();
+        Self::from_slice_with_context(bytes, &mut dedupe)
     }
 }
 
@@ -574,9 +604,9 @@ mod test {
         let c = Crate::from_slice(r#"{"vers":"1.0.0", "name":"test", "deps":[], "features":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "yanked":false}
             {"vers":"1.2.0-alpha.1", "name":"test", "deps":[], "features":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "yanked":false}
             {"vers":"1.0.1", "name":"test", "deps":[], "features":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "yanked":false}"#.as_bytes()).unwrap();
-        assert_eq!(c.latest_version().version(), "1.0.1");
+        assert_eq!(c.most_recent_version().version(), "1.0.1");
         assert_eq!(c.highest_version().version(), "1.2.0-alpha.1");
-        assert_eq!(c.highest_stable_version().unwrap().version(), "1.0.1");
+        assert_eq!(c.highest_normal_version().unwrap().version(), "1.0.1");
     }
 
     #[test]
@@ -654,7 +684,7 @@ mod test {
     #[test]
     fn features2() {
         let c = Crate::from_slice(br#"{"vers":"1.0.0", "name":"test", "deps":[], "features":{"a":["one"], "b":["x"]},"features2":{"a":["two"], "c":["y"]}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234"}"#).unwrap();
-        let f2 = c.latest_version().features();
+        let f2 = c.most_recent_version().features();
 
         assert_eq!(3, f2.len());
         assert_eq!(["one", "two"], &f2["a"][..]);
