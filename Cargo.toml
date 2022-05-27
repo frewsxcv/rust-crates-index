@@ -33,9 +33,10 @@ cap = "0.1.0"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [features]
-default = ["git2/default", "parallel"]
+default = ["git2/https", "parallel"]
 parallel = ["rayon"]
 vendored-openssl = ["git2/vendored-openssl"]
+ssh = ["git2/ssh"]
 
 [badges]
 maintenance = { status = "actively-developed" }
