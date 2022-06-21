@@ -51,6 +51,19 @@
 //! # }
 //! # Ok::<_, crates_index::Error>(())
 //! ```
+//!
+//! ### Getting most recently published or yanked crates (enable the `changes` feature!)
+//!
+//! ```rust
+//! let index = crates_index::Index::new_cargo_default()?;
+//!
+//! for c in index.changes()?.take(20) {
+//!     let c = c?;
+//!     println!("{} has changed in the index commit {}", c.crate_name(), c.commit_hex());
+//! }
+//!
+//! # Ok::<_, crates_index::Error>(())
+//! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
@@ -67,6 +80,8 @@ use std::sync::Arc;
 mod bare_index;
 mod config;
 mod dedupe;
+#[cfg(feature = "changes")]
+mod changes;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
 pub mod error;

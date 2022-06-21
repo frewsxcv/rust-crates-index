@@ -1,3 +1,5 @@
+#[cfg(feature = "changes")]
+use crate::changes::ChangesIter;
 use crate::dedupe::DedupeContext;
 use crate::dirs::get_index_details;
 use crate::{path_max_byte_len, Crate, Error, IndexConfig};
@@ -9,7 +11,7 @@ use std::io;
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
-fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
+pub(crate) fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
     let mut proxy_opts = git2::ProxyOptions::new();
     proxy_opts.auto();
     let mut fetch_opts = git2::FetchOptions::new();
@@ -56,8 +58,8 @@ pub struct Index {
     path: PathBuf,
     url: String,
 
-    repo: git2::Repository,
-    head: git2::Oid,
+    pub(crate) repo: git2::Repository,
+    pub(crate) head: git2::Oid,
     head_str: String,
 }
 
@@ -108,9 +110,23 @@ impl Index {
     pub fn url(&self) -> &str {
         &self.url
     }
-}
 
-impl Index {
+    /// List crates that have changed (published or yanked), in reverse chronological order.
+    ///
+    /// This iterator is aware of periodic index squashing crates.io performs,
+    /// and will perform (slow and blocking) network requests to fetch the additional history from <https://github.com/rust-lang/crates.io-index-archive> if needed.
+    ///
+    /// If you want to track newly added/changed crates over time, make a note of the last [`commit`](crate::changes::Change::commit) or [`timestamp`](crate::changes::Change) you've processed,
+    /// and stop iteration on it next time.
+    ///
+    /// Crates will be reported multiple times, once for each publish/yank/unyank event that happened.
+    ///
+    /// If you like to know publication dates of all crates, consider <https://crates.io/data-access> instead.
+    #[cfg(feature = "changes")]
+    pub fn changes(&self) -> Result<ChangesIter<'_>, Error> {
+        Ok(ChangesIter::new(self)?)
+    }
+
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
         let exists = git2::Repository::discover(&path)
             .map(|repository| {

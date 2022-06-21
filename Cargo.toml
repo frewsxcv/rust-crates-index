@@ -47,6 +47,7 @@ features = ["sparse-http"]
 
 [features]
 default = ["git-index", "https", "parallel"]
+changes = ["git-index"]
 git-index = ["git2"]
 https = ["git2/https"]
 parallel = ["dep:rayon"]
