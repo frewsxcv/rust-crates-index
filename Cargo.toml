@@ -12,7 +12,7 @@ documentation = "https://docs.rs/crates-index/"
 edition = "2018"
 
 [dependencies]
-git2 = { version = ">= 0.13.25, <0.15", default-features = false }
+git2 = { version = ">= 0.13.25, <0.16", default-features = false }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.3"
 memchr = "2.5.0"
