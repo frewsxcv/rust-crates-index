@@ -15,12 +15,12 @@ fn mem_usage() {
     let all_crates: Vec<_> = index.crates_parallel().map(|c| c.unwrap()).collect();
     let after = ALLOCATOR.allocated();
     let used = after - before;
-    assert!(all_crates.len() > 76200);
+    assert!(all_crates.len() > 89000);
     eprintln!(
         "used mem: {}B for {} crates, {}B per crate",
         used,
         all_crates.len(),
         used / all_crates.len()
     );
-    assert!(used / all_crates.len() < 5000);
+    assert!(used / all_crates.len() < 5100);
 }
