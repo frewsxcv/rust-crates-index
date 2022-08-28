@@ -25,7 +25,7 @@ impl DedupeContext {
         if let Some(has_feats) = self.features.get(&features_to_dedupe) {
             *features = Arc::clone(&has_feats.map);
         } else {
-            if self.features.len() > 16384 { // keeps peek memory low (must clear, remove is leaving tombstones)
+            if self.features.len() > 16384 { // keeps peak memory low (must clear, remove is leaving tombstones)
                 self.features.clear();
             }
             self.features.insert(features_to_dedupe);
@@ -36,7 +36,7 @@ impl DedupeContext {
         if let Some(has_deps) = self.deps.get(&*deps) {
             *deps = Arc::clone(has_deps);
         } else {
-            if self.deps.len() > 16384 { // keeps peek memory low (must clear, remove is leaving tombstones)
+            if self.deps.len() > 16384 { // keeps peak memory low (must clear, remove is leaving tombstones)
                 self.deps.clear();
             }
             self.deps.insert(Arc::clone(deps));
