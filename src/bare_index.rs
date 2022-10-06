@@ -463,6 +463,9 @@ fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         None => &url[scheme_ind + 3..],
     };
 
+    // trim port
+    let host = host.split(':').next().unwrap();
+
     // cargo special cases github.com for reasons, so do the same
     let mut canonical = if host == "github.com" {
         url.to_lowercase()
