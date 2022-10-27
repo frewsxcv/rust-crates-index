@@ -5,6 +5,7 @@ use std::fmt;
 
 use std::{
     io,
+    fs,
     path::{Path, PathBuf},
 };
 
@@ -35,6 +36,31 @@ impl Index {
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
         Self::from_url(crate::INDEX_GIT_URL)
+    }
+
+    /// The same as [`Self::new_cargo_default()`], but respects
+    /// `source.crates-io.replace-with` if present in `~/.cargo/config.toml`.
+    pub fn new_cargo_replaced() -> Result<Self, Error> {
+        let path = home::cargo_home().unwrap_or_default().join("config.toml");
+        let url = if path.try_exists().map_err(Error::Io)? {
+            let config: toml::Value = toml::from_slice(&fs::read(path).map_err(Error::Io)?)
+                .map_err(Error::Toml)?;
+            if let Some(sources) = config.get("source") {
+                let registry = sources
+                    .get("crates-io")
+                    .map(|v| v.get("replace-with")).flatten()
+                    .map(|v| v.as_str()).flatten()
+                    .map(|v| sources.get(v)).flatten()
+                    .map(|v| v.get("registry")).flatten()
+                    .map(|v| v.as_str()).flatten();
+                registry.map(|v| v.to_owned())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        Self::from_url(&url.unwrap_or(crate::INDEX_GIT_URL.to_string()))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
@@ -643,5 +669,14 @@ mod test {
         repo.update().expect("Failed to fetch crates.io index");
 
         test_sval(&repo);
+    }
+
+    #[test]
+    fn reads_replaced_source() {
+        use super::Index;
+
+        let index = Index::new_cargo_replaced();
+        assert!(index.is_ok());
+        assert!(index.unwrap().index_config().is_ok());
     }
 }
