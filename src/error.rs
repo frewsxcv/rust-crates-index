@@ -1,5 +1,6 @@
 use git2::Error as GitErr;
 use serde_json::Error as SerdeJsonError;
+use toml::de::Error as TomlDeError;
 use std::{fmt, io::Error as IoErr};
 
 /// Oops
@@ -13,6 +14,8 @@ pub enum Error {
     Io(IoErr),
     /// If this happens, the registry is seriously corrupted. Delete `~/.cargo/registry`.
     Json(SerdeJsonError),
+    /// Cargo config.toml deserialization error
+    Toml(TomlDeError),
 }
 
 impl fmt::Display for Error {
@@ -23,6 +26,7 @@ impl fmt::Display for Error {
             Self::Url(u) => f.write_str(u),
             Self::Io(e) => fmt::Display::fmt(&e, f),
             Self::Json(e) => fmt::Display::fmt(&e, f),
+            Self::Toml(e) => fmt::Display::fmt(&e, f),
         }
     }
 }
