@@ -9,6 +9,29 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure
+fn find_cargo_config() -> Option<PathBuf> {
+	if let Some(current) = std::env::current_dir().ok() {
+		let mut base = current.clone();
+		loop {
+			let path = base.join(".cargo/config.toml");
+			if path.exists() {
+				return Some(path)
+			}
+			if !base.pop() {
+				break
+			}
+		}
+	}
+	if let Some(home) = home::cargo_home().ok() {
+		let path = home.join("config.toml");
+		if path.exists() {
+			return Some(path)
+		}
+	}
+	None
+}
+
 /// Wrapper around managing the crates.io-index git repository
 ///
 /// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
@@ -41,19 +64,18 @@ impl Index {
     /// The same as [`Self::new_cargo_default()`], but respects
     /// `source.crates-io.replace-with` if present in `~/.cargo/config.toml`.
     pub fn new_cargo_replaced() -> Result<Self, Error> {
-        let path = home::cargo_home().unwrap_or_default().join("config.toml");
-        let url = if path.try_exists().map_err(Error::Io)? {
+		let url = if let Some(path) = find_cargo_config() {
             let config: toml::Value = toml::from_slice(&fs::read(path).map_err(Error::Io)?)
                 .map_err(Error::Toml)?;
             if let Some(sources) = config.get("source") {
-                let registry = sources
+                sources
                     .get("crates-io")
                     .map(|v| v.get("replace-with")).flatten()
                     .map(|v| v.as_str()).flatten()
                     .map(|v| sources.get(v)).flatten()
                     .map(|v| v.get("registry")).flatten()
-                    .map(|v| v.as_str()).flatten();
-                registry.map(|v| v.to_owned())
+                    .map(|v| v.as_str()).flatten()
+					.map(|v| v.to_owned())
             } else {
                 None
             }
