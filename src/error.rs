@@ -1,7 +1,7 @@
 use git2::Error as GitErr;
 use serde_json::Error as SerdeJsonError;
 use toml::de::Error as TomlDeError;
-use std::{fmt, io::Error as IoErr};
+use std::{fmt, io};
 
 /// Oops
 #[derive(Debug)]
@@ -11,7 +11,7 @@ pub enum Error {
     /// `Index::from_url` got a bogus URL
     Url(String),
     /// Filesystem error
-    Io(IoErr),
+    Io(io::Error),
     /// If this happens, the registry is seriously corrupted. Delete `~/.cargo/registry`.
     Json(SerdeJsonError),
     /// Cargo config.toml deserialization error
@@ -46,6 +46,13 @@ impl From<GitErr> for Error {
     #[cold]
     fn from(e: GitErr) -> Self {
         Self::Git(e)
+    }
+}
+
+impl From<io::Error> for Error {
+    #[cold]
+    fn from(e: io::Error) -> Self {
+        Self::Io(e)
     }
 }
 
