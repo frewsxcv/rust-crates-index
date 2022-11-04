@@ -11,8 +11,8 @@ use std::{
 
 /// https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure
 fn find_cargo_config() -> Option<PathBuf> {
-    if let Some(current) = std::env::current_dir().ok() {
-        let mut base = current.clone();
+    if let Ok(current) = std::env::current_dir() {
+        let mut base = current;
         loop {
             let path = base.join(".cargo/config.toml");
             if path.exists() {
@@ -23,7 +23,7 @@ fn find_cargo_config() -> Option<PathBuf> {
             }
         }
     }
-    if let Some(home) = home::cargo_home().ok() {
+    if let Ok(home) = home::cargo_home() {
         let path = home.join("config.toml");
         if path.exists() {
             return Some(path)
@@ -58,30 +58,21 @@ impl Index {
     /// This is the recommended way to access Cargo's index.
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        Self::from_url(crate::INDEX_GIT_URL)
-    }
-
-    /// The same as [`Self::new_cargo_default()`], but respects
-    /// `source.crates-io.replace-with` if present in `~/.cargo/config.toml`.
-    pub fn new_cargo_replaced() -> Result<Self, Error> {
+        let config: toml::Value;
         let url = if let Some(path) = find_cargo_config() {
-            let config: toml::Value = toml::from_slice(&fs::read(path).map_err(Error::Io)?)
+            config = toml::from_slice(&fs::read(path)?)
                 .map_err(Error::Toml)?;
-            if let Some(sources) = config.get("source") {
+            config.get("source").and_then(|sources|
                 sources.get("crates-io")
-                    .map(|v| v.get("replace-with")).flatten()
-                    .map(|v| v.as_str()).flatten()
-                    .map(|v| sources.get(v)).flatten()
-                    .map(|v| v.get("registry")).flatten()
-                    .map(|v| v.as_str()).flatten()
-                    .map(|v| v.to_owned())
-            } else {
-                None
-            }
+                    .and_then(|v| v.get("replace-with"))
+                    .and_then(|v| v.as_str())
+                    .and_then(|v| sources.get(v))
+                    .and_then(|v| v.get("registry"))
+                    .and_then(|v| v.as_str()))
         } else {
             None
         };
-        Self::from_url(&url.unwrap_or(crate::INDEX_GIT_URL.to_string()))
+        Self::from_url(url.unwrap_or(crate::INDEX_GIT_URL))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
@@ -696,7 +687,7 @@ mod test {
     fn reads_replaced_source() {
         use super::Index;
 
-        let index = Index::new_cargo_replaced();
+        let index = Index::new_cargo_default();
         assert!(index.is_ok());
         assert!(index.unwrap().index_config().is_ok());
     }
