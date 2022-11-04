@@ -22,5 +22,5 @@ fn mem_usage() {
         all_crates.len(),
         used / all_crates.len()
     );
-    assert!(used / all_crates.len() < 5100);
+    assert!(used / all_crates.len() < 6000);
 }
