@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "0.18.10"
+version = "0.18.11"
 homepage = "https://lib.rs/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -9,26 +9,27 @@ categories = ["development-tools", "database"]
 repository = "https://github.com/frewsxcv/rust-crates-index"
 license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
-edition = "2018"
+edition = "2021"
+rust-version = "1.57"
 
 [dependencies]
-git2 = { version = ">= 0.13.25, <0.16", default-features = false }
+git2 = { version = ">= 0.14.0, <0.16", default-features = false }
 hex = { version = "0.4.3", features = ["serde"] }
-home = "0.5.3"
+home = "0.5.4"
 memchr = "2.5.0"
-num_cpus = "1.13.1"
+num_cpus = "1.14.0"
 rayon = { version = "1.5.3", optional = true }
 rustc-hash = "1.1.0"
-semver = "1.0.9"
-serde = { version = "1.0.137", features = ["rc"] }
-serde_derive = "1.0.137"
-serde_json = "1.0.81"
+semver = "1.0.14"
+serde = { version = "1.0.147", features = ["rc"] }
+serde_derive = "1.0.147"
+serde_json = "1.0.87"
 smartstring = { version = "1.0.1", features = ["serde"] }
 toml = "0.5.9"
 
 [dev-dependencies]
 tempfile = "3.3.0"
-cap = "0.1.0"
+cap = "0.1.1"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
