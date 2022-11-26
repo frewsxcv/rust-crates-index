@@ -14,7 +14,7 @@ The index contains metadata for all Rust libraires and programs published on cra
 let index = crates_index::Index::new_cargo_default()?;
 
 for crate_releases in index.crates() {
-    let _ = crate_releases.most_recent_release(); // newest version
+    let _ = crate_releases.most_recent_version(); // newest version
     let crate_version = crate_releases.highest_version(); // max version by semver
     println!("crate name: {}", crate_version.name());
     println!("crate version: {}", crate_version.version());
