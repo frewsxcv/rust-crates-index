@@ -53,7 +53,7 @@ use dedupe::DedupeContext;
 use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
-use smartstring::alias::String as SmolStr;
+use smol_str::SmolStr as SmolStr;
 use std::collections::HashMap;
 use std::io;
 use std::path::Path;
