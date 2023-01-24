@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Library for retrieving and interacting with the [crates.io index].
-//!
-//! [crates.io index]: https://github.com/rust-lang/crates.io-index
+//! Library for retrieving and interacting with the
+//! [crates.io git index](https://github.com/rust-lang/crates.io-index).
 //!
 //! ## Examples
 //!
@@ -61,10 +60,12 @@ use std::sync::Arc;
 
 mod bare_index;
 mod dedupe;
-mod error;
+/// Re-exports in case you want to inspect specific error details
+pub mod error;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
+#[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
 

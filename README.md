@@ -21,6 +21,10 @@ for crate_releases in index.crates() {
 }
 ```
 
+## Migration from 0.18
+
+It should work without any code changes. Only the `git2` and `toml` dependencies were updated.
+
 ## Migration from 0.16 and 0.17
 
 * `BareIndex` and `BareIndexRepo` have become the `Index`.

@@ -1,13 +1,13 @@
-use git2::Error as GitErr;
-use serde_json::Error as SerdeJsonError;
-use toml::de::Error as TomlDeError;
+pub use git2::Error as GitError;
+pub use serde_json::Error as SerdeJsonError;
+pub use toml::de::Error as TomlDeError;
 use std::{fmt, io};
 
 /// Oops
 #[derive(Debug)]
 pub enum Error {
     /// git2 library failed. If problems persist, delete `~/.cargo/registry`
-    Git(GitErr),
+    Git(GitError),
     /// `Index::from_url` got a bogus URL
     Url(String),
     /// Filesystem error
@@ -42,9 +42,9 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<GitErr> for Error {
+impl From<GitError> for Error {
     #[cold]
-    fn from(e: GitErr) -> Self {
+    fn from(e: GitError) -> Self {
         Self::Git(e)
     }
 }
