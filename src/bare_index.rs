@@ -1,5 +1,5 @@
 use crate::dedupe::DedupeContext;
-use crate::{Crate, CratesIterError, Error, IndexConfig};
+use crate::{Crate, error::CratesIterError, Error, IndexConfig};
 use git2::Repository;
 use std::fmt;
 
@@ -60,7 +60,7 @@ impl Index {
     pub fn new_cargo_default() -> Result<Self, Error> {
         let config: toml::Value;
         let url = if let Some(path) = find_cargo_config() {
-            config = toml::from_slice(&fs::read(path)?)
+            config = toml::from_str(&fs::read_to_string(path)?)
                 .map_err(Error::Toml)?;
             config.get("source").and_then(|sources|
                 sources.get("crates-io")
