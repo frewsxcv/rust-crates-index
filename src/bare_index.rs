@@ -14,7 +14,8 @@ fn find_cargo_config() -> Option<PathBuf> {
     if let Ok(current) = std::env::current_dir() {
         let mut base = current;
         loop {
-            let path = base.join(".cargo/config.toml");
+            let mut path = base.join(".cargo");
+            path.push("config.toml");
             if path.exists() {
                 return Some(path)
             }
@@ -83,7 +84,8 @@ impl Index {
         let (dir_name, canonical_url) = url_to_local_dir(url)?;
         let mut path = home::cargo_home().unwrap_or_default();
 
-        path.push("registry/index");
+        path.push("registry");
+        path.push("index");
         path.push(dir_name);
 
         Self::from_path_and_url(path, canonical_url)
