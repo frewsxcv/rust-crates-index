@@ -69,7 +69,8 @@ pub use bare_index::Index;
 pub use error::CratesIterError;
 pub use error::Error;
 
-static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
+/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
+pub static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
 /// A single version of a crate (package) published to the index
 #[derive(Serialize, Deserialize, Clone, Debug)]
