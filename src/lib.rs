@@ -60,11 +60,13 @@ use std::sync::Arc;
 
 mod bare_index;
 mod dedupe;
+mod dirs;
 /// Re-exports in case you want to inspect specific error details
 pub mod error;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
+pub use dirs::url_to_local_dir;
 #[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
