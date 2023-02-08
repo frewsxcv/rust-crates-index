@@ -32,16 +32,19 @@ pub fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     }
 
     #[allow(deprecated)]
-    fn hash_u64(url: &str) -> u64 {
+    fn hash_u64(url: &str, registry_kind: usize) -> u64 {
         use std::hash::{Hash, Hasher, SipHasher};
 
         let mut hasher = SipHasher::new_with_keys(0, 0);
         // Registry
-        2usize.hash(&mut hasher);
+        registry_kind.hash(&mut hasher);
         // Url
         url.hash(&mut hasher);
         hasher.finish()
     }
+
+    // SourceKind::Registry
+    let mut registry_kind = 2;
 
     // Ensure we have a registry or bare url
     let (url, scheme_ind) = {
@@ -50,14 +53,19 @@ pub fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
             .ok_or_else(|| Error::Url(format!("'{}' is not a valid url", url)))?;
 
         let scheme_str = &url[..scheme_ind];
-        if let Some(ind) = scheme_str.find('+') {
-            if &scheme_str[..ind] != "registry" {
-                return Err(Error::Url(format!("'{}' is not a valid registry url", url)));
-            }
-
-            (&url[ind + 1..], scheme_ind - ind - 1)
-        } else {
+        if scheme_str == "sparse+https" {
+            registry_kind = 3;
             (url, scheme_ind)
+        } else {
+            if let Some(ind) = scheme_str.find('+') {
+                if &scheme_str[..ind] != "registry" {
+                    return Err(Error::Url(format!("'{}' is not a valid registry url", url)));
+                }
+
+                (&url[ind + 1..], scheme_ind - ind - 1)
+            } else {
+                (url, scheme_ind)
+            }
         }
     };
 
@@ -87,7 +95,7 @@ pub fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(query);
     }
 
-    let ident = to_hex(hash_u64(&canonical));
+    let ident = to_hex(hash_u64(&canonical, registry_kind));
 
     if canonical.ends_with('/') {
         canonical.pop();
@@ -110,6 +118,14 @@ mod test {
             (
                 "github.com-1ecc6299db9ec823".to_owned(),
                 crate::INDEX_GIT_URL.to_owned()
+            )
+        );
+
+        assert_eq!(
+            super::url_to_local_dir("sparse+https://index.crates.io/").unwrap(),
+            (
+                "index.crates.io-6f17d22bba15001f".to_owned(),
+                "sparse+https://index.crates.io".to_owned(),
             )
         );
 
