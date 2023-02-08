@@ -1,5 +1,5 @@
 use crate::dedupe::DedupeContext;
-use crate::{Crate, error::CratesIterError, Error, IndexConfig};
+use crate::{Crate, error::CratesIterError, path_max_byte_len, Error, IndexConfig};
 use crate::dirs::url_to_local_dir;
 use git2::Repository;
 use std::fmt;
@@ -353,17 +353,6 @@ impl Index {
                 Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference: {e}", path.display()))
             })
     }
-}
-
-#[cfg(unix)]
-fn path_max_byte_len(path: &Path) -> usize {
-    use std::os::unix::prelude::OsStrExt;
-    path.as_os_str().as_bytes().len()
-}
-
-#[cfg(not(unix))]
-fn path_max_byte_len(path: &Path) -> usize {
-    path.to_str().map_or(0, |p| p.len())
 }
 
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
