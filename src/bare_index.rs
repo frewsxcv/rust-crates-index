@@ -147,17 +147,13 @@ impl Index {
             git2::Repository::open(&path)?
         };
 
-        let head = repo
-            // Fallback to HEAD, as a fresh clone won't have a FETCH_HEAD
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
+        let head = Self::find_valid_repo_head(&repo, &path)?;
 
         Ok(Self {
             path,
             url,
-            head_str,
             repo,
+            head_str: head.to_string(),
             head,
         })
     }
@@ -205,10 +201,7 @@ impl Index {
             )?;
         }
 
-        let head = self
-            .repo
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.repo.refname_to_id("HEAD"))?;
+        let head = Self::find_valid_repo_head(&self.repo, &self.path)?;
 
         self.head = head;
         self.head_str = self.head.to_string();
@@ -340,6 +333,21 @@ impl Index {
             .as_blob()
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
         serde_json::from_slice(blob.content()).map_err(Error::Json)
+    }
+
+    fn find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
+        repo.refname_to_id("FETCH_HEAD")
+            .or_else(|_| repo.refname_to_id("HEAD"))
+            .and_then(|head| {
+                // Users of sparse registry reported git failures due to missing oids,
+                // which isn't supposed to happen.
+                let _ = repo.find_commit(head)?;
+                Ok(head)
+            })
+            .map_err(|e| {
+                // TODO: The Error enum lacks a proper variant for this case
+                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference: {e}", path.display()))
+            })
     }
 }
 
