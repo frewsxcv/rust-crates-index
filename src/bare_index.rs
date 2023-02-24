@@ -82,7 +82,7 @@ impl Index {
     /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
         let (dir_name, canonical_url) = url_to_local_dir(url)?;
-        let mut path = home::cargo_home().unwrap_or_default();
+        let mut path = home::cargo_home()?;
 
         path.push("registry");
         path.push("index");
@@ -127,6 +127,9 @@ impl Index {
         let repo = if !exists {
             let mut opts = git2::RepositoryInitOptions::new();
             opts.external_template(false);
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
             let repo = git2::Repository::init_opts(&path, &opts)?;
             {
                 let mut origin_remote = repo
@@ -616,8 +619,9 @@ mod test {
         use super::Index;
 
         let tmp_dir = tempfile::TempDir::new().unwrap();
+        let path = tmp_dir.path().join("some/sub/dir/testing/abc");
 
-        let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
+        let mut repo = Index::with_path(path, crate::INDEX_GIT_URL)
             .expect("Failed to clone crates.io index");
 
         fn test_sval(repo: &Index) {
