@@ -4,7 +4,7 @@
 
 Library for retrieving and interacting with the [crates.io registry git-based index](https://github.com/rust-lang/crates.io-index).
 
-The index contains metadata for all Rust libraires and programs published on crates.io: their verisons, dependencies, and feature flags.
+The index contains metadata for all Rust libraries and programs published on crates.io: their versions, dependencies, and feature flags.
 
 [Documentation](https://docs.rs/crates-index/)
 
