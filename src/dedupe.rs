@@ -66,6 +66,6 @@ impl<K: PartialEq + Hash + Eq, V: PartialEq + Hash + Eq> HashableHashMap<K, V> {
             v.hash(&mut hasher);
             hash ^= hasher.finish(); // XOR makes it order-independent
         }
-        Self { hash, map }
+        Self { map, hash }
     }
 }

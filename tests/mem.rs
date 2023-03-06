@@ -1,5 +1,5 @@
 use cap::Cap;
-use crates_index::*;
+use crates_index::Index;
 use rayon::iter::ParallelIterator;
 use std::alloc;
 

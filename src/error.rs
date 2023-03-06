@@ -1,7 +1,7 @@
 pub use git2::Error as GitError;
 pub use serde_json::Error as SerdeJsonError;
-pub use toml::de::Error as TomlDeError;
 use std::{fmt, io};
+pub use toml::de::Error as TomlDeError;
 
 /// Oops
 #[derive(Debug)]

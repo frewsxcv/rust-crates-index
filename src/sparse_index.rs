@@ -30,12 +30,11 @@ impl Index {
 
     /// Reads a crate from the local cache of the index. There are no guarantees around freshness,
     /// and if the crate is not known in the cache, no fetch will be performed.
-    pub fn crate_from_cache(&self, name: &str) -> Option<Crate> {
+    #[must_use] pub fn crate_from_cache(&self, name: &str) -> Option<Crate> {
         let rel_path = crate::crate_name_to_relative_path(name)?;
 
         // avoid realloc on each push
-        let mut cache_path =
-            PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
+        let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
         cache_path.push(&self.path);
         cache_path.push(".cache");
         cache_path.push(rel_path);

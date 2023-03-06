@@ -1,14 +1,10 @@
 use crate::dedupe::DedupeContext;
-use crate::{Crate, error::CratesIterError, path_max_byte_len, Error, IndexConfig};
 use crate::dirs::url_to_local_dir;
+use crate::{error::CratesIterError, path_max_byte_len, Crate, Error, IndexConfig};
 use git2::Repository;
 use std::fmt;
-
-use std::{
-    io,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 /// https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure
 fn find_cargo_config() -> Option<PathBuf> {
@@ -18,17 +14,17 @@ fn find_cargo_config() -> Option<PathBuf> {
             let mut path = base.join(".cargo");
             path.push("config.toml");
             if path.exists() {
-                return Some(path)
+                return Some(path);
             }
             if !base.pop() {
-                break
+                break;
             }
         }
     }
     if let Ok(home) = home::cargo_home() {
         let path = home.join("config.toml");
         if path.exists() {
-            return Some(path)
+            return Some(path);
         }
     }
     None
@@ -100,6 +96,7 @@ impl Index {
 
     /// Get the index directory.
     #[inline]
+    #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -181,6 +178,7 @@ impl Index {
 
     #[doc(hidden)]
     #[deprecated(note = "it's always retrieved, so it's assumed to always exist")]
+    #[must_use]
     pub fn exists(&self) -> bool {
         true
     }
@@ -219,6 +217,7 @@ impl Index {
     ///
     /// Use this only if you need to get very few crates. If you're going
     /// to read majority of crates, prefer the [`Index::crates()`] iterator.
+    #[must_use]
     pub fn crate_(&self, name: &str) -> Option<Crate> {
         let rel_path = crate::crate_name_to_relative_path(name)?;
 
@@ -258,6 +257,7 @@ impl Index {
     ///
     /// Skips crates that can not be parsed (but there shouldn't be any such crates in the crates-io index).
     #[inline]
+    #[must_use]
     pub fn crates(&self) -> Crates<'_> {
         Crates {
             blobs: self.crates_refs().expect("HEAD commit disappeared"),
@@ -269,7 +269,7 @@ impl Index {
     ///
     /// This method is available only if the "parallel" feature is enabled.
     #[cfg(feature = "parallel")]
-    pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, CratesIterError>> + '_ {
+    #[must_use] pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, CratesIterError>> + '_ {
         use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
 
         let tree_oids = match self.crates_top_level_refs() {
@@ -282,7 +282,7 @@ impl Index {
         tree_oids.into_par_iter()
             .with_min_len(64)
             .map_init(
-                move || (Repository::open_bare(&path), DedupeContext::new()),
+                move || (Repository::open_bare(path), DedupeContext::new()),
                 |(repo, ctx), oid| {
                     let repo = match repo.as_ref() {
                         Ok(repo) => repo,

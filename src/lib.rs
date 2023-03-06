@@ -52,7 +52,7 @@ use dedupe::DedupeContext;
 use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
-use smol_str::SmolStr as SmolStr;
+use smol_str::SmolStr;
 use std::collections::HashMap;
 use std::io;
 use std::path::Path;
@@ -86,6 +86,7 @@ pub struct Version {
     /// It's wrapped in `Option<Box>` to reduce size of the struct when the field is unused (i.e. almost always)
     /// <https://rust-lang.github.io/rfcs/3143-cargo-weak-namespaced-features.html#index-changes>
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[allow(clippy::box_collection)]
     features2: Option<Box<HashMap<String, Vec<String>>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     links: Option<Box<SmolStr>>,
@@ -98,18 +99,21 @@ pub struct Version {
 impl Version {
     /// Name of the crate
     #[inline]
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Name of this version
     #[inline]
+    #[must_use]
     pub fn version(&self) -> &str {
         &self.vers
     }
 
     /// Dependencies for this version
     #[inline]
+    #[must_use]
     pub fn dependencies(&self) -> &[Dependency] {
         &self.deps
     }
@@ -118,6 +122,7 @@ impl Version {
     ///
     /// SHA256 of the .crate file
     #[inline]
+    #[must_use]
     pub fn checksum(&self) -> &[u8; 32] {
         &self.cksum
     }
@@ -127,6 +132,7 @@ impl Version {
     ///
     /// `default` is a special feature name for implicitly enabled features.
     #[inline]
+    #[must_use]
     pub fn features(&self) -> &HashMap<String, Vec<String>> {
         &self.features
     }
@@ -136,6 +142,7 @@ impl Version {
     ///
     /// It does not involve linker or libraries in any way.
     #[inline]
+    #[must_use]
     pub fn links(&self) -> Option<&str> {
         self.links.as_ref().map(|s| s.as_str())
     }
@@ -143,11 +150,13 @@ impl Version {
     /// Whether this version was [yanked](http://doc.crates.io/crates-io.html#cargo-yank) from the
     /// index
     #[inline]
+    #[must_use]
     pub fn is_yanked(&self) -> bool {
         self.yanked
     }
 
     /// Where to find crate tarball
+    #[must_use]
     pub fn download_url(&self, index: &IndexConfig) -> Option<String> {
         index.download_url(&self.name, &self.vers)
     }
@@ -173,12 +182,14 @@ pub struct Dependency {
 impl Dependency {
     /// Dependency's arbitrary nickname (it may be an alias). Use [`Dependency::crate_name`] for actual crate name.
     #[inline]
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Semver version pattern
     #[inline]
+    #[must_use]
     pub fn requirement(&self) -> &str {
         &self.req
     }
@@ -187,6 +198,7 @@ impl Dependency {
     /// in addition to [`Dependency::has_default_features`] and features enabled through
     /// parent crate's feature list.
     #[inline]
+    #[must_use]
     pub fn features(&self) -> &[String] {
         &self.features
     }
@@ -194,30 +206,35 @@ impl Dependency {
     /// If it's optional, it implies a feature of its [`Dependency::name`], and can be enabled through
     /// the crate's features.
     #[inline]
+    #[must_use]
     pub fn is_optional(&self) -> bool {
         self.optional
     }
 
     /// If `true` (default), enable `default` feature of this dependency
     #[inline]
+    #[must_use]
     pub fn has_default_features(&self) -> bool {
         self.default_features
     }
 
     /// This dependency is only used when compiling for this `cfg` expression
     #[inline]
+    #[must_use]
     pub fn target(&self) -> Option<&str> {
         self.target.as_ref().map(|s| s.as_str())
     }
 
     /// Dev or not
     #[inline]
+    #[must_use]
     pub fn kind(&self) -> DependencyKind {
         self.kind.unwrap_or_default()
     }
 
     /// Set if dependency's crate name is different from the `name` (alias)
     #[inline]
+    #[must_use]
     pub fn package(&self) -> Option<&str> {
         self.package.as_ref().map(|s| s.as_str())
     }
@@ -236,6 +253,7 @@ impl Dependency {
     /// ...which means that it uses the crate `serde` but imports
     /// it under the name `serde_lib`.
     #[inline]
+    #[must_use]
     pub fn crate_name(&self) -> &str {
         match self.package {
             Some(ref s) => s,
@@ -408,7 +426,7 @@ impl Crate {
         let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
         if index_v != CURRENT_INDEX_FORMAT_VERSION {
             return Err(io::Error::new(io::ErrorKind::Unsupported,
-                format!("wrong index format version: {index_v} (expected {}))", CURRENT_INDEX_FORMAT_VERSION)));
+                format!("wrong index format version: {index_v} (expected {CURRENT_INDEX_FORMAT_VERSION}))")));
         }
         let rest = &rest[4..];
 
@@ -442,6 +460,7 @@ impl Crate {
     ///
     /// Warning: may be yanked or duplicate
     #[inline]
+    #[must_use]
     pub fn versions(&self) -> &[Version] {
         &self.versions
     }
@@ -449,6 +468,7 @@ impl Crate {
     /// The highest version as per semantic versioning specification
     ///
     /// Warning: may be pre-release or yanked
+    #[must_use]
     pub fn highest_version(&self) -> &Version {
         self.versions
             .iter()
@@ -465,6 +485,7 @@ impl Crate {
     /// 0.x.y versions are included.
     ///
     /// May return `None` if the crate has only pre-release or yanked versions.
+    #[must_use]
     pub fn highest_normal_version(&self) -> Option<&Version> {
         self.versions
             .iter()
@@ -477,6 +498,7 @@ impl Crate {
 
     /// Crate's unique registry name. Case-sensitive, mostly.
     #[inline]
+    #[must_use]
     pub fn name(&self) -> &str {
         self.versions[0].name()
     }
@@ -485,6 +507,7 @@ impl Crate {
     ///
     /// See [`Crate::highest_normal_version`]
     #[inline]
+    #[must_use]
     pub fn most_recent_version(&self) -> &Version {
         &self.versions[self.versions.len() - 1]
     }
@@ -493,6 +516,7 @@ impl Crate {
     ///
     /// It is not guaranteed to be the lowest version number.
     #[inline]
+    #[must_use]
     pub fn earliest_version(&self) -> &Version {
         &self.versions[0]
     }
@@ -503,10 +527,10 @@ impl Crate {
     #[cold]
     #[doc(hidden)]
     #[deprecated(note = "use most_recent_version")]
+    #[must_use]
     pub fn latest_version(&self) -> &Version {
         self.most_recent_version()
     }
-
 
     /// Returns the highest version as per semantic versioning specification,
     /// filtering out versions with pre-release identifiers.
@@ -515,6 +539,7 @@ impl Crate {
     #[cold]
     #[doc(hidden)]
     #[deprecated(note = "use highest_normal_version")]
+    #[must_use]
     pub fn highest_stable_version(&self) -> Option<&Version> {
         self.versions
             .iter()
@@ -541,7 +566,7 @@ impl Crate {
     }
 }
 
-pub(crate) fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = &'a [u8]> + 'a {
+pub(crate) fn split(haystack: &[u8], needle: u8) -> impl Iterator<Item = &[u8]> + '_ {
     struct Split<'a> {
         haystack: &'a [u8],
         needle: u8,
@@ -580,6 +605,7 @@ impl IndexConfig {
     /// Get the URL from where the specified package can be downloaded.
     /// This method assumes the particular version is present in the registry,
     /// and does not verify that it is.
+    #[must_use]
     pub fn download_url(&self, name: &str, version: &str) -> Option<String> {
         if !self.dl.contains("{crate}")
             && !self.dl.contains("{version}")
@@ -648,7 +674,7 @@ mod test {
         let crate_ = index
             .crate_("sval")
             .expect("Could not find the crate libnotify in the index");
-        let _ = format!("supports debug {:?}", crate_);
+        let _ = format!("supports debug {crate_:?}");
 
         let version = crate_
             .versions()
@@ -706,7 +732,7 @@ mod test {
                         found_gcc_crate = true;
                     }
                 }
-                Err(e) => panic!("can't parse :( {:?}: {}", c, e),
+                Err(e) => panic!("can't parse :( {c:?}: {e}"),
             }
         }
 

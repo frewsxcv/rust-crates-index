@@ -50,22 +50,20 @@ pub fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     let (url, scheme_ind) = {
         let scheme_ind = url
             .find("://")
-            .ok_or_else(|| Error::Url(format!("'{}' is not a valid url", url)))?;
+            .ok_or_else(|| Error::Url(format!("'{url}' is not a valid url")))?;
 
         let scheme_str = &url[..scheme_ind];
         if scheme_str == "sparse+https" {
             registry_kind = 3;
             (url, scheme_ind)
-        } else {
-            if let Some(ind) = scheme_str.find('+') {
-                if &scheme_str[..ind] != "registry" {
-                    return Err(Error::Url(format!("'{}' is not a valid registry url", url)));
-                }
-
-                (&url[ind + 1..], scheme_ind - ind - 1)
-            } else {
-                (url, scheme_ind)
+        } else if let Some(ind) = scheme_str.find('+') {
+            if &scheme_str[..ind] != "registry" {
+                return Err(Error::Url(format!("'{url}' is not a valid registry url")));
             }
+
+            (&url[ind + 1..], scheme_ind - ind - 1)
+        } else {
+            (url, scheme_ind)
         }
     };
 
@@ -106,7 +104,7 @@ pub fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(canonical.len() - 4);
     }
 
-    Ok((format!("{}-{}", host, ident), canonical))
+    Ok((format!("{host}-{ident}"), canonical))
 }
 
 #[cfg(test)]
@@ -136,7 +134,7 @@ mod test {
             super::url_to_local_dir(
                 "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git"
             )
-                .unwrap(),
+            .unwrap(),
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
                 "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
@@ -150,7 +148,7 @@ mod test {
                 "registry+{}.git?one=1&two=2#fragment",
                 crate::INDEX_GIT_URL
             ))
-                .unwrap(),
+            .unwrap(),
             (
                 "github.com-c786010fb7ef2e6e".to_owned(),
                 crate::INDEX_GIT_URL.to_owned()
