@@ -1,7 +1,10 @@
 use crate::{path_max_byte_len, url_to_local_dir, Crate, Error, IndexConfig};
+use std::io;
 use std::path::PathBuf;
 
-/// Wrapper around managing an sparse HTTP index, re-using Cargo's local disk caches.
+/// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
+///
+/// Currently it only uses local Cargo cache, and does not access the network in any way.
 pub struct Index {
     path: PathBuf,
 }
@@ -30,20 +33,17 @@ impl Index {
 
     /// Reads a crate from the local cache of the index. There are no guarantees around freshness,
     /// and if the crate is not known in the cache, no fetch will be performed.
-    #[must_use] pub fn crate_from_cache(&self, name: &str) -> Option<Crate> {
-        let rel_path = crate::crate_name_to_relative_path(name)?;
+    #[must_use] pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
+        let rel_path = crate::crate_name_to_relative_path(name)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
         // avoid realloc on each push
         let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
         cache_path.push(&self.path);
         cache_path.push(".cache");
         cache_path.push(rel_path);
-        if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-            if let Ok(krate) = Crate::from_sparse_cache_slice(&cache_bytes) {
-                return Some(krate);
-            }
-        }
-        None
+        let cache_bytes = std::fs::read(&cache_path)?;
+        Ok(Crate::from_sparse_cache_slice(&cache_bytes)?)
     }
 }
 
