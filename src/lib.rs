@@ -357,10 +357,7 @@ impl Crate {
             versions.push(version);
         }
         if versions.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "crate must have versions",
-            ));
+            return Err(io::ErrorKind::UnexpectedEof.into());
         }
         debug_assert_eq!(versions.len(), versions.capacity());
         Ok(Crate {
@@ -379,32 +376,17 @@ impl Crate {
         const CURRENT_CACHE_VERSION: u8 = 1;
 
         // See src/cargo/sources/registry/index.rs
-        let (first_byte, rest) = bytes
-            .split_first()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "malformed cache"))?;
+        let (&first_byte, rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
 
-        if *first_byte != CURRENT_CACHE_VERSION {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "looks like a different Cargo's cache, bailing out",
-            ));
+        if first_byte != CURRENT_CACHE_VERSION {
+            return Err(io::Error::new(io::ErrorKind::Unsupported, "looks like a different Cargo's cache"));
         }
 
         let mut iter = split(rest, 0);
-        if let Some(update) = iter.next() {
-            if update != index_version.as_bytes() {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!(
-                        "cache out of date: current index ({}) != cache ({})",
-                        index_version,
-                        std::str::from_utf8(update)
-                            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
-                    ),
-                ));
-            }
-        } else {
-            return Err(io::Error::new(io::ErrorKind::Other, "malformed file"));
+        let update = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
+        if update != index_version.as_bytes() {
+            return Err(io::Error::new(io::ErrorKind::Other,
+                format!("cache out of date: current index ({index_version}) != cache ({})", String::from_utf8_lossy(update))));
         }
         Self::from_version_entries_iter(iter)
     }
@@ -413,41 +395,23 @@ impl Crate {
         const CURRENT_CACHE_VERSION: u8 = 3;
         const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
 
-        let (first_byte, rest) = bytes.split_first().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::Other, "malformed cache (missing version)")
-        })?;
+        let (&first_byte, rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
 
-        if *first_byte != CURRENT_CACHE_VERSION {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "looks like a different Cargo's cache, bailing out",
-            ));
+        if first_byte != CURRENT_CACHE_VERSION {
+            return Err(io::Error::new(io::ErrorKind::Unsupported, "looks like a different Cargo's cache"));
         }
 
-        let index_v_bytes = rest.get(..4).ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                "malformed cache (missing index format version)",
-            )
-        })?;
+        let index_v_bytes = rest.get(..4).ok_or(io::ErrorKind::UnexpectedEof)?;
         let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
         if index_v != CURRENT_INDEX_FORMAT_VERSION {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!(
-                    "malformed cache (wrong index format version: {} (expected {}))",
-                    index_v, CURRENT_INDEX_FORMAT_VERSION
-                ),
-            ));
+            return Err(io::Error::new(io::ErrorKind::Unsupported,
+                format!("wrong index format version: {index_v} (expected {}))", CURRENT_INDEX_FORMAT_VERSION)));
         }
         let rest = &rest[4..];
 
         let mut iter = split(rest, 0);
-        if !iter.next().is_some() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "malformed cache (missing git sha)",
-            ));
+        if iter.next().is_none() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed cache (missing git sha)"));
         }
 
         Self::from_version_entries_iter(iter)
@@ -460,11 +424,9 @@ impl Crate {
 
         // Each entry is a tuple of (semver, version_json)
         while let Some(_version) = iter.next() {
-            let version_slice = iter
-                .next()
-                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "malformed file"))?;
+            let version_slice = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
             let version: Version = serde_json::from_slice(version_slice)
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
             versions.push(version);
         }
 

@@ -11,7 +11,7 @@ impl Index {
     /// disk that Cargo uses for that registry index's metadata and cache.
     pub fn from_url(url: &str) -> Result<Self, Error> {
         let (dir_name, _) = url_to_local_dir(url)?;
-        let mut path = home::cargo_home().unwrap_or_default();
+        let mut path = home::cargo_home()?;
 
         path.push("registry");
         path.push("index");
