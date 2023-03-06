@@ -326,6 +326,7 @@ pub struct Crate {
 
 impl Crate {
     /// Parse crate file from in-memory JSON data
+    #[inline(never)]
     pub(crate) fn from_slice_with_context(mut bytes: &[u8], dedupe: &mut DedupeContext) -> io::Result<Crate> {
         // Trim last newline
         while bytes.last() == Some(&b'\n') {
@@ -372,6 +373,7 @@ impl Crate {
     /// 3. The entry is a newer version than what can be read, would only
     /// happen if a future version of cargo changed the format of the cache entries
     /// 4. The cache entry is malformed somehow
+    #[inline(never)]
     pub(crate) fn from_cache_slice(bytes: &[u8], index_version: &str) -> io::Result<Crate> {
         const CURRENT_CACHE_VERSION: u8 = 1;
 
@@ -391,6 +393,7 @@ impl Crate {
         Self::from_version_entries_iter(iter)
     }
 
+    #[inline(never)]
     pub(crate) fn from_sparse_cache_slice(bytes: &[u8]) -> io::Result<Crate> {
         const CURRENT_CACHE_VERSION: u8 = 3;
         const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
@@ -547,6 +550,7 @@ pub(crate) fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = 
     impl<'a> Iterator for Split<'a> {
         type Item = &'a [u8];
 
+        #[inline]
         fn next(&mut self) -> Option<&'a [u8]> {
             if self.haystack.is_empty() {
                 return None;
