@@ -63,6 +63,7 @@ mod dedupe;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
 pub mod error;
+mod sparse_index;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
@@ -70,6 +71,7 @@ pub use dirs::url_to_local_dir;
 #[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
+pub use sparse_index::Index as SparseIndex;
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -388,31 +390,6 @@ impl Crate {
             ));
         }
 
-        fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = &'a [u8]> + 'a {
-            struct Split<'a> {
-                haystack: &'a [u8],
-                needle: u8,
-            }
-
-            impl<'a> Iterator for Split<'a> {
-                type Item = &'a [u8];
-
-                fn next(&mut self) -> Option<&'a [u8]> {
-                    if self.haystack.is_empty() {
-                        return None;
-                    }
-                    let (ret, remaining) = match memchr::memchr(self.needle, self.haystack) {
-                        Some(pos) => (&self.haystack[..pos], &self.haystack[pos + 1..]),
-                        None => (self.haystack, &[][..]),
-                    };
-                    self.haystack = remaining;
-                    Some(ret)
-                }
-            }
-
-            Split { haystack, needle }
-        }
-
         let mut iter = split(rest, 0);
         if let Some(update) = iter.next() {
             if update != index_version.as_bytes() {
@@ -429,7 +406,56 @@ impl Crate {
         } else {
             return Err(io::Error::new(io::ErrorKind::Other, "malformed file"));
         }
+        Self::from_version_entries_iter(iter)
+    }
 
+    pub(crate) fn from_sparse_cache_slice(bytes: &[u8]) -> io::Result<Crate> {
+        const CURRENT_CACHE_VERSION: u8 = 3;
+        const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
+
+        let (first_byte, rest) = bytes.split_first().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::Other, "malformed cache (missing version)")
+        })?;
+
+        if *first_byte != CURRENT_CACHE_VERSION {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "looks like a different Cargo's cache, bailing out",
+            ));
+        }
+
+        let index_v_bytes = rest.get(..4).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                "malformed cache (missing index format version)",
+            )
+        })?;
+        let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
+        if index_v != CURRENT_INDEX_FORMAT_VERSION {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "malformed cache (wrong index format version: {} (expected {}))",
+                    index_v, CURRENT_INDEX_FORMAT_VERSION
+                ),
+            ));
+        }
+        let rest = &rest[4..];
+
+        let mut iter = split(rest, 0);
+        if !iter.next().is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "malformed cache (missing git sha)",
+            ));
+        }
+
+        Self::from_version_entries_iter(iter)
+    }
+
+    pub(crate) fn from_version_entries_iter<'a, I: Iterator<Item = &'a [u8]> + 'a>(
+        mut iter: I,
+    ) -> io::Result<Crate> {
         let mut versions = Vec::new();
 
         // Each entry is a tuple of (semver, version_json)
@@ -550,6 +576,31 @@ impl Crate {
     }
 }
 
+pub(crate) fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = &'a [u8]> + 'a {
+    struct Split<'a> {
+        haystack: &'a [u8],
+        needle: u8,
+    }
+
+    impl<'a> Iterator for Split<'a> {
+        type Item = &'a [u8];
+
+        fn next(&mut self) -> Option<&'a [u8]> {
+            if self.haystack.is_empty() {
+                return None;
+            }
+            let (ret, remaining) = match memchr::memchr(self.needle, self.haystack) {
+                Some(pos) => (&self.haystack[..pos], &self.haystack[pos + 1..]),
+                None => (self.haystack, &[][..]),
+            };
+            self.haystack = remaining;
+            Some(ret)
+        }
+    }
+
+    Split { haystack, needle }
+}
+
 /// Global configuration of an index, reflecting the [contents of config.json](https://doc.rust-lang.org/cargo/reference/registries.html#index-format).
 #[derive(Clone, Debug, Deserialize)]
 pub struct IndexConfig {
@@ -589,6 +640,17 @@ impl IndexConfig {
             )
         }
     }
+}
+
+#[cfg(unix)]
+fn path_max_byte_len(path: &Path) -> usize {
+    use std::os::unix::prelude::OsStrExt;
+    path.as_os_str().as_bytes().len()
+}
+
+#[cfg(not(unix))]
+fn path_max_byte_len(path: &Path) -> usize {
+    path.to_str().map_or(0, |p| p.len())
 }
 
 #[cfg(test)]
