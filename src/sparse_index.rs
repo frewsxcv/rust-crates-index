@@ -1,4 +1,4 @@
-use crate::{path_max_byte_len, url_to_local_dir, Crate, Error, IndexConfig};
+use crate::{path_max_byte_len, dirs::url_to_local_dir, Crate, Error, IndexConfig};
 use std::io;
 use std::path::PathBuf;
 

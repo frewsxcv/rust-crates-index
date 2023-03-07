@@ -2,7 +2,7 @@ use crate::Error;
 
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
 /// the root directory name where cargo itself will fetch it on disk
-pub fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
+pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     fn to_hex(num: u64) -> String {
         const CHARS: &[u8] = b"0123456789abcdef";
 

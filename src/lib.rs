@@ -67,7 +67,7 @@ mod sparse_index;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
-pub use dirs::url_to_local_dir;
+
 #[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
