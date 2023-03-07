@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+
 on:
   push:
   pull_request:
@@ -10,7 +13,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - stable
+          - beta
           - nightly
     runs-on: ubuntu-latest
     steps:
