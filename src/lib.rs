@@ -726,6 +726,9 @@ mod test {
         let mut ctx = DedupeContext::new();
 
         for c in index.crates_refs().unwrap() {
+            if c.as_slice().map_or(false, |blob| blob.is_empty()) {
+                continue; // https://github.com/rust-lang/crates.io/issues/6159
+            }
             match c.parse(&mut ctx) {
                 Ok(c) => {
                     if c.name() == "gcc" {
