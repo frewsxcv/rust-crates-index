@@ -59,19 +59,22 @@ use std::path::Path;
 use std::sync::Arc;
 
 mod bare_index;
+mod sparse_index;
+mod index;
 mod dedupe;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
 pub mod error;
-mod sparse_index;
 
 pub use bare_index::Crates;
-pub use bare_index::Index;
+pub use bare_index::Index as BareIndex;
 
 #[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
 pub use sparse_index::Index as SparseIndex;
+
+pub use index::Index;
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";

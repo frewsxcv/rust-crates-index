@@ -1,5 +1,4 @@
-use crate::{path_max_byte_len, dirs::url_to_local_dir, Crate, Error, IndexConfig};
-use std::io;
+use crate::{dirs::url_to_local_dir, path_max_byte_len, Crate, Error, IndexConfig};
 use std::path::PathBuf;
 
 /// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
@@ -7,20 +6,26 @@ use std::path::PathBuf;
 /// Currently it only uses local Cargo cache, and does not access the network in any way.
 pub struct Index {
     path: PathBuf,
+    #[allow(dead_code)]
+    url: String,
 }
 
 impl Index {
     /// Creates a view over the sparse HTTP index from a provided URL, opening the same location on
     /// disk that Cargo uses for that registry index's metadata and cache.
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (dir_name, _) = url_to_local_dir(url)?;
+        let (dir_name, url, _) = url_to_local_dir(url)?;
         let mut path = home::cargo_home()?;
 
         path.push("registry");
         path.push("index");
         path.push(dir_name);
 
-        Ok(Self { path })
+        Ok(Self::from_path_and_url(path, url))
+    }
+
+    pub(crate) fn from_path_and_url(path: PathBuf, url: String) -> Self {
+        Self { path, url }
     }
 
     /// Get the global configuration of the index.
@@ -33,17 +38,19 @@ impl Index {
 
     /// Reads a crate from the local cache of the index. There are no guarantees around freshness,
     /// and if the crate is not known in the cache, no fetch will be performed.
-    #[must_use] pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
-        let rel_path = crate::crate_name_to_relative_path(name)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
+    #[must_use]
+    pub fn crate_from_cache(&self, name: &str) -> Option<Crate> {
+        let rel_path = crate::crate_name_to_relative_path(name)?;
 
         // avoid realloc on each push
-        let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
+        let mut cache_path =
+            PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
         cache_path.push(&self.path);
         cache_path.push(".cache");
         cache_path.push(rel_path);
-        let cache_bytes = std::fs::read(&cache_path)?;
-        Ok(Crate::from_sparse_cache_slice(&cache_bytes)?)
+        let cache_bytes = std::fs::read(&cache_path).ok()?;
+
+        Crate::from_sparse_cache_slice(&cache_bytes).ok()
     }
 }
 

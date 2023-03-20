@@ -78,7 +78,7 @@ impl Index {
     ///
     /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (dir_name, canonical_url) = url_to_local_dir(url)?;
+        let (dir_name, canonical_url, _kind) = url_to_local_dir(url)?;
         let mut path = home::cargo_home()?;
 
         path.push("registry");
@@ -110,7 +110,7 @@ impl Index {
 }
 
 impl Index {
-    fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
+    pub(crate) fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
         let exists = git2::Repository::discover(&path)
             .map(|repository| {
                 repository

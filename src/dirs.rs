@@ -1,8 +1,16 @@
 use crate::Error;
 
+// See cargo::SourceKind::Registry
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[repr(usize)]
+pub(crate) enum RegistryKind {
+    Git = 2,
+    SparseHttp = 3,
+}
+
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
 /// the root directory name where cargo itself will fetch it on disk
-pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
+pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String, RegistryKind), Error> {
     fn to_hex(num: u64) -> String {
         const CHARS: &[u8] = b"0123456789abcdef";
 
@@ -44,7 +52,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     }
 
     // SourceKind::Registry
-    let mut registry_kind = 2;
+    let mut registry_kind = RegistryKind::Git;
 
     // Ensure we have a registry or bare url
     let (url, scheme_ind) = {
@@ -54,8 +62,8 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
 
         let scheme_str = &url[..scheme_ind];
         if scheme_str == "sparse+https" {
-            registry_kind = 3;
-            (url, scheme_ind)
+            registry_kind = RegistryKind::SparseHttp;
+            (&url[7..], scheme_ind)
         } else if let Some(ind) = scheme_str.find('+') {
             if &scheme_str[..ind] != "registry" {
                 return Err(Error::Url(format!("'{url}' is not a valid registry url")));
@@ -93,7 +101,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(query);
     }
 
-    let ident = to_hex(hash_u64(&canonical, registry_kind));
+    let ident = to_hex(hash_u64(&canonical, registry_kind as usize));
 
     if canonical.ends_with('/') {
         canonical.pop();
@@ -104,7 +112,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(canonical.len() - 4);
     }
 
-    Ok((format!("{host}-{ident}"), canonical))
+    Ok((format!("{host}-{ident}"), canonical, registry_kind))
 }
 
 #[cfg(test)]
@@ -115,7 +123,8 @@ mod test {
             super::url_to_local_dir(crate::INDEX_GIT_URL).unwrap(),
             (
                 "github.com-1ecc6299db9ec823".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
+                crate::INDEX_GIT_URL.to_owned(),
+                RegistryKind::Git,
             )
         );
 
@@ -123,7 +132,8 @@ mod test {
             super::url_to_local_dir("sparse+https://index.crates.io/").unwrap(),
             (
                 "index.crates.io-6f17d22bba15001f".to_owned(),
-                "sparse+https://index.crates.io".to_owned(),
+                "https://index.crates.io".to_owned(),
+                RegistryKind::SparseHttp,
             )
         );
 
@@ -137,7 +147,8 @@ mod test {
             .unwrap(),
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
-                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
+                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned(),
+                RegistryKind::Git,
             )
         );
 
@@ -151,7 +162,8 @@ mod test {
             .unwrap(),
             (
                 "github.com-c786010fb7ef2e6e".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
+                crate::INDEX_GIT_URL.to_owned(),
+                RegistryKind::Git,
             )
         );
     }
