@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "0.19.7"
+version = "0.19.8"
 homepage = "https://lib.rs/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -17,19 +17,19 @@ git2 = { version = "0.16", default-features = false }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 memchr = "2.5.0"
-num_cpus = "1.14.0"
-rayon = { version = "1.5.3", optional = true }
+num_cpus = "1.15.0"
+rayon = { version = "1.7.0", optional = true }
 rustc-hash = "1.1.0"
-semver = "1.0.14"
-serde = { version = "1.0.147", features = ["rc"] }
-serde_derive = "1.0.147"
-serde_json = "1.0.87"
-smol_str = { version = "0.1.23", features = ["serde"] }
-toml = "0.7"
+semver = "1.0.17"
+serde = { version = "1.0.160", features = ["rc"] }
+serde_derive = "1.0.160"
+serde_json = "1.0.96"
+smol_str = { version = "0.2.0", features = ["serde"] }
+toml = "0.7.3"
 
 [dev-dependencies]
-tempfile = "3.3.0"
-cap = "0.1.1"
+tempfile = "3.5.0"
+cap = "0.1.2"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
