@@ -90,6 +90,8 @@ pub struct Version {
     features2: Option<Box<HashMap<String, Vec<String>>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     links: Option<Box<SmolStr>>,
+    #[serde(default)]
+    rust_version: Option<SmolStr>,
     #[serde(with = "hex")]
     cksum: [u8; 32],
     #[serde(default)]
@@ -153,6 +155,18 @@ impl Version {
     #[must_use]
     pub fn is_yanked(&self) -> bool {
         self.yanked
+    }
+
+    /// Required version of rust
+    ///
+    /// Corresponds to `package.rust-version`.
+    ///
+    /// Added in 2023 (see <https://github.com/rust-lang/crates.io/pull/6267>),
+    /// can be `None` if published before then or if not set in the manifest.
+    #[inline]
+    #[must_use]
+    pub fn rust_version(&self) -> Option<&str> {
+        self.rust_version.as_deref()
     }
 
     /// Where to find crate tarball
@@ -652,7 +666,7 @@ mod test {
 
     #[test]
     fn sizes() {
-        assert!(std::mem::size_of::<Version>() <= 128);
+        assert!(std::mem::size_of::<Version>() <= 152);
         assert!(std::mem::size_of::<Crate>() <= 16);
         assert!(std::mem::size_of::<Dependency>() <= 80);
     }
@@ -751,5 +765,11 @@ mod test {
         assert_eq!(["one", "two"], &f2["a"][..]);
         assert_eq!(["x"], &f2["b"][..]);
         assert_eq!(["y"], &f2["c"][..]);
+    }
+
+    #[test]
+    fn rust_version() {
+        let c = Crate::from_slice(br#"{"vers":"1.0.0", "name":"test", "deps":[], "features":{},"features2":{}, "cksum":"1234567890123456789012345678901234567890123456789012345678901234", "rust_version":"1.64.0"}"#).unwrap();
+        assert_eq!(c.most_recent_version().rust_version(), Some("1.64.0"));
     }
 }
