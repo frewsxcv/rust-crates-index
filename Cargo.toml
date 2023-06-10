@@ -17,7 +17,6 @@ git2 = { version = ">=0.16, <=0.17", default-features = false }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 memchr = "2.5.0"
-num_cpus = "1.15.0"
 rayon = { version = "1.7.0", optional = true }
 rustc-hash = "1.1.0"
 semver = "1.0.17"
