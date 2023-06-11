@@ -49,6 +49,7 @@
 #![deny(missing_docs)]
 
 use dedupe::DedupeContext;
+use git2::CredentialType;
 use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
@@ -301,21 +302,32 @@ fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
     fetch_opts.proxy_options(proxy_opts);
 
     let mut remote_callbacks = RemoteCallbacks::new();
-    remote_callbacks.credentials(|url, username_from_url, _allowed_types| {
+    remote_callbacks.credentials(|url, username_from_url, allowed_types| {
         let config = Config::open_default()?;
-        match CredentialHelper::new(url)
-            .config(&config)
-            .username(username_from_url)
-            .execute()
-        {
-            Some((username, password)) => {
+
+        if allowed_types.contains(CredentialType::USER_PASS_PLAINTEXT) {
+            if let Some((username, password)) = CredentialHelper::new(url)
+                .config(&config)
+                .username(username_from_url)
+                .execute()
+            {
                 let cred = Cred::userpass_plaintext(&username, &password)?;
-                Ok(cred)
+                return Ok(cred);
             }
-            None => Err(git2::Error::from_str(
-                "failed to acquire username/password from local configuration",
-            )),
         }
+
+        #[cfg(feature = "ssh")]
+        if allowed_types.contains(CredentialType::SSH_KEY) {
+            if let Some(username) = username_from_url {
+                if let Ok(cred) = Cred::ssh_key_from_agent(username) {
+                    return Ok(cred);
+                }
+            }
+        }
+
+        Err(git2::Error::from_str(
+            "failed to acquire appropriate credentials from local configuration",
+        ))
     });
     fetch_opts.remote_callbacks(remote_callbacks);
 
