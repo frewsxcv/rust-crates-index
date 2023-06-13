@@ -141,14 +141,6 @@ mod test {
     #[test]
     fn matches_cargo() {
         assert_eq!(
-            super::url_to_local_dir(crate::INDEX_GIT_URL).unwrap(),
-            (
-                "github.com-1ecc6299db9ec823".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
-            )
-        );
-
-        assert_eq!(
             super::url_to_local_dir(crate::CRATES_IO_HTTP_INDEX).unwrap(),
             (
                 "index.crates.io-6f17d22bba15001f".to_owned(),
@@ -167,20 +159,6 @@ mod test {
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
                 "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
-            )
-        );
-
-        // Ensure we actually strip off the irrelevant parts of a url, note that
-        // the .git suffix is not part of the canonical url, but *is* used when hashing
-        assert_eq!(
-            super::url_to_local_dir(&format!(
-                "registry+{}.git?one=1&two=2#fragment",
-                crate::INDEX_GIT_URL
-            ))
-            .unwrap(),
-            (
-                "github.com-c786010fb7ef2e6e".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
             )
         );
     }

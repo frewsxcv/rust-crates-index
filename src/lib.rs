@@ -21,15 +21,20 @@
 //! ### Getting information about a single crate
 //!
 //! ```rust
+//! # #[cfg(feature = "git-index")]
+//! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! let serde_crate = index.crate_("serde").expect("you should handle errors here");
 //! println!("Serde is at v{}", serde_crate.highest_normal_version().unwrap().version());
 //! # Ok::<_, crates_index::Error>(())
+//! # }
 //! ```
 //!
 //! ### Iterating over *all* crates in the index
 //!
 //! ```rust
+//! # #[cfg(feature = "git-index")]
+//! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! for crate_ in index.crates() {
 //!    let latest = crate_.most_recent_version();
@@ -44,6 +49,7 @@
 //! });
 //!
 //! # Ok::<_, crates_index::Error>(())
+//! # }
 //! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -57,6 +63,7 @@ use std::io;
 use std::path::Path;
 use std::sync::Arc;
 
+#[cfg(feature = "git-index")]
 mod bare_index;
 mod config;
 mod dedupe;
@@ -65,8 +72,11 @@ mod dirs;
 pub mod error;
 mod sparse_index;
 
+#[cfg(feature = "git-index")]
 pub use bare_index::Crates;
+#[cfg(feature = "git-index")]
 pub use bare_index::Index;
+#[cfg(feature = "git-index")]
 pub use bare_index::INDEX_GIT_URL;
 
 
