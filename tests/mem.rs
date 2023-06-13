@@ -5,7 +5,7 @@ use std::alloc;
 static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
 
 #[test]
-#[cfg(feature = "parallel")]
+#[cfg(all(feature = "parallel", features = "git-index"))]
 fn mem_usage() {
     use crates_index::Index;
     use rayon::iter::ParallelIterator;

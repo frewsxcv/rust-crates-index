@@ -625,4 +625,29 @@ mod test {
 
         assert!(found_gcc_crate);
     }
+
+    #[test]
+    fn matches_cargo() {
+        assert_eq!(
+            crate::dirs::url_to_local_dir(crate::INDEX_GIT_URL).unwrap(),
+            (
+                "github.com-1ecc6299db9ec823".to_owned(),
+                crate::INDEX_GIT_URL.to_owned()
+            )
+        );
+
+        // Ensure we actually strip off the irrelevant parts of a url, note that
+        // the .git suffix is not part of the canonical url, but *is* used when hashing
+        assert_eq!(
+            crate::dirs::url_to_local_dir(&format!(
+                "registry+{}.git?one=1&two=2#fragment",
+                crate::INDEX_GIT_URL
+            ))
+            .unwrap(),
+            (
+                "github.com-c786010fb7ef2e6e".to_owned(),
+                crate::INDEX_GIT_URL.to_owned()
+            )
+        );
+    }
 }
