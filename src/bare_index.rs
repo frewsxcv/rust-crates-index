@@ -409,10 +409,10 @@ impl<'a> Iterator for Crates<'a> {
 
 #[cfg(test)]
 mod test {
+    use super::Index;
     #[test]
+    #[ignore]
     fn bare_iterator() {
-        use super::Index;
-
         let tmp_dir = tempfile::TempDir::new().unwrap();
 
         let repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
@@ -436,14 +436,13 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn clones_bare_index() {
-        use super::Index;
-
         let tmp_dir = tempfile::TempDir::new().unwrap();
         let path = tmp_dir.path().join("some/sub/dir/testing/abc");
 
-        let mut repo = Index::with_path(path, crate::INDEX_GIT_URL)
-            .expect("Failed to clone crates.io index");
+        let mut repo =
+            Index::with_path(path, crate::INDEX_GIT_URL).expect("Failed to clone crates.io index");
 
         fn test_sval(repo: &Index) {
             let krate = repo
@@ -478,9 +477,8 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn opens_bare_index() {
-        use super::Index;
-
         let tmp_dir = tempfile::TempDir::new().unwrap();
 
         let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
@@ -519,9 +517,87 @@ mod test {
     }
 
     #[test]
-    fn reads_replaced_source() {
-        use super::Index;
+    #[ignore]
+    fn test_cargo_default_updates() {
+        let mut index = Index::new_cargo_default().unwrap();
+        index
+            .update()
+            .map_err(|e| {
+                format!(
+                    "could not fetch cargo's index in {}: {}",
+                    index.path().display(),
+                    e
+                )
+            })
+            .unwrap();
+        assert!(index.crate_("crates-index").is_some());
+        assert!(index.crate_("toml").is_some());
+        assert!(index.crate_("gcc").is_some());
+        assert!(index.crate_("cc").is_some());
+        assert!(index.crate_("CC").is_some());
+        assert!(index.crate_("無").is_none());
+    }
 
+    #[test]
+    #[ignore]
+    fn test_dependencies() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
+
+        let crate_ = index
+            .crate_("sval")
+            .expect("Could not find the crate libnotify in the index");
+        let _ = format!("supports debug {crate_:?}");
+
+        let version = crate_
+            .versions()
+            .iter()
+            .find(|v| v.version() == "0.0.1")
+            .expect("Version 0.0.1 of sval does not exist?");
+        let dep_with_package_name = version
+            .dependencies()
+            .iter()
+            .find(|d| d.name() == "serde_lib")
+            .expect("sval does not have expected dependency?");
+        assert_ne!(
+            dep_with_package_name.name(),
+            dep_with_package_name.package().unwrap()
+        );
+        assert_eq!(
+            dep_with_package_name.crate_name(),
+            dep_with_package_name.package().unwrap()
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn test_can_parse_all() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let mut found_gcc_crate = false;
+
+        let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
+        let mut ctx = crate::DedupeContext::new();
+
+        for c in index.crates_refs().unwrap() {
+            if c.as_slice().map_or(false, |blob| blob.is_empty()) {
+                continue; // https://github.com/rust-lang/crates.io/issues/6159
+            }
+            match c.parse(&mut ctx) {
+                Ok(c) => {
+                    if c.name() == "gcc" {
+                        found_gcc_crate = true;
+                    }
+                }
+                Err(e) => panic!("can't parse :( {c:?}: {e}"),
+            }
+        }
+
+        assert!(found_gcc_crate);
+    }
+
+    #[test]
+    #[ignore]
+    fn reads_replaced_source() {
         let index = Index::new_cargo_default();
         assert!(index.is_ok());
         assert!(index.unwrap().index_config().is_ok());

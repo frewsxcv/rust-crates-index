@@ -601,7 +601,6 @@ fn path_max_byte_len(path: &Path) -> usize {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tempfile::TempDir;
 
     #[test]
     fn sizes() {
@@ -618,81 +617,6 @@ mod test {
         assert_eq!(c.most_recent_version().version(), "1.0.1");
         assert_eq!(c.highest_version().version(), "1.2.0-alpha.1");
         assert_eq!(c.highest_normal_version().unwrap().version(), "1.0.1");
-    }
-
-    #[test]
-    fn test_dependencies() {
-        let index = Index::new_cargo_default().unwrap();
-
-        let crate_ = index
-            .crate_("sval")
-            .expect("Could not find the crate libnotify in the index");
-        let _ = format!("supports debug {crate_:?}");
-
-        let version = crate_
-            .versions()
-            .iter()
-            .find(|v| v.version() == "0.0.1")
-            .expect("Version 0.0.1 of sval does not exist?");
-        let dep_with_package_name = version
-            .dependencies()
-            .iter()
-            .find(|d| d.name() == "serde_lib")
-            .expect("sval does not have expected dependency?");
-        assert_ne!(
-            dep_with_package_name.name(),
-            dep_with_package_name.package().unwrap()
-        );
-        assert_eq!(
-            dep_with_package_name.crate_name(),
-            dep_with_package_name.package().unwrap()
-        );
-    }
-
-    #[test]
-    fn test_cargo_default_updates() {
-        let mut index = Index::new_cargo_default().unwrap();
-        index
-            .update()
-            .map_err(|e| {
-                format!(
-                    "could not fetch cargo's index in {}: {}",
-                    index.path().display(),
-                    e
-                )
-            })
-            .unwrap();
-        assert!(index.crate_("crates-index").is_some());
-        assert!(index.crate_("toml").is_some());
-        assert!(index.crate_("gcc").is_some());
-        assert!(index.crate_("cc").is_some());
-        assert!(index.crate_("CC").is_some());
-        assert!(index.crate_("無").is_none());
-    }
-
-    #[test]
-    fn test_can_parse_all() {
-        let tmp_dir = TempDir::new().unwrap();
-        let mut found_gcc_crate = false;
-
-        let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
-        let mut ctx = DedupeContext::new();
-
-        for c in index.crates_refs().unwrap() {
-            if c.as_slice().map_or(false, |blob| blob.is_empty()) {
-                continue; // https://github.com/rust-lang/crates.io/issues/6159
-            }
-            match c.parse(&mut ctx) {
-                Ok(c) => {
-                    if c.name() == "gcc" {
-                        found_gcc_crate = true;
-                    }
-                }
-                Err(e) => panic!("can't parse :( {c:?}: {e}"),
-            }
-        }
-
-        assert!(found_gcc_crate);
     }
 
     #[test]

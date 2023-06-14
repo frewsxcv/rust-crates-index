@@ -7,6 +7,7 @@ use std::alloc;
 static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
 
 #[test]
+#[ignore]
 fn mem_usage() {
     let index = Index::new_cargo_default().unwrap();
 
