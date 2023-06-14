@@ -53,7 +53,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
             .ok_or_else(|| Error::Url(format!("'{url}' is not a valid url")))?;
 
         let scheme_str = &url[..scheme_ind];
-        if scheme_str == "sparse+https" {
+        if scheme_str.starts_with("sparse+http") {
             registry_kind = 3;
             (url, scheme_ind)
         } else if let Some(ind) = scheme_str.find('+') {
@@ -105,6 +105,25 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     }
 
     Ok((format!("{host}-{ident}"), canonical))
+}
+
+/// Get the disk location of the specified url, as well as its canonical form
+pub fn get_index_details(
+    url: &str,
+    cargo_home: Option<&std::path::Path>,
+) -> Result<(std::path::PathBuf, String), Error> {
+    let (dir_name, canonical_url) = url_to_local_dir(url)?;
+
+    let mut path = match cargo_home {
+        Some(path) => path.to_owned(),
+        None => home::cargo_home()?,
+    };
+
+    path.push("registry");
+    path.push("index");
+    path.push(dir_name);
+
+    Ok((path, canonical_url))
 }
 
 #[cfg(test)]

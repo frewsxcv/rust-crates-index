@@ -1,4 +1,4 @@
-use crate::{path_max_byte_len, dirs::url_to_local_dir, Crate, Error, IndexConfig};
+use crate::{dirs::get_index_details, path_max_byte_len, Crate, Error, IndexConfig};
 use std::io;
 
 /// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
@@ -9,20 +9,53 @@ pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
 /// Currently it only uses local Cargo cache, and does not access the network in any way.
 pub struct Index {
     path: PathBuf,
+    url: String,
 }
 
 impl Index {
-    /// Creates a view over the sparse HTTP index from a provided URL, opening the same location on
-    /// disk that Cargo uses for that registry index's metadata and cache.
+    /// Creates a view over the sparse HTTP index from a provided URL, opening
+    /// the same location on disk that Cargo uses for that registry index's
+    /// metadata and cache.
+    ///
+    /// Note this function takes the `CARGO_HOME` environment variable into account
+    #[inline]
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (dir_name, _) = url_to_local_dir(url)?;
-        let mut path = home::cargo_home()?;
+        Self::with_path(home::cargo_home()?, url)
+    }
 
-        path.push("registry");
-        path.push("index");
-        path.push(dir_name);
+    /// Creates an index for the default crates.io registry, using the same
+    /// disk location as Cargo itself.
+    ///
+    /// This is the recommended way to access the crates.io sparse index.
+    ///
+    /// Note this function takes the `CARGO_HOME` environment variable into account
+    #[inline]
+    pub fn new_cargo_default() -> Result<Self, Error> {
+        Self::from_url(CRATES_IO_HTTP_INDEX)
+    }
 
-        Ok(Self { path })
+    /// Creates a view over the sparse HTTP index from the provided URL, rooted
+    /// at the specified location
+    #[inline]
+    pub fn with_path(cargo_home: impl AsRef<Path>, url: impl AsRef<str>) -> Result<Self, Error> {
+        let url = url.as_ref();
+        // It is required to have the sparse+ scheme modifier for sparse urls as
+        // they are part of the short ident hash calculation done by cargo
+        if !url.starts_with("sparse+http") {
+            return Err(Error::Url(url.to_owned()));
+        }
+
+        let (path, url) = get_index_details(url, Some(cargo_home.as_ref()))?;
+        Ok(Self::at_path(path, url))
+    }
+
+    /// Creates a view over the sparse HTTP index at the exact specified path
+    #[inline]
+    pub fn at_path(path: PathBuf, mut url: String) -> Self {
+        if !url.ends_with('/') {
+            url.push('/');
+        }
+        Self { path, url }
     }
 
     /// Get the global configuration of the index.

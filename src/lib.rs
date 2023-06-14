@@ -61,6 +61,7 @@ use std::sync::Arc;
 
 mod bare_index;
 mod cache;
+mod config;
 mod dedupe;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
@@ -70,6 +71,8 @@ mod sparse_index;
 pub use bare_index::Crates;
 pub use bare_index::Index;
 pub use bare_index::INDEX_GIT_URL;
+
+pub use dirs::get_index_details;
 
 #[doc(hidden)]
 pub use error::CratesIterError;

@@ -1,10 +1,11 @@
+use crate::config;
 use crate::dedupe::DedupeContext;
-use crate::dirs::url_to_local_dir;
+use crate::dirs::get_index_details;
 use crate::{error::CratesIterError, path_max_byte_len, Crate, Error, IndexConfig};
 use git2::Repository;
 use std::fmt;
+use std::io;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -33,23 +34,12 @@ impl Index {
     /// disk location as Cargo itself.
     ///
     /// This is the recommended way to access Cargo's index.
+    ///
+    /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        let config: toml::Value;
-        let url = if let Some(path) = find_cargo_config() {
-            config = toml::from_str(&fs::read_to_string(path)?)
-                .map_err(Error::Toml)?;
-            config.get("source").and_then(|sources|
-                sources.get("crates-io")
-                    .and_then(|v| v.get("replace-with"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|v| sources.get(v))
-                    .and_then(|v| v.get("registry"))
-                    .and_then(|v| v.as_str()))
-        } else {
-            None
-        };
-        Self::from_url(url.unwrap_or(crate::INDEX_GIT_URL))
+        let url = config::get_crates_io_replacement(None, None)?;
+        Self::from_url(url.as_deref().unwrap_or(crate::INDEX_GIT_URL))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
@@ -57,13 +47,7 @@ impl Index {
     ///
     /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (dir_name, canonical_url) = url_to_local_dir(url)?;
-        let mut path = home::cargo_home()?;
-
-        path.push("registry");
-        path.push("index");
-        path.push(dir_name);
-
+        let (path, canonical_url) = get_index_details(url, None)?;
         Self::from_path_and_url(path, canonical_url)
     }
 
