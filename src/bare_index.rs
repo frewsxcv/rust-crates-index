@@ -6,29 +6,8 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
-/// https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure
-fn find_cargo_config() -> Option<PathBuf> {
-    if let Ok(current) = std::env::current_dir() {
-        let mut base = current;
-        loop {
-            let mut path = base.join(".cargo");
-            path.push("config.toml");
-            if path.exists() {
-                return Some(path);
-            }
-            if !base.pop() {
-                break;
-            }
-        }
-    }
-    if let Ok(home) = home::cargo_home() {
-        let path = home.join("config.toml");
-        if path.exists() {
-            return Some(path);
-        }
-    }
-    None
-}
+/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
+pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
 /// Wrapper around managing the crates.io-index git repository
 ///

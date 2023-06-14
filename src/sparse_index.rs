@@ -1,6 +1,8 @@
 use crate::{path_max_byte_len, dirs::url_to_local_dir, Crate, Error, IndexConfig};
 use std::io;
-use std::path::PathBuf;
+
+/// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
+pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
 
 /// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
 ///
