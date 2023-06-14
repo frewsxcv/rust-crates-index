@@ -32,7 +32,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     }
 
     #[allow(deprecated)]
-    fn hash_u64(url: &str, registry_kind: usize) -> u64 {
+    fn hash_u64(url: &str, registry_kind: u64) -> u64 {
         use std::hash::{Hash, Hasher, SipHasher};
 
         let mut hasher = SipHasher::new_with_keys(0, 0);
