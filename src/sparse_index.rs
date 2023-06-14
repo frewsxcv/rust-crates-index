@@ -1,5 +1,6 @@
 use crate::{dirs::get_index_details, path_max_byte_len, Crate, Error, IndexConfig};
 use std::io;
+use std::path::{Path, PathBuf};
 
 /// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
 pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
@@ -113,21 +114,33 @@ impl Index {
 
 #[cfg(test)]
 mod test {
-    use std::ffi::OsString;
+    use super::Index;
     use std::path::PathBuf;
 
     #[test]
-    fn parses_cache() {
-        let _resetter = EnvVarResetter::set(
-            "CARGO_HOME",
+    fn opens_crates_io() {
+        let index = Index::with_path(
             PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap())
-                .join("tests")
-                .join("testdata")
-                .join("sparse_registry_cache")
-                .join("cargo_home"),
-        );
+                .join("tests/testdata/sparse_registry_cache/cargo_home"),
+            super::CRATES_IO_HTTP_INDEX,
+        )
+        .unwrap();
 
-        let index = super::Index::from_url("sparse+https://index.crates.io/").unwrap();
+        assert_eq!(index.url(), "https://index.crates.io/");
+        assert_eq!(
+            index.crate_url("autocfg").unwrap(),
+            "https://index.crates.io/au/to/autocfg"
+        );
+    }
+
+    #[test]
+    fn parses_cache() {
+        let index = Index::with_path(
+            PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap())
+                .join("tests/testdata/sparse_registry_cache/cargo_home"),
+            super::CRATES_IO_HTTP_INDEX,
+        )
+        .unwrap();
 
         let crate_ = index.crate_from_cache("autocfg").unwrap();
 
@@ -137,33 +150,122 @@ mod test {
         assert_eq!(crate_.highest_version().version(), "1.1.0");
     }
 
-    struct EnvVarResetter {
-        key: OsString,
-        value: Option<OsString>,
+    struct TestIndex {
+        client: reqwest::blocking::Client,
+        index: Index,
+        _temp_dir: tempfile::TempDir,
     }
 
-    impl EnvVarResetter {
-        fn set<K: Into<OsString>, V: Into<OsString>>(key: K, value: V) -> EnvVarResetter {
-            let key = key.into();
-            let value = value.into();
-            let old_value = std::env::var_os(&key);
+    use reqwest::header;
 
-            std::env::set_var(&key, value);
+    impl TestIndex {
+        fn new() -> Self {
+            use header::HeaderValue;
+            let mut headers = header::HeaderMap::new();
+            headers.insert("cargo-protocol", HeaderValue::from_static("version=1"));
+            // All index entries are just files with lines of JSON
+            headers.insert(header::ACCEPT, HeaderValue::from_static("text/plain"));
+            // We need to accept both identity and gzip, as otherwise cloudfront will
+            // always respond to requests with strong etag's
+            headers.insert(
+                header::ACCEPT_ENCODING,
+                HeaderValue::from_static("gzip,identity"),
+            );
 
-            EnvVarResetter {
-                key,
-                value: old_value,
+            let client = reqwest::blocking::ClientBuilder::new()
+                .http2_prior_knowledge()
+                .default_headers(headers)
+                .build()
+                .unwrap();
+
+            let temp_dir = tempfile::tempdir().unwrap();
+            let index = Index::at_path(
+                temp_dir.path().to_owned(),
+                super::CRATES_IO_HTTP_INDEX.to_owned(),
+            );
+
+            Self {
+                client,
+                index,
+                _temp_dir: temp_dir,
             }
         }
-    }
 
-    impl Drop for EnvVarResetter {
-        fn drop(&mut self) {
-            if let Some(old_value) = self.value.as_ref() {
-                std::env::set_var(&self.key, old_value);
+        // Write a cache entry for the item from crates.io
+        fn write_cache_entry(&self, name: &str) {
+            let url = dbg!(self.index.crate_url(name).unwrap());
+
+            let res = self
+                .client
+                .get(url)
+                .send()
+                .unwrap()
+                .error_for_status()
+                .unwrap();
+
+            let hdrs = res.headers();
+            // Prefer etag, same as cargo
+            let version = if let Some(etag) = hdrs.get(header::ETAG) {
+                format!("{}: {}", header::ETAG, etag.to_str().unwrap())
+            } else if let Some(lm) = hdrs.get(header::LAST_MODIFIED) {
+                format!("{}: {}", header::LAST_MODIFIED, lm.to_str().unwrap())
             } else {
-                std::env::remove_var(&self.key);
-            }
+                "Unknown".to_owned()
+            };
+
+            let body = res.bytes().unwrap();
+
+            // Might as well exercise Crate serde as well
+            let krate = crate::Crate::from_slice(&body).unwrap();
+
+            let rel_path =
+                crate::crate_name_to_relative_path(name, std::path::MAIN_SEPARATOR).unwrap();
+            let mut cache_path = self.index.path.join(".cache");
+            cache_path.push(rel_path);
+            std::fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+
+            krate.write_to_file(&version, &cache_path);
         }
+    }
+
+    #[test]
+    fn end_to_end() {
+        let ti = TestIndex::new();
+        ti.write_cache_entry("sval");
+        ti.write_cache_entry("serde");
+
+        let krate = ti
+            .index
+            .crate_from_cache("sval")
+            .expect("Could not find the crate libnotify in the index");
+
+        let version = krate
+            .versions()
+            .iter()
+            .find(|v| v.version() == "0.0.1")
+            .expect("Version 0.0.1 of sval does not exist?");
+        let dep_with_package_name = version
+            .dependencies()
+            .iter()
+            .find(|d| d.name() == "serde_lib")
+            .expect("sval does not have expected dependency?");
+        assert_ne!(
+            dep_with_package_name.name(),
+            dep_with_package_name.package().unwrap()
+        );
+        assert_eq!(
+            dep_with_package_name.crate_name(),
+            dep_with_package_name.package().unwrap()
+        );
+
+        let serde = ti
+            .index
+            .crate_from_cache("serde")
+            .expect("failed to find serde");
+        serde
+            .versions()
+            .iter()
+            .find(|sv| sv.version() == "1.0.69")
+            .expect("not nice");
     }
 }
