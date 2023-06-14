@@ -356,11 +356,16 @@ fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> 
     Some(())
 }
 
-fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
+fn crate_name_to_relative_path(crate_name: &str, separator: char) -> Option<String> {
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
-    crate_prefix(&mut rel_path, crate_name, std::path::MAIN_SEPARATOR)?;
-    rel_path.push(std::path::MAIN_SEPARATOR);
-    rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
+    crate_prefix(&mut rel_path, crate_name, separator)?;
+    rel_path.push(separator);
+    rel_path.extend(
+        crate_name
+            .as_bytes()
+            .iter()
+            .map(|c| c.to_ascii_lowercase() as char),
+    );
 
     Some(rel_path)
 }

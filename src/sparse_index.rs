@@ -66,10 +66,12 @@ impl Index {
         serde_json::from_slice(&bytes).map_err(Error::Json)
     }
 
-    /// Reads a crate from the local cache of the index. There are no guarantees around freshness,
-    /// and if the crate is not known in the cache, no fetch will be performed.
-    #[must_use] pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
-        let rel_path = crate::crate_name_to_relative_path(name)
+    /// Reads a crate from the local cache of the index.
+    ///
+    /// There are no guarantees around freshness, and if the crate is not known
+    /// in the cache, no fetch will be performed.
+    pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
+        let rel_path = crate::crate_name_to_relative_path(name, std::path::MAIN_SEPARATOR)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
         // avoid realloc on each push
@@ -88,6 +90,23 @@ impl Index {
             }
         })?;
         Ok(Crate::from_cache_slice(&cache_bytes, None)?)
+    }
+
+    /// Get the URL that can be used to fetch the index entry for the specified
+    /// crate
+    ///
+    /// The body of a successful response for the returned URL can be parsed
+    /// via [`Crate::from_slice`]
+    #[inline]
+    pub fn crate_url(&self, name: &str) -> Option<String> {
+        let rel_path = crate::crate_name_to_relative_path(name, '/')?;
+        Some(format!("{}{rel_path}", self.url()))
+    }
+
+    /// The HTTP url of the index
+    #[inline]
+    pub fn url(&self) -> &str {
+        self.url.strip_prefix("sparse+").unwrap_or(&self.url)
     }
 }
 

@@ -182,7 +182,7 @@ impl Index {
     /// to read majority of crates, prefer the [`Index::crates()`] iterator.
     #[must_use]
     pub fn crate_(&self, name: &str) -> Option<Crate> {
-        let rel_path = crate::crate_name_to_relative_path(name)?;
+        let rel_path = crate::crate_name_to_relative_path(name, std::path::MAIN_SEPARATOR)?;
 
         // Attempt to load the .cache/ entry first, this is purely an acceleration
         // mechanism and can fail for a few reasons that are non-fatal
