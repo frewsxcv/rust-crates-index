@@ -66,6 +66,7 @@ mod dedupe;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
 pub mod error;
+mod index;
 mod sparse_index;
 
 pub use bare_index::Crates;
@@ -77,6 +78,7 @@ pub use dirs::get_index_details;
 #[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
+pub use index::RegistryIndex;
 pub use sparse_index::Index as SparseIndex;
 pub use sparse_index::CRATES_IO_HTTP_INDEX;
 
