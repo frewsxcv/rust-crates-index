@@ -345,12 +345,30 @@ fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> 
         3 => {
             accumulator.push('3');
             accumulator.push(separator);
-            accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..1)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
         }
         _ => {
-            accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..2)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
             accumulator.push(separator);
-            accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(2..4)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
         }
     };
     Some(())

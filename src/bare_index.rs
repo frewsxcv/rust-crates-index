@@ -188,7 +188,8 @@ impl Index {
         // mechanism and can fail for a few reasons that are non-fatal
         {
             // avoid realloc on each push
-            let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
+            let mut cache_path =
+                PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
             cache_path.push(&self.path);
             cache_path.push(".cache");
             cache_path.push(&rel_path);
@@ -232,8 +233,11 @@ impl Index {
     ///
     /// This method is available only if the "parallel" feature is enabled.
     #[cfg(feature = "parallel")]
-    #[must_use] pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, CratesIterError>> + '_ {
-        use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
+    #[must_use]
+    pub fn crates_parallel(
+        &self,
+    ) -> impl rayon::iter::ParallelIterator<Item = Result<Crate, CratesIterError>> + '_ {
+        use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
         let tree_oids = match self.crates_top_level_refs() {
             Ok(objs) => objs.into_iter().map(|obj| obj.id()).collect::<Vec<_>>(),
@@ -242,7 +246,8 @@ impl Index {
 
         let path = self.repo.path();
 
-        tree_oids.into_par_iter()
+        tree_oids
+            .into_par_iter()
             .with_min_len(64)
             .map_init(
                 move || (Repository::open_bare(path), DedupeContext::new()),
@@ -313,7 +318,10 @@ impl Index {
             })
             .map_err(|e| {
                 // TODO: The Error enum lacks a proper variant for this case
-                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference: {e}", path.display()))
+                Error::Url(format!(
+                    "The repo at path {} is unusable due to having an invalid HEAD reference: {e}",
+                    path.display()
+                ))
             })
     }
 }

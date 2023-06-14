@@ -75,7 +75,8 @@ impl Index {
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
         // avoid realloc on each push
-        let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
+        let mut cache_path =
+            PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
         cache_path.push(&self.path);
         cache_path.push(".cache");
         cache_path.push(rel_path);
