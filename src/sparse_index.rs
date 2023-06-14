@@ -42,8 +42,17 @@ impl Index {
         cache_path.push(&self.path);
         cache_path.push(".cache");
         cache_path.push(rel_path);
-        let cache_bytes = std::fs::read(&cache_path)?;
-        Ok(Crate::from_sparse_cache_slice(&cache_bytes)?)
+        let cache_bytes = std::fs::read(&cache_path).map_err(|err| {
+            if err.kind() == io::ErrorKind::NotFound {
+                Error::Io(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    cache_path.to_string_lossy().to_owned(),
+                ))
+            } else {
+                err.into()
+            }
+        })?;
+        Ok(Crate::from_cache_slice(&cache_bytes, None)?)
     }
 }
 

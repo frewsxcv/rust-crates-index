@@ -60,6 +60,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 mod bare_index;
+mod cache;
 mod dedupe;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
@@ -371,19 +372,18 @@ pub struct Crate {
 impl Crate {
     /// Parse crate file from in-memory JSON data
     #[inline(never)]
-    pub(crate) fn from_slice_with_context(mut bytes: &[u8], dedupe: &mut DedupeContext) -> io::Result<Crate> {
+    pub(crate) fn from_slice_with_context(
+        mut bytes: &[u8],
+        dedupe: &mut DedupeContext,
+    ) -> io::Result<Crate> {
         // Trim last newline
         while bytes.last() == Some(&b'\n') {
             bytes = &bytes[..bytes.len() - 1];
         }
 
-        #[inline(always)]
-        fn is_newline(&c: &u8) -> bool {
-            c == b'\n'
-        }
-        let num_versions = bytes.split(is_newline).count();
+        let num_versions = cache::split(bytes, b'\n').count();
         let mut versions = Vec::with_capacity(num_versions);
-        for line in bytes.split(is_newline) {
+        for line in cache::split(bytes, b'\n') {
             let mut version: Version = serde_json::from_slice(line)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
@@ -406,78 +406,6 @@ impl Crate {
         }
         debug_assert_eq!(versions.len(), versions.capacity());
         Ok(Crate {
-            versions: versions.into_boxed_slice(),
-        })
-    }
-
-    /// Parse crate index entry from a .cache file, this can fail for a number of reasons
-    ///
-    /// 1. There is no entry for this crate
-    /// 2. The entry was created with an older commit and might be outdated
-    /// 3. The entry is a newer version than what can be read, would only
-    /// happen if a future version of cargo changed the format of the cache entries
-    /// 4. The cache entry is malformed somehow
-    #[inline(never)]
-    pub(crate) fn from_cache_slice(bytes: &[u8], index_version: &str) -> io::Result<Crate> {
-        const CURRENT_CACHE_VERSION: u8 = 1;
-
-        // See src/cargo/sources/registry/index.rs
-        let (&first_byte, rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
-
-        if first_byte != CURRENT_CACHE_VERSION {
-            return Err(io::Error::new(io::ErrorKind::Unsupported, "looks like a different Cargo's cache"));
-        }
-
-        let mut iter = split(rest, 0);
-        let update = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
-        if update != index_version.as_bytes() {
-            return Err(io::Error::new(io::ErrorKind::Other,
-                format!("cache out of date: current index ({index_version}) != cache ({})", String::from_utf8_lossy(update))));
-        }
-        Self::from_version_entries_iter(iter)
-    }
-
-    #[inline(never)]
-    pub(crate) fn from_sparse_cache_slice(bytes: &[u8]) -> io::Result<Crate> {
-        const CURRENT_CACHE_VERSION: u8 = 3;
-        const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
-
-        let (&first_byte, rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
-
-        if first_byte != CURRENT_CACHE_VERSION {
-            return Err(io::Error::new(io::ErrorKind::Unsupported, "looks like a different Cargo's cache"));
-        }
-
-        let index_v_bytes = rest.get(..4).ok_or(io::ErrorKind::UnexpectedEof)?;
-        let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
-        if index_v != CURRENT_INDEX_FORMAT_VERSION {
-            return Err(io::Error::new(io::ErrorKind::Unsupported,
-                format!("wrong index format version: {index_v} (expected {CURRENT_INDEX_FORMAT_VERSION}))")));
-        }
-        let rest = &rest[4..];
-
-        let mut iter = split(rest, 0);
-        if iter.next().is_none() {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed cache (missing git sha)"));
-        }
-
-        Self::from_version_entries_iter(iter)
-    }
-
-    pub(crate) fn from_version_entries_iter<'a, I: Iterator<Item = &'a [u8]> + 'a>(
-        mut iter: I,
-    ) -> io::Result<Crate> {
-        let mut versions = Vec::new();
-
-        // Each entry is a tuple of (semver, version_json)
-        while let Some(_version) = iter.next() {
-            let version_slice = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
-            let version: Version = serde_json::from_slice(version_slice)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-            versions.push(version);
-        }
-
-        Ok(Self {
             versions: versions.into_boxed_slice(),
         })
     }
@@ -590,32 +518,6 @@ impl Crate {
         let mut dedupe = DedupeContext::new();
         Self::from_slice_with_context(bytes, &mut dedupe)
     }
-}
-
-pub(crate) fn split(haystack: &[u8], needle: u8) -> impl Iterator<Item = &[u8]> + '_ {
-    struct Split<'a> {
-        haystack: &'a [u8],
-        needle: u8,
-    }
-
-    impl<'a> Iterator for Split<'a> {
-        type Item = &'a [u8];
-
-        #[inline]
-        fn next(&mut self) -> Option<&'a [u8]> {
-            if self.haystack.is_empty() {
-                return None;
-            }
-            let (ret, remaining) = match memchr::memchr(self.needle, self.haystack) {
-                Some(pos) => (&self.haystack[..pos], &self.haystack[pos + 1..]),
-                None => (self.haystack, &[][..]),
-            };
-            self.haystack = remaining;
-            Some(ret)
-        }
-    }
-
-    Split { haystack, needle }
 }
 
 /// Global configuration of an index, reflecting the [contents of config.json](https://doc.rust-lang.org/cargo/reference/registries.html#index-format).
