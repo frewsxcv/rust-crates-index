@@ -60,6 +60,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 mod bare_index;
+mod config;
 mod dedupe;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details

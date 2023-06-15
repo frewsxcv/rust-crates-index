@@ -4,31 +4,7 @@ use crate::{error::CratesIterError, path_max_byte_len, Crate, Error, IndexConfig
 use git2::Repository;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
-
-/// https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure
-fn find_cargo_config() -> Option<PathBuf> {
-    if let Ok(current) = std::env::current_dir() {
-        let mut base = current;
-        loop {
-            let mut path = base.join(".cargo");
-            path.push("config.toml");
-            if path.exists() {
-                return Some(path);
-            }
-            if !base.pop() {
-                break;
-            }
-        }
-    }
-    if let Ok(home) = home::cargo_home() {
-        let path = home.join("config.toml");
-        if path.exists() {
-            return Some(path);
-        }
-    }
-    None
-}
+use std::io;
 
 /// Wrapper around managing the crates.io-index git repository
 ///
@@ -56,21 +32,8 @@ impl Index {
     /// This is the recommended way to access Cargo's index.
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        let config: toml::Value;
-        let url = if let Some(path) = find_cargo_config() {
-            config = toml::from_str(&fs::read_to_string(path)?)
-                .map_err(Error::Toml)?;
-            config.get("source").and_then(|sources|
-                sources.get("crates-io")
-                    .and_then(|v| v.get("replace-with"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|v| sources.get(v))
-                    .and_then(|v| v.get("registry"))
-                    .and_then(|v| v.as_str()))
-        } else {
-            None
-        };
-        Self::from_url(url.unwrap_or(crate::INDEX_GIT_URL))
+        let url = crate::config::get_crates_io_replacement(None, None)?;
+        Self::from_url(url.as_deref().unwrap_or(crate::INDEX_GIT_URL))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
