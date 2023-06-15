@@ -1,6 +1,6 @@
 use crate::dedupe::DedupeContext;
 use crate::dirs::get_index_details;
-use crate::{error::CratesIterError, path_max_byte_len, Crate, Error, IndexConfig};
+use crate::{path_max_byte_len, Crate, Error, IndexConfig};
 use git2::Repository;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -270,7 +270,7 @@ impl Index {
     ///
     /// This method is available only if the "parallel" feature is enabled.
     #[cfg(feature = "parallel")]
-    #[must_use] pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, CratesIterError>> + '_ {
+    #[must_use] pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, crate::error::CratesIterError>> + '_ {
         use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
 
         let tree_oids = match self.crates_top_level_refs() {
@@ -287,12 +287,12 @@ impl Index {
                 |(repo, ctx), oid| {
                     let repo = match repo.as_ref() {
                         Ok(repo) => repo,
-                        Err(_) => return vec![Err(CratesIterError)],
+                        Err(_) => return vec![Err(crate::error::CratesIterError)],
                     };
                     let mut stack = Vec::with_capacity(64);
                     match repo.find_object(oid, None) {
                         Ok(obj) => stack.push(obj),
-                        Err(_) => return vec![Err(CratesIterError)],
+                        Err(_) => return vec![Err(crate::error::CratesIterError)],
                     };
                     let blobs = CratesRefs { stack, repo };
                     Crates {
