@@ -4,7 +4,10 @@ use crate::{error::CratesIterError, path_max_byte_len, Crate, Error, IndexConfig
 use git2::Repository;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::io;
+use std::{fs, io};
+
+/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
+pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -76,8 +79,21 @@ impl Index {
     /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        let url = crate::config::get_crates_io_replacement(None, None)?;
-        Self::from_url(url.as_deref().unwrap_or(crate::INDEX_GIT_URL))
+        let config: toml::Value;
+        let url = if let Some(path) = find_cargo_config() {
+            config = toml::from_str(&fs::read_to_string(path)?)
+                .map_err(Error::Toml)?;
+            config.get("source").and_then(|sources|
+                sources.get("crates-io")
+                    .and_then(|v| v.get("replace-with"))
+                    .and_then(|v| v.as_str())
+                    .and_then(|v| sources.get(v))
+                    .and_then(|v| v.get("registry"))
+                    .and_then(|v| v.as_str()))
+        } else {
+            None
+        };
+        Self::from_url(url.unwrap_or(crate::INDEX_GIT_URL))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
@@ -231,7 +247,7 @@ impl Index {
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_str)) {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, &self.head_str) {
                     return Some(krate);
                 }
             }

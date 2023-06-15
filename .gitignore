@@ -1,3 +1,6 @@
 target
 Cargo.lock
 _test
+
+# May be created during tests, but should not be present
+tests/testdata/sparse_registry_cache/cargo_home/registry/index/index.crates.io-6f17d22bba15001f/.cache/cr/at/crates-index
