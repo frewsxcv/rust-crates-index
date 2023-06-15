@@ -1,5 +1,5 @@
 use crate::dedupe::DedupeContext;
-use crate::dirs::url_to_local_dir;
+use crate::dirs::get_index_details;
 use crate::{error::CratesIterError, path_max_byte_len, Crate, Error, IndexConfig};
 use git2::Repository;
 use std::fmt;
@@ -57,6 +57,8 @@ impl Index {
     /// disk location as Cargo itself.
     ///
     /// This is the recommended way to access Cargo's index.
+    ///
+    /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
         let config: toml::Value;
@@ -81,13 +83,7 @@ impl Index {
     ///
     /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (dir_name, canonical_url) = url_to_local_dir(url)?;
-        let mut path = home::cargo_home()?;
-
-        path.push("registry");
-        path.push("index");
-        path.push(dir_name);
-
+        let (path, canonical_url) = get_index_details(url, None)?;
         Self::from_path_and_url(path, canonical_url)
     }
 
