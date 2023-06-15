@@ -21,9 +21,7 @@ pub(crate) fn read_cargo_config<T>(
     {
         loop {
             path.push(".cargo/config.toml");
-            if path.exists() {
-                let toml: toml::Value =
-                    toml::from_str(&std::fs::read_to_string(&path)?).map_err(Error::Toml)?;
+            if let Some(toml) = try_read_toml(&path)? {
                 if let Some(value) = callback(&toml) {
                     return Ok(Some(value));
                 }
@@ -43,9 +41,7 @@ pub(crate) fn read_cargo_config<T>(
         .or_else(|| home::cargo_home().ok().map(Cow::Owned))
     {
         let path = home.join("config.toml");
-        if path.exists() {
-            let toml: toml::Value =
-                toml::from_str(&std::fs::read_to_string(&path)?).map_err(Error::Toml)?;
+        if let Some(toml) = try_read_toml(&path)? {
             if let Some(value) = callback(&toml) {
                 return Ok(Some(value));
             }
@@ -53,6 +49,15 @@ pub(crate) fn read_cargo_config<T>(
     }
 
     Ok(None)
+}
+
+fn try_read_toml(path: &Path) -> Result<Option<toml::Value>, Error> {
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let toml = toml::from_str(&std::fs::read_to_string(&path)?).map_err(Error::Toml)?;
+    Ok(Some(toml))
 }
 
 /// Gets the url of a replacement registry for crates.io if one has been configured

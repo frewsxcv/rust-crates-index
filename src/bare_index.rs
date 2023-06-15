@@ -6,6 +6,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::io;
 
+/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
+pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
+
 /// Wrapper around managing the crates.io-index git repository
 ///
 /// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
@@ -511,7 +514,6 @@ mod test {
         use super::Index;
 
         let index = Index::new_cargo_default();
-        assert!(index.is_ok());
         assert!(index.unwrap().index_config().is_ok());
     }
 }
