@@ -1,13 +1,15 @@
 use cap::Cap;
-use crates_index::Index;
-use rayon::iter::ParallelIterator;
 use std::alloc;
 
 #[global_allocator]
 static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
 
 #[test]
+#[cfg(feature = "parallel")]
 fn mem_usage() {
+    use crates_index::Index;
+    use rayon::iter::ParallelIterator;
+
     let index = Index::new_cargo_default().unwrap();
 
     let before = ALLOCATOR.allocated();
