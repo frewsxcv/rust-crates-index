@@ -90,13 +90,13 @@ impl Index {
     /// via [`Crate::from_slice`]
     #[inline]
     pub fn crate_url(&self, name: &str) -> Option<String> {
-        let rel_path = crate::crate_name_to_relative_path(name)?;
+        let rel_path = crate::crate_name_to_relative_path(name, None)?;
         Some(format!("{}{rel_path}", self.url()))
     }
 
     /// Gets the full path to the cache file for the specified crate
     fn cache_path(&self, name: &str) -> Option<PathBuf> {
-        let rel_path = crate::crate_name_to_relative_path(name)?;
+        let rel_path = crate::crate_name_to_relative_path(name, None)?;
 
         // avoid realloc on each push
         let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());

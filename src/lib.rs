@@ -295,29 +295,30 @@ impl Default for DependencyKind {
     }
 }
 
-fn crate_prefix(accumulator: &mut String, crate_name: &str) -> Option<()> {
+fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> Option<()> {
     match crate_name.len() {
         0 => return None,
         1 => accumulator.push('1'),
         2 => accumulator.push('2'),
         3 => {
             accumulator.push('3');
-            accumulator.push('/');
+            accumulator.push(separator);
             accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
         }
         _ => {
             accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
-            accumulator.push('/');
+            accumulator.push(separator);
             accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
         }
     };
     Some(())
 }
 
-fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
+fn crate_name_to_relative_path(crate_name: &str, separator: Option<char>) -> Option<String> {
+    let separator = separator.unwrap_or(std::path::MAIN_SEPARATOR);
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
-    crate_prefix(&mut rel_path, crate_name)?;
-    rel_path.push('/');
+    crate_prefix(&mut rel_path, crate_name, separator)?;
+    rel_path.push(separator);
     rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
 
     Some(rel_path)
@@ -642,7 +643,7 @@ impl IndexConfig {
             Some(new)
         } else {
             let mut prefix = String::with_capacity(5);
-            crate_prefix(&mut prefix, name)?;
+            crate_prefix(&mut prefix, name, '/')?;
             Some(
                 self.dl
                     .replace("{crate}", name)
