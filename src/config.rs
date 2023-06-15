@@ -56,7 +56,7 @@ fn try_read_toml(path: &Path) -> Result<Option<toml::Value>, Error> {
         return Ok(None);
     }
 
-    let toml = toml::from_str(&std::fs::read_to_string(&path)?).map_err(Error::Toml)?;
+    let toml = toml::from_str(&std::fs::read_to_string(path)?).map_err(Error::Toml)?;
     Ok(Some(toml))
 }
 
