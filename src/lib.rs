@@ -49,8 +49,6 @@
 #![deny(missing_docs)]
 
 use dedupe::DedupeContext;
-use git2::CredentialType;
-use git2::{Config, Cred, CredentialHelper, RemoteCallbacks};
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
@@ -293,45 +291,6 @@ impl Default for DependencyKind {
     fn default() -> Self {
         Self::Normal
     }
-}
-
-fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
-    let mut proxy_opts = git2::ProxyOptions::new();
-    proxy_opts.auto();
-    let mut fetch_opts = git2::FetchOptions::new();
-    fetch_opts.proxy_options(proxy_opts);
-
-    let mut remote_callbacks = RemoteCallbacks::new();
-    remote_callbacks.credentials(|url, username_from_url, allowed_types| {
-        let config = Config::open_default()?;
-
-        if allowed_types.contains(CredentialType::USER_PASS_PLAINTEXT) {
-            if let Some((username, password)) = CredentialHelper::new(url)
-                .config(&config)
-                .username(username_from_url)
-                .execute()
-            {
-                let cred = Cred::userpass_plaintext(&username, &password)?;
-                return Ok(cred);
-            }
-        }
-
-        #[cfg(feature = "ssh")]
-        if allowed_types.contains(CredentialType::SSH_KEY) {
-            if let Some(username) = username_from_url {
-                if let Ok(cred) = Cred::ssh_key_from_agent(username) {
-                    return Ok(cred);
-                }
-            }
-        }
-
-        Err(git2::Error::from_str(
-            "failed to acquire appropriate credentials from local configuration",
-        ))
-    });
-    fetch_opts.remote_callbacks(remote_callbacks);
-
-    fetch_opts
 }
 
 fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> Option<()> {
