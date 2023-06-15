@@ -9,6 +9,45 @@ use std::io;
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
+fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
+    let mut proxy_opts = git2::ProxyOptions::new();
+    proxy_opts.auto();
+    let mut fetch_opts = git2::FetchOptions::new();
+    fetch_opts.proxy_options(proxy_opts);
+
+    let mut remote_callbacks = git2::RemoteCallbacks::new();
+    remote_callbacks.credentials(|url, username_from_url, allowed_types| {
+        let config = git2::Config::open_default()?;
+
+        if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
+            if let Some((username, password)) = git2::CredentialHelper::new(url)
+                .config(&config)
+                .username(username_from_url)
+                .execute()
+            {
+                let cred = git2::Cred::userpass_plaintext(&username, &password)?;
+                return Ok(cred);
+            }
+        }
+
+        #[cfg(feature = "ssh")]
+        if allowed_types.contains(git2::CredentialType::SSH_KEY) {
+            if let Some(username) = username_from_url {
+                if let Ok(cred) = git2::Cred::ssh_key_from_agent(username) {
+                    return Ok(cred);
+                }
+            }
+        }
+
+        Err(git2::Error::from_str(
+            "failed to acquire appropriate credentials from local configuration",
+        ))
+    });
+    fetch_opts.remote_callbacks(remote_callbacks);
+
+    fetch_opts
+}
+
 /// Wrapper around managing the crates.io-index git repository
 ///
 /// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
@@ -101,7 +140,7 @@ impl Index {
                         "HEAD:refs/remotes/origin/HEAD",
                         "master:refs/remotes/origin/master",
                     ],
-                    Some(&mut crate::fetch_opts()),
+                    Some(&mut fetch_opts()),
                     None,
                 )?;
             }
@@ -160,7 +199,7 @@ impl Index {
                     "HEAD:refs/remotes/origin/HEAD",
                     "master:refs/remotes/origin/master",
                 ],
-                Some(&mut crate::fetch_opts()),
+                Some(&mut fetch_opts()),
                 None,
             )?;
         }
