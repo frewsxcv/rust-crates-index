@@ -69,7 +69,6 @@ pub use bare_index::Crates;
 pub use bare_index::Index;
 pub use bare_index::INDEX_GIT_URL;
 
-pub use dirs::get_index_details;
 
 #[doc(hidden)]
 pub use error::CratesIterError;

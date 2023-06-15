@@ -107,36 +107,6 @@ impl Index {
         Some(cache_path)
     }
 
-    /// Reads the version of the cache entry for the specified crate, if it exists
-    /// 
-    /// The version is of the form `key:value`, where, currently, the key is either
-    /// `etag` or `last-modified`
-    pub fn read_cache_version(&self, name: &str) -> Option<String> {
-        let cache_path = self.cache_path(name)?;
-        let bytes = std::fs::read(cache_path).ok()?;
-
-        const CURRENT_CACHE_VERSION: u8 = 3;
-        const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
-
-        let (&first_byte, rest) = bytes.split_first()?;
-
-        if first_byte != CURRENT_CACHE_VERSION {
-            return None;
-        }
-
-        let index_v_bytes = rest.get(..4)?;
-        let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
-        if index_v != CURRENT_INDEX_FORMAT_VERSION {
-            return None;
-        }
-        let rest = &rest[4..];
-
-        let version = crate::split(rest, 0).next().and_then(|version| {
-            std::str::from_utf8(version).ok().map(String::from)
-        });
-
-        version
-    }
 
     /// Creates an HTTP request that can be sent via your HTTP client of choice
     /// to retrieve the current metadata for the specified crate

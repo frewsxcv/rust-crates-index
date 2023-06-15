@@ -118,7 +118,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
 /// 
 /// `cargo_home` is used to root the directory at specific location, if not
 /// specified `CARGO_HOME` or else the default cargo location is used as the root
-pub fn get_index_details(
+pub(crate) fn get_index_details(
     url: &str,
     cargo_home: Option<&std::path::Path>,
 ) -> Result<(std::path::PathBuf, String), Error> {
