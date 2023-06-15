@@ -16,6 +16,7 @@ rust-version = "1.60"
 git2 = { version = ">=0.16, <=0.17", default-features = false }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
+http = { version = "0.2", optional = true }
 memchr = "2.5.0"
 rayon = { version = "1.7.0", optional = true }
 rustc-hash = "1.1.0"
@@ -39,6 +40,7 @@ https = ["git2/https"]
 parallel = ["dep:rayon"]
 vendored-openssl = ["git2/vendored-openssl"]
 ssh = ["git2/ssh"]
+sparse-http = ["http"]
 
 [badges]
 maintenance = { status = "actively-developed" }

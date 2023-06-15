@@ -295,19 +295,19 @@ impl Default for DependencyKind {
     }
 }
 
-fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> Option<()> {
+fn crate_prefix(accumulator: &mut String, crate_name: &str) -> Option<()> {
     match crate_name.len() {
         0 => return None,
         1 => accumulator.push('1'),
         2 => accumulator.push('2'),
         3 => {
             accumulator.push('3');
-            accumulator.push(separator);
+            accumulator.push('/');
             accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
         }
         _ => {
             accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
-            accumulator.push(separator);
+            accumulator.push('/');
             accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
         }
     };
@@ -316,8 +316,8 @@ fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> 
 
 fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
     let mut rel_path = String::with_capacity(crate_name.len() + 6);
-    crate_prefix(&mut rel_path, crate_name, std::path::MAIN_SEPARATOR)?;
-    rel_path.push(std::path::MAIN_SEPARATOR);
+    crate_prefix(&mut rel_path, crate_name)?;
+    rel_path.push('/');
     rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
 
     Some(rel_path)
@@ -452,6 +452,28 @@ impl Crate {
         Ok(Self {
             versions: versions.into_boxed_slice(),
         })
+    }
+
+    /// Writes a cache entry to disk in the same format as cargo
+    #[cfg(feature = "sparse-http")]
+    pub(crate) fn write_cache_entry(&self, path: &Path, version: &str) -> io::Result<()> {
+        const CURRENT_CACHE_VERSION: u8 = 3;
+        const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
+
+        let mut v = Vec::new();
+        v.push(CURRENT_CACHE_VERSION);
+        v.extend_from_slice(&CURRENT_INDEX_FORMAT_VERSION.to_le_bytes());
+        v.extend_from_slice(version.as_bytes());
+        v.push(0);
+
+        for version in self.versions() {
+            v.extend_from_slice(version.version().as_bytes());
+            v.push(0);
+            v.append(&mut serde_json::to_vec(version).unwrap());
+            v.push(0);
+        }
+
+        std::fs::write(path, v)
     }
 
     /// All versions of this crate sorted chronologically by date originally published
@@ -620,7 +642,7 @@ impl IndexConfig {
             Some(new)
         } else {
             let mut prefix = String::with_capacity(5);
-            crate_prefix(&mut prefix, name, '/')?;
+            crate_prefix(&mut prefix, name)?;
             Some(
                 self.dl
                     .replace("{crate}", name)
