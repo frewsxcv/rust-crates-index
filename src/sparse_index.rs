@@ -73,7 +73,7 @@ impl Index {
         let cache_path = self.cache_path(name)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
-        let cache_bytes = std::fs::read(&cache_path)?;
+        let cache_bytes = std::fs::read(cache_path)?;
         Ok(Crate::from_cache_slice(&cache_bytes, None)?)
     }
 
@@ -113,7 +113,7 @@ impl Index {
     /// `etag` or `last-modified`
     pub fn read_cache_version(&self, name: &str) -> Option<String> {
         let cache_path = self.cache_path(name)?;
-        let bytes = std::fs::read(&cache_path).ok()?;
+        let bytes = std::fs::read(cache_path).ok()?;
 
         const CURRENT_CACHE_VERSION: u8 = 3;
         const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
