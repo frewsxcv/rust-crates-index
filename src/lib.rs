@@ -412,52 +412,63 @@ impl Crate {
     /// Parse crate index entry from a .cache file, this can fail for a number of reasons
     ///
     /// 1. There is no entry for this crate
-    /// 2. The entry was created with an older commit and might be outdated
+    /// 2. The entry was created with an older version than the one specified
     /// 3. The entry is a newer version than what can be read, would only
     /// happen if a future version of cargo changed the format of the cache entries
     /// 4. The cache entry is malformed somehow
     #[inline(never)]
-    pub(crate) fn from_cache_slice(bytes: &[u8], index_version: &str) -> io::Result<Crate> {
-        const CURRENT_CACHE_VERSION: u8 = 1;
+    pub(crate) fn from_cache_slice(bytes: &[u8], index_version: Option<&str>) -> io::Result<Self> {
+        const CURRENT_CACHE_VERSION: u8 = 3;
+        const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
 
         // See src/cargo/sources/registry/index.rs
-        let (&first_byte, rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
+        let (first_byte, mut rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
 
-        if first_byte != CURRENT_CACHE_VERSION {
-            return Err(io::Error::new(io::ErrorKind::Unsupported, "looks like a different Cargo's cache"));
+        match *first_byte {
+            // This is the current 1.54.0 - 1.70.0+ version of cache entries
+            CURRENT_CACHE_VERSION => {
+                let index_v_bytes = rest.get(..4).ok_or(io::ErrorKind::UnexpectedEof)?;
+                let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
+                if index_v != CURRENT_INDEX_FORMAT_VERSION {
+                    return Err(io::Error::new(io::ErrorKind::Unsupported,
+                        format!("wrong index format version: {index_v} (expected {CURRENT_INDEX_FORMAT_VERSION}))")));
+                }
+                rest = &rest[4..];
+            }
+            // This is only to support ancient <1.52.0 versions of cargo https://github.com/rust-lang/cargo/pull/9161
+            1 => {}
+            // Note that the change from 2 -> 3 was only to invalidate cache
+            // entries https://github.com/rust-lang/cargo/pull/9476 and
+            // version 2 entries should only be emitted by cargo 1.52.0 and 1.53.0,
+            // but rather than _potentially_ parse bad cache entries as noted in
+            // the PR we explicitly tell the user their version of cargo is suspect
+            // these versions are so old (and specific) it shouldn't affect really anyone
+            2 => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "potentially invalid version 2 cache entry found",
+                ));
+            }
+            version => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    format!("cache version '{version}' not currently supported"),
+                ));
+            }
         }
 
         let mut iter = split(rest, 0);
         let update = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
-        if update != index_version.as_bytes() {
-            return Err(io::Error::new(io::ErrorKind::Other,
-                format!("cache out of date: current index ({index_version}) != cache ({})", String::from_utf8_lossy(update))));
-        }
-        Self::from_version_entries_iter(iter)
-    }
-
-    #[inline(never)]
-    pub(crate) fn from_sparse_cache_slice(bytes: &[u8]) -> io::Result<Crate> {
-        const CURRENT_CACHE_VERSION: u8 = 3;
-        const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
-
-        let (&first_byte, rest) = bytes.split_first().ok_or(io::ErrorKind::UnexpectedEof)?;
-
-        if first_byte != CURRENT_CACHE_VERSION {
-            return Err(io::Error::new(io::ErrorKind::Unsupported, "looks like a different Cargo's cache"));
-        }
-
-        let index_v_bytes = rest.get(..4).ok_or(io::ErrorKind::UnexpectedEof)?;
-        let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
-        if index_v != CURRENT_INDEX_FORMAT_VERSION {
-            return Err(io::Error::new(io::ErrorKind::Unsupported,
-                format!("wrong index format version: {index_v} (expected {CURRENT_INDEX_FORMAT_VERSION}))")));
-        }
-        let rest = &rest[4..];
-
-        let mut iter = split(rest, 0);
-        if iter.next().is_none() {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed cache (missing git sha)"));
+        if let Some(index_version) = index_version {
+            if update != index_version.as_bytes() {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "cache out of date: current index ({index_version}) != cache ({})",
+                        String::from_utf8_lossy(update)
+                    ),
+                ));
+            }
         }
 
         Self::from_version_entries_iter(iter)
