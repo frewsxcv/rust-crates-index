@@ -6,6 +6,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
+/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
+pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
+
 /// https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure
 fn find_cargo_config() -> Option<PathBuf> {
     if let Ok(current) = std::env::current_dir() {
