@@ -68,14 +68,13 @@ mod sparse_index;
 
 pub use bare_index::Crates;
 pub use bare_index::Index;
+pub use bare_index::INDEX_GIT_URL;
 
 #[doc(hidden)]
 pub use error::CratesIterError;
 pub use error::Error;
 pub use sparse_index::Index as SparseIndex;
-
-/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
-pub static INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
+pub use sparse_index::CRATES_IO_HTTP_INDEX;
 
 /// A single version of a crate (package) published to the index
 #[derive(Serialize, Deserialize, Clone, Debug)]

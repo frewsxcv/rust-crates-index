@@ -2,6 +2,9 @@ use crate::{path_max_byte_len, dirs::url_to_local_dir, Crate, Error, IndexConfig
 use std::io;
 use std::path::PathBuf;
 
+/// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
+pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
+
 /// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
 ///
 /// Currently it only uses local Cargo cache, and does not access the network in any way.
@@ -13,6 +16,12 @@ impl Index {
     /// Creates a view over the sparse HTTP index from a provided URL, opening the same location on
     /// disk that Cargo uses for that registry index's metadata and cache.
     pub fn from_url(url: &str) -> Result<Self, Error> {
+        // It is required to have the sparse+ scheme modifier for sparse urls as
+        // they are part of the short ident hash calculation done by cargo
+        if !url.starts_with("sparse+http") {
+            return Err(Error::Url(url.to_owned()));
+        }
+
         let (dir_name, _) = url_to_local_dir(url)?;
         let mut path = home::cargo_home()?;
 
@@ -21,6 +30,17 @@ impl Index {
         path.push(dir_name);
 
         Ok(Self { path })
+    }
+
+    /// Creates an index for the default crates.io registry, using the same
+    /// disk location as Cargo itself.
+    ///
+    /// This is the recommended way to access the crates.io sparse index.
+    ///
+    /// Note this function takes the `CARGO_HOME` environment variable into account
+    #[inline]
+    pub fn new_cargo_default() -> Result<Self, Error> {
+        Self::from_url(CRATES_IO_HTTP_INDEX)
     }
 
     /// Get the global configuration of the index.
@@ -63,7 +83,7 @@ mod test {
                 .join("cargo_home"),
         );
 
-        let index = super::Index::from_url("sparse+https://index.crates.io/").unwrap();
+        let index = super::Index::from_url(crate::CRATES_IO_HTTP_INDEX).unwrap();
 
         let crate_ = index.crate_from_cache("autocfg").unwrap();
 

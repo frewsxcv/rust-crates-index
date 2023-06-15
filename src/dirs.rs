@@ -53,7 +53,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
             .ok_or_else(|| Error::Url(format!("'{url}' is not a valid url")))?;
 
         let scheme_str = &url[..scheme_ind];
-        if scheme_str == "sparse+https" {
+        if scheme_str.starts_with("sparse+http") {
             registry_kind = 3;
             (url, scheme_ind)
         } else if let Some(ind) = scheme_str.find('+') {
@@ -77,34 +77,40 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     // trim port
     let host = host.split(':').next().unwrap();
 
-    // cargo special cases github.com for reasons, so do the same
-    let mut canonical = if host == "github.com" {
-        url.to_lowercase()
+    let (ident, url) = if registry_kind == 2 {
+        // cargo special cases github.com for reasons, so do the same
+        let mut canonical = if host == "github.com" {
+            url.to_lowercase()
+        } else {
+            url.to_owned()
+        };
+
+        // Chop off any query params/fragments
+        if let Some(hash) = canonical.rfind('#') {
+            canonical.truncate(hash);
+        }
+
+        if let Some(query) = canonical.rfind('?') {
+            canonical.truncate(query);
+        }
+
+        let ident = to_hex(hash_u64(&canonical, registry_kind));
+
+        if canonical.ends_with('/') {
+            canonical.pop();
+        }
+
+        if canonical.contains("github.com/") && canonical.ends_with(".git") {
+            // Only GitHub (crates.io) repositories have their .git suffix truncated
+            canonical.truncate(canonical.len() - 4);
+        }
+
+        (ident, canonical)
     } else {
-        url.to_owned()
+        (to_hex(hash_u64(url, registry_kind)), url.to_owned())
     };
 
-    // Chop off any query params/fragments
-    if let Some(hash) = canonical.rfind('#') {
-        canonical.truncate(hash);
-    }
-
-    if let Some(query) = canonical.rfind('?') {
-        canonical.truncate(query);
-    }
-
-    let ident = to_hex(hash_u64(&canonical, registry_kind));
-
-    if canonical.ends_with('/') {
-        canonical.pop();
-    }
-
-    if canonical.contains("github.com/") && canonical.ends_with(".git") {
-        // Only GitHub (crates.io) repositories have their .git suffix truncated
-        canonical.truncate(canonical.len() - 4);
-    }
-
-    Ok((format!("{host}-{ident}"), canonical))
+    Ok((format!("{host}-{ident}"), url))
 }
 
 #[cfg(test)]
@@ -120,10 +126,10 @@ mod test {
         );
 
         assert_eq!(
-            super::url_to_local_dir("sparse+https://index.crates.io/").unwrap(),
+            super::url_to_local_dir(crate::CRATES_IO_HTTP_INDEX).unwrap(),
             (
                 "index.crates.io-6f17d22bba15001f".to_owned(),
-                "sparse+https://index.crates.io".to_owned(),
+                crate::CRATES_IO_HTTP_INDEX.to_owned(),
             )
         );
 
