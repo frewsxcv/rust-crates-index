@@ -87,6 +87,12 @@ impl Index {
     pub fn url(&self) -> &str {
         self.url.strip_prefix("sparse+").unwrap_or(&self.url)
     }
+
+    /// The HTTP url of the index
+    #[inline]
+    pub fn url(&self) -> &str {
+        self.url.strip_prefix("sparse+").unwrap_or(&self.url)
+    }
 }
 
 #[cfg(test)]
