@@ -33,7 +33,7 @@ impl Index {
 
     /// Reads a crate from the local cache of the index. There are no guarantees around freshness,
     /// and if the crate is not known in the cache, no fetch will be performed.
-    #[must_use] pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
+    pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
         let rel_path = crate::crate_name_to_relative_path(name)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
