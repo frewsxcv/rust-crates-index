@@ -113,6 +113,29 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     Ok((format!("{host}-{ident}"), url))
 }
 
+/// Get the disk location of the specified url, as well as its canonical form,
+/// exactly as cargo would
+/// 
+/// `cargo_home` is used to root the directory at specific location, if not
+/// specified `CARGO_HOME` or else the default cargo location is used as the root
+pub fn get_index_details(
+    url: &str,
+    cargo_home: Option<&std::path::Path>,
+) -> Result<(std::path::PathBuf, String), Error> {
+    let (dir_name, canonical_url) = url_to_local_dir(url)?;
+
+    let mut path = match cargo_home {
+        Some(path) => path.to_owned(),
+        None => home::cargo_home()?,
+    };
+
+    path.push("registry");
+    path.push("index");
+    path.push(dir_name);
+
+    Ok((path, canonical_url))
+}
+
 #[cfg(test)]
 mod test {
     #[test]
