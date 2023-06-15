@@ -230,7 +230,7 @@ impl Index {
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, &self.head_str) {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_str)) {
                     return Some(krate);
                 }
             }
