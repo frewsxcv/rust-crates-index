@@ -139,6 +139,23 @@ impl Version {
         &self.features
     }
 
+    /// combines feature and feature2
+    ///
+    /// dedups dependencies and features
+    fn build_data(&mut self, dedupe: &mut DedupeContext){
+        if let Some(features2) = self.features2.take() {
+            if let Some(f1) = Arc::get_mut(&mut self.features) {
+                for (key, mut val) in features2.into_iter() {
+                    f1.entry(key).or_insert_with(Vec::new).append(&mut val);
+                }
+            }
+        }
+
+        // Many versions have identical dependencies and features
+        dedupe.deps(&mut self.deps);
+        dedupe.features(&mut self.features);
+    }
+
     /// Exclusivity flag. If this is a sys crate, it informs it
     /// conflicts with any other crate with the same links string.
     ///
@@ -348,17 +365,7 @@ impl Crate {
             let mut version: Version = serde_json::from_slice(line)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-            if let Some(features2) = version.features2.take() {
-                if let Some(f1) = Arc::get_mut(&mut version.features) {
-                    for (key, mut val) in features2.into_iter() {
-                        f1.entry(key).or_insert_with(Vec::new).append(&mut val);
-                    }
-                }
-            }
-
-            // Many versions have identical dependencies and features
-            dedupe.deps(&mut version.deps);
-            dedupe.features(&mut version.features);
+           version.build_data(dedupe);
 
             versions.push(version);
         }
@@ -441,11 +448,16 @@ impl Crate {
     ) -> io::Result<Crate> {
         let mut versions = Vec::new();
 
+        let mut dedupe = DedupeContext::new();
+
         // Each entry is a tuple of (semver, version_json)
         while let Some(_version) = iter.next() {
             let version_slice = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
-            let version: Version = serde_json::from_slice(version_slice)
+            let mut version: Version = serde_json::from_slice(version_slice)
                 .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+            version.build_data(&mut dedupe);
+
             versions.push(version);
         }
 
