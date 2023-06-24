@@ -139,9 +139,9 @@ impl Version {
         &self.features
     }
 
-    /// combines feature and feature2
+    /// combines features and features2
     ///
-    /// dedups dependencies and features
+    /// dedupes dependencies and features
     fn build_data(&mut self, dedupe: &mut DedupeContext){
         if let Some(features2) = self.features2.take() {
             if let Some(f1) = Arc::get_mut(&mut self.features) {
