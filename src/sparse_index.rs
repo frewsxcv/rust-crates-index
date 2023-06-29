@@ -1,6 +1,7 @@
-use crate::{path_max_byte_len, dirs::get_index_details, Crate, Error, IndexConfig};
 use std::io;
 use std::path::{Path, PathBuf};
+
+use crate::{Crate, dirs::get_index_details, Error, IndexConfig, path_max_byte_len};
 
 /// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
 pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
@@ -148,7 +149,7 @@ impl Index {
     /// It is highly recommended to assume HTTP/2 when making requests to remote
     /// indices, at least crates.io
     #[cfg(feature = "sparse-http")]
-    pub fn make_cache_request(&self, name: &str) -> Result<http::Request<()>, Error> {
+    pub fn make_cache_request(&self, name: &str) -> Result<http::request::Builder, Error> {
         use http::header;
 
         let url = self.crate_url(name).ok_or_else(|| {
@@ -203,7 +204,7 @@ impl Index {
             }
         }
 
-        Ok(req.body(()).unwrap())
+        Ok(req)
     }
 
     /// Process the response to a request created by [`Self::make_cache_request`]
@@ -291,8 +292,9 @@ mod test {
     }
 }
 
-#[cfg(all(test, feature = "http"))]
+#[cfg(all(test, feature = "sparse-http"))]
 mod http_tests {
+
     #[inline]
     fn crates_io() -> super::Index {
         super::Index::with_path(
@@ -301,14 +303,15 @@ mod http_tests {
         ).unwrap()
     }
 
-    use http::header;
+    use http::{header, Request};
 
     // Validates that a valid request is generated when there is no cache entry
     // for a crate
     #[test]
     fn generates_request_for_missing_cache_entry() {
         let index = crates_io();
-        let req = index.make_cache_request("serde").unwrap();
+        let builder = index.make_cache_request("serde").unwrap();
+        let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
 
         assert_eq!(req.uri(), format!("{}se/rd/serde", index.url()).as_str());
         assert!(req.headers().get(header::IF_NONE_MATCH).is_none());
@@ -323,7 +326,8 @@ mod http_tests {
     #[test]
     fn generates_request_for_local_cache_entry() {
         let index = crates_io();
-        let req = index.make_cache_request("autocfg").unwrap();
+        let builder = index.make_cache_request("autocfg").unwrap();
+        let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
 
         assert_eq!(req.uri(), format!("{}au/to/autocfg", index.url()).as_str());
         assert_eq!(req.headers().get(header::IF_NONE_MATCH).unwrap(), "W/\"aa975a09419f9c8f61762a3d06fdb67d\"");
