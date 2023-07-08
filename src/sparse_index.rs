@@ -108,6 +108,22 @@ impl Index {
         Some(cache_path)
     }
 
+    /// Fetches latest version of the crate from the index and writes the result into the local cache.
+    #[cfg(feature = "sparse-ureq")]
+    pub fn update_crate(&self, name: &str) -> Result<Option<Crate>, Error> {
+        let request: ureq::Request = self.make_cache_request(name)?.into();
+
+        let response: http::Response<String> = request
+            .call()
+            .map_err(|_e| io::Error::new(io::ErrorKind::InvalidInput, "connection error"))?
+            .into();
+
+        let (parts, body) = response.into_parts();
+        let response = http::Response::from_parts(parts, body.into_bytes());
+
+        self.parse_cache_response(name, response, true)
+    }
+
     /// Reads the version of the cache entry for the specified crate, if it exists
     /// 
     /// The version is of the form `key:value`, where, currently, the key is either
