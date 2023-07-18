@@ -7,6 +7,7 @@ use git2::Repository;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::io;
+use crate::error::GixError;
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -58,8 +59,10 @@ pub struct Index {
     path: PathBuf,
     url: String,
 
-    pub(crate) repo: git2::Repository,
-    pub(crate) head: git2::Oid,
+    pub(crate) git2_repo: git2::Repository,
+    repo: gix::Repository,
+    pub(crate) git2_head: git2::Oid,
+    head: gix::ObjectId,
     head_str: String,
 }
 
@@ -168,20 +171,26 @@ impl Index {
             git2::Repository::open(&path)?
         };
 
-        let head = Self::find_valid_repo_head(&repo, &path)?;
+        let head = Self::git2_find_valid_repo_head(&repo, &path)?;
 
         Ok(Self {
             path,
             url,
-            repo,
+            repo: gix::open_opts(repo.path(), gix::open::Options::isolated()).expect("loads fine as `git2` can also do it"),
+            git2_repo: repo,
             head_str: head.to_string(),
-            head,
+            git2_head: head,
+            head: gix::ObjectId::from(head.as_bytes())
         })
     }
 
-    fn tree(&self) -> Result<git2::Tree<'_>, git2::Error> {
-        let commit = self.repo.find_commit(self.head)?;
+    fn git2_tree(&self) -> Result<git2::Tree<'_>, git2::Error> {
+        let commit = self.git2_repo.find_commit(self.git2_head)?;
         commit.tree()
+    }
+    
+    fn tree(&self) -> Result<gix::Tree<'_>, GixError> {
+        Ok(self.repo.find_object(self.head)?.try_into_commit()?.tree()?)
     }
 
     #[doc(hidden)]
@@ -209,9 +218,9 @@ impl Index {
     pub fn update(&mut self) -> Result<(), Error> {
         {
             let mut origin_remote = self
-                .repo
+                .git2_repo
                 .find_remote("origin")
-                .or_else(|_| self.repo.remote_anonymous(&self.url))?;
+                .or_else(|_| self.git2_repo.remote_anonymous(&self.url))?;
 
             origin_remote.fetch(
                 &[
@@ -223,10 +232,10 @@ impl Index {
             )?;
         }
 
-        let head = Self::find_valid_repo_head(&self.repo, &self.path)?;
+        let head = Self::git2_find_valid_repo_head(&self.git2_repo, &self.path)?;
 
-        self.head = head;
-        self.head_str = self.head.to_string();
+        self.git2_head = head;
+        self.head_str = self.git2_head.to_string();
 
         Ok(())
     }
@@ -262,8 +271,8 @@ impl Index {
     }
 
     fn crate_from_rel_path(&self, path: &str) -> Result<Crate, Error> {
-        let entry = self.tree()?.get_path(Path::new(path))?;
-        let object = entry.to_object(&self.repo)?;
+        let entry = self.git2_tree()?.get_path(Path::new(path))?;
+        let object = entry.to_object(&self.git2_repo)?;
         let blob = object
             .as_blob()
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
@@ -278,8 +287,8 @@ impl Index {
     /// Skips crates that can not be parsed (but there shouldn't be any such crates in the crates-io index).
     #[inline]
     #[must_use]
-    pub fn crates(&self) -> Crates<'_> {
-        Crates {
+    pub fn crates(&self) -> Git2Crates<'_> {
+        Git2Crates {
             blobs: self.crates_refs().expect("HEAD commit disappeared"),
             dedupe: MaybeOwned::Owned(DedupeContext::new()),
         }
@@ -287,59 +296,59 @@ impl Index {
 
     /// Iterate over all crates using rayon.
     ///
-    /// This method is available only if the "parallel" feature is enabled.
+    /// This method is available only if the "parallel" feature is enabled. 
+    /// Also consider to enable `git-index-performance` feature toggle for better performance.
     #[cfg(feature = "parallel")]
     #[must_use] pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, crate::error::CratesIterError>> + '_ {
-        use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
-
-        let tree_oids = match self.crates_top_level_refs() {
-            Ok(objs) => objs.into_iter().map(|obj| obj.id()).collect::<Vec<_>>(),
-            Err(_) => vec![git2::Oid::zero()], // intentionally broken oid to return error from the iterator
+        use rayon::iter::{IntoParallelIterator, ParallelIterator};
+        let tree_oids = match self.crates_top_level_ids() {
+            Ok(objs) => objs,
+            Err(_) => vec![self.repo.object_hash().null()], // intentionally broken oid to return error from the iterator
         };
 
-        let path = self.repo.path();
-
         tree_oids.into_par_iter()
-            .with_min_len(64)
             .map_init(
-                move || (Repository::open_bare(path), DedupeContext::new()),
+                {
+                    let repo = self.repo.clone().into_sync();
+                    move || ({
+                                 let mut repo = repo.to_thread_local(); 
+                                 repo.objects.unset_pack_cache();
+                                 repo
+                             }, DedupeContext::new())
+                },
                 |(repo, ctx), oid| {
-                    let repo = match repo.as_ref() {
-                        Ok(repo) => repo,
-                        Err(_) => return vec![Err(crate::error::CratesIterError)],
-                    };
                     let mut stack = Vec::with_capacity(64);
-                    match repo.find_object(oid, None) {
-                        Ok(obj) => stack.push(obj),
+                    match repo.find_object(oid) {
+                        Ok(obj) => stack.push(obj.detach()),
                         Err(_) => return vec![Err(crate::error::CratesIterError)],
                     };
-                    let blobs = CratesRefs { stack, repo };
+                    let blobs = CratesTreesToBlobs { stack, repo: repo.clone() };
                     Crates {
                         blobs,
                         dedupe: MaybeOwned::Borrowed(ctx),
                     }
-                    .map(Ok)
-                    .collect::<Vec<_>>()
+                        .map(Ok)
+                        .collect::<Vec<_>>()
                 },
             )
             .flat_map_iter(|chunk| chunk.into_iter())
     }
 
     /// update an iterator over all the crates in the index.
-    /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
-    pub(crate) fn crates_refs(&self) -> Result<CratesRefs<'_>, git2::Error> {
-        Ok(CratesRefs {
-            stack: self.crates_top_level_refs()?,
-            repo: &self.repo,
+    /// Returns opaque reference for each crate in the index, which can be used with [`Git2CrateRef::parse`]
+    fn crates_refs(&self) -> Result<Git2CratesRefs<'_>, git2::Error> {
+        Ok(Git2CratesRefs {
+            stack: self.git2_crates_top_level_refs()?,
+            repo: &self.git2_repo,
         })
     }
 
-    pub(crate) fn crates_top_level_refs(&self) -> Result<Vec<git2::Object<'_>>, git2::Error> {
+    fn git2_crates_top_level_refs(&self) -> Result<Vec<git2::Object<'_>>, git2::Error> {
         let mut stack = Vec::with_capacity(800);
-        for entry in self.tree()?.iter() {
+        for entry in self.git2_tree()?.iter() {
             // crates are in short dirs, skip .git/.cache
             if entry.name_bytes().len() <= 2 {
-                let entry = entry.to_object(&self.repo)?;
+                let entry = entry.to_object(&self.git2_repo)?;
                 // Scan only directories at top level
                 if entry.as_tree().is_some() {
                     stack.push(entry);
@@ -348,18 +357,31 @@ impl Index {
         }
         Ok(stack)
     }
+    
+    fn crates_top_level_ids(&self) -> Result<Vec<gix::ObjectId>, GixError> {
+        let mut stack = Vec::with_capacity(800);
+        for entry in self.tree()?.iter() {
+            let entry = entry?;
+            // crates are in directories no longer than 2 letters. 
+            if !is_top_level_dir(&entry) {
+                continue
+            };
+            stack.push(entry.oid());
+        }
+        Ok(stack)
+    }
 
     /// Get the global configuration of the index.
     pub fn index_config(&self) -> Result<IndexConfig, Error> {
-        let entry = self.tree()?.get_path(Path::new("config.json"))?;
-        let object = entry.to_object(&self.repo)?;
+        let entry = self.git2_tree()?.get_path(Path::new("config.json"))?;
+        let object = entry.to_object(&self.git2_repo)?;
         let blob = object
             .as_blob()
             .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
         serde_json::from_slice(blob.content()).map_err(Error::Json)
     }
 
-    fn find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
+    fn git2_find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
         repo.refname_to_id("FETCH_HEAD")
             .or_else(|_| repo.refname_to_id("HEAD"))
             .and_then(|head| {
@@ -375,18 +397,34 @@ impl Index {
     }
 }
 
+fn is_top_level_dir(entry: &gix::object::tree::EntryRef<'_, '_>) -> bool {
+    // TODO: probably `EntryMode` should be part of `gix::object::tree`
+    entry.mode() == gix::objs::tree::EntryMode::Tree && entry.filename().len() <= 2
+}
+
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
 ///
-/// See [`CrateRef::parse`].
-pub(crate) struct CratesRefs<'a> {
+/// See [`Git2CrateRef::parse`].
+struct Git2CratesRefs<'a> {
     stack: Vec<git2::Object<'a>>,
     repo: &'a git2::Repository,
 }
 
-/// Opaque representation of a crate in the index. See [`CrateRef::parse`].
-pub(crate) struct CrateRef<'a>(git2::Object<'a>);
+/// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
+///
+/// See [`Git2CrateRef::parse`].
+struct CratesTreesToBlobs {
+    stack: Vec<gix::ObjectDetached>,
+    repo: gix::Repository,
+}
 
-impl CrateRef<'_> {
+/// Opaque representation of a crate in the index. See [`Git2CrateRef::parse`].
+struct Git2CrateRef<'a>(git2::Object<'a>);
+
+/// Opaque representation of a crate in the index. See [`Git2CrateRef::parse`].
+struct CrateUnparsed(Vec<u8>);
+
+impl Git2CrateRef<'_> {
     #[inline]
     /// Parse a crate from [`Index::crates_blobs`] iterator
     pub fn parse(&self, ctx: &mut DedupeContext) -> io::Result<Crate> {
@@ -400,13 +438,21 @@ impl CrateRef<'_> {
     }
 }
 
-impl<'a> Iterator for CratesRefs<'a> {
-    type Item = CrateRef<'a>;
+impl CrateUnparsed{
+    #[inline]
+    /// Parse a crate from [`Index::crates_blobs`] iterator
+    fn parse(&self, ctx: &mut DedupeContext) -> io::Result<Crate> {
+        Crate::from_slice_with_context(self.0.as_slice(), ctx)
+    }
+}
+
+impl<'a> Iterator for Git2CratesRefs<'a> {
+    type Item = Git2CrateRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(last) = self.stack.pop() {
             match last.as_tree() {
-                None => return Some(CrateRef(last)),
+                None => return Some(Git2CrateRef(last)),
                 Some(tree) => {
                     for entry in tree.iter().rev() {
                         self.stack.push(entry.to_object(self.repo).unwrap());
@@ -419,7 +465,26 @@ impl<'a> Iterator for CratesRefs<'a> {
     }
 }
 
-impl fmt::Debug for CrateRef<'_> {
+impl Iterator for CratesTreesToBlobs {
+    type Item = CrateUnparsed;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(obj) = self.stack.pop() {
+            if obj.kind == gix::object::Kind::Tree {
+                let tree = gix::objs::TreeRef::from_bytes(&obj.data).unwrap();
+                for entry in tree.entries.into_iter().rev() {
+                    self.stack.push(self.repo.find_object(entry.oid).unwrap().detach());
+                }
+                continue;
+            } else {
+                return Some(CrateUnparsed(obj.data))
+            }
+        }
+        None
+    }
+}
+
+impl fmt::Debug for Git2CrateRef<'_> {
     #[cold]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("CrateRef")
@@ -434,8 +499,14 @@ enum MaybeOwned<'a, T> {
 }
 
 /// Iterator over all crates in the index. Skips crates that failed to parse.
+pub struct Git2Crates<'a> {
+    blobs: Git2CratesRefs<'a>,
+    dedupe: MaybeOwned<'a, DedupeContext>,
+}
+
+/// Iterator over all crates in the index. Skips crates that failed to parse.
 pub struct Crates<'a> {
-    blobs: CratesRefs<'a>,
+    blobs: CratesTreesToBlobs,
     dedupe: MaybeOwned<'a, DedupeContext>,
 }
 
@@ -448,7 +519,24 @@ impl<'a> Iterator for Crates<'a> {
                 MaybeOwned::Owned(d) => d,
                 MaybeOwned::Borrowed(d) => d,
             };
-            if let Ok(k) = CrateRef::parse(&next, dedupe) {
+            if let Ok(k) = CrateUnparsed::parse(&next, dedupe) {
+                return Some(k);
+            }
+        }
+        None
+    }
+}
+
+impl<'a> Iterator for Git2Crates<'a> {
+    type Item = Crate;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for next in self.blobs.by_ref() {
+            let dedupe = match &mut self.dedupe {
+                MaybeOwned::Owned(d) => d,
+                MaybeOwned::Borrowed(d) => d,
+            };
+            if let Ok(k) = Git2CrateRef::parse(&next, dedupe) {
                 return Some(k);
             }
         }

@@ -75,11 +75,11 @@ impl<'repo> Iterator for ChangesIter<'repo> {
 
 impl<'repo> ChangesIter<'repo> {
     pub(crate) fn new(index: &'repo Index) -> Result<Self, git2::Error> {
-        let current = index.repo.find_object(index.head, None)?.peel_to_commit()?;
+        let current = index.git2_repo.find_object(index.git2_head, None)?.peel_to_commit()?;
         let current_tree = current.tree()?;
 
         Ok(Self {
-            repo: &index.repo,
+            repo: &index.git2_repo,
             current,
             current_tree,
             out: VecDeque::new(),

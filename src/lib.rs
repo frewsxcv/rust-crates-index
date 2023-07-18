@@ -83,6 +83,12 @@
 //! To prevent this issue, the application must integrate with the
 //! [`gix-tempfile` signal handler](https://docs.rs/gix-tempfile/latest/gix_tempfile/#initial-setup),
 //! which allows locks to be deleted when typical signals are received.
+//!
+//! ## Git Repository Performance
+//!
+//! By default, `gix` is compiled with `max-performance-safe`, which maximizes support for compilation environments but which 
+//! may be slower as it uses a pure-Rust Zlib implementation.
+//! To get best possible performance, use the `git-index-performance` feature toggle.
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
@@ -107,7 +113,7 @@ pub mod error;
 mod sparse_index;
 
 #[cfg(feature = "git-index")]
-pub use bare_index::Crates;
+pub use bare_index::Git2Crates;
 #[cfg(feature = "git-index")]
 pub use bare_index::Index;
 #[cfg(feature = "git-index")]
