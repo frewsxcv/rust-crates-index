@@ -26,8 +26,8 @@
 //! let index = crates_index::Index::new_cargo_default()?;
 //! let serde_crate = index.crate_("serde").expect("you should handle errors here");
 //! println!("Serde is at v{}", serde_crate.highest_normal_version().unwrap().version());
-//! # Ok::<_, crates_index::Error>(())
 //! # }
+//! # Ok::<_, crates_index::Error>(())
 //! ```
 //!
 //! ### Iterating over *all* crates in the index
@@ -48,8 +48,8 @@
 //!     /* etc. */
 //! });
 //!
-//! # Ok::<_, crates_index::Error>(())
 //! # }
+//! # Ok::<_, crates_index::Error>(())
 //! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
