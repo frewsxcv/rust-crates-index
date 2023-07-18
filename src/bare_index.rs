@@ -184,11 +184,6 @@ impl Index {
         })
     }
 
-    fn git2_tree(&self) -> Result<git2::Tree<'_>, git2::Error> {
-        let commit = self.git2_repo.find_commit(self.git2_head)?;
-        commit.tree()
-    }
-    
     fn tree(&self) -> Result<gix::Tree<'_>, GixError> {
         Ok(self.repo.find_object(self.head)?.try_into_commit()?.tree()?)
     }
@@ -267,17 +262,12 @@ impl Index {
 
         // Fallback to reading the blob directly via git if we don't have a
         // valid cache entry
-        self.crate_from_rel_path(&rel_path).ok()
+        self.crate_from_rel_path(rel_path).ok()
     }
 
-    fn crate_from_rel_path(&self, path: &str) -> Result<Crate, Error> {
-        let entry = self.git2_tree()?.get_path(Path::new(path))?;
-        let object = entry.to_object(&self.git2_repo)?;
-        let blob = object
-            .as_blob()
-            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
-
-        Crate::from_slice(blob.content()).map_err(Error::Io)
+    fn crate_from_rel_path(&self, rel_path: String) -> Result<Crate, Error> {
+        let object = self.object_at_path(rel_path.into())?;
+        Crate::from_slice(&object.data).map_err(Error::Io)
     }
 
     /// Single-threaded iterator over all the crates in the index.
