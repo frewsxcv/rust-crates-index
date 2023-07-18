@@ -67,7 +67,11 @@ pub enum GixError {
     #[error(transparent)]
     FindExistingObject(#[from] gix::object::find::existing::Error),
     #[error(transparent)]
-    IntoObjectKind(#[from] gix::object::try_into::Error)
+    IntoObjectKind(#[from] gix::object::try_into::Error),
+    #[error("The '{}' file is missing at the root of the tree of the crates index", path.display())]
+    PathMissing {
+        path: std::path::PathBuf
+    }
 }
 
 #[cfg(feature = "git-index")]
@@ -75,6 +79,14 @@ impl From<Git2Error> for Error {
     #[cold]
     fn from(e: Git2Error) -> Self {
         Self::Git2(e)
+    }
+}
+
+#[cfg(feature = "git-index")]
+impl From<GixError> for Error {
+    #[cold]
+    fn from(e: GixError) -> Self {
+        Self::Git(e)
     }
 }
 

@@ -360,12 +360,14 @@ impl Index {
 
     /// Get the global configuration of the index.
     pub fn index_config(&self) -> Result<IndexConfig, Error> {
-        let entry = self.git2_tree()?.get_path(Path::new("config.json"))?;
-        let object = entry.to_object(&self.git2_repo)?;
-        let blob = object
-            .as_blob()
-            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
-        serde_json::from_slice(blob.content()).map_err(Error::Json)
+        let blob = self.object_at_path("config.json".into())?;
+        serde_json::from_slice(&blob.data).map_err(Error::Json)
+    }
+
+    fn object_at_path(&self, path: PathBuf) -> Result<gix::Object<'_>, GixError> {
+        let entry = self.tree()?.lookup_entry_by_path(&path)?
+                        .ok_or_else(|| GixError::PathMissing { path })?;
+        Ok(entry.object()?)
     }
 
     fn git2_find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
