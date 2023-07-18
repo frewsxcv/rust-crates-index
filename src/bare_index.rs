@@ -145,6 +145,9 @@ impl Index {
             if let Some(parent) = path.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
+            let _lock = gix::lock::Marker::acquire_to_hold_resource(path.with_extension("crates-index"), 
+                                                        gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(60 * 10)), 
+                                                        None).unwrap(); // TODO(git): normal error handling once `gix` is available.
             let repo = git2::Repository::init_opts(&path, &opts)?;
             {
                 let mut origin_remote = repo
@@ -456,31 +459,29 @@ impl<'a> Iterator for Crates<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tempfile::TempDir;
 
     #[test]
     #[cfg(feature = "https")]
     fn bare_iterator() {
-        let tmp_dir = tempfile::TempDir::new().unwrap();
-
-        let repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
-            .expect("Failed to clone crates.io index");
+        let repo = shared_index();
         assert_eq!("time", repo.crate_("time").unwrap().name());
 
-        let mut found_gcc_crate = false;
-        let mut found_time_crate = false;
+        let mut found_first_crate = false;
+        let mut found_second_crate = false;
 
+        // Note that crates are roughly ordered in reverse.
         for c in repo.crates() {
-            if c.name() == "gcc" {
-                found_gcc_crate = true;
+            if c.name() == "zzzz" {
+                found_first_crate = true;
+            } else if c.name() == "zulip" {
+                found_second_crate = true;
             }
-            if c.name() == "time" {
-                found_time_crate = true;
+            if found_first_crate && found_second_crate {
+                break
             }
         }
-
-        assert!(found_gcc_crate);
-        assert!(found_time_crate);
+        assert!(found_first_crate);
+        assert!(found_second_crate);
     }
 
     #[test]
@@ -527,11 +528,7 @@ mod test {
     #[test]
     #[cfg(feature = "https")]
     fn opens_bare_index() {
-        let tmp_dir = tempfile::TempDir::new().unwrap();
-
-        let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
-            .expect("Failed to open crates.io index");
-
+        let mut repo = shared_index();
         fn test_sval(repo: &Index) {
             let krate = repo
                 .crate_("sval")
@@ -566,13 +563,13 @@ mod test {
 
     #[test]
     fn reads_replaced_source() {
-        let index = Index::new_cargo_default();
-        assert!(index.unwrap().index_config().is_ok());
+        let index = shared_index();
+        let _config = index.index_config().expect("we are able to obtain and parse the configuration of the default registry");
     }
 
     #[test]
     fn test_dependencies() {
-        let index = Index::new_cargo_default().unwrap();
+        let index = shared_index();
 
         let crate_ = index
             .crate_("sval")
@@ -602,7 +599,7 @@ mod test {
     #[test]
     #[cfg(feature = "https")]
     fn test_cargo_default_updates() {
-        let mut index = Index::new_cargo_default().unwrap();
+        let mut index = shared_index();
         index
             .update()
             .map_err(|e| {
@@ -624,16 +621,11 @@ mod test {
     #[test]
     #[cfg(feature = "https")]
     fn test_can_parse_all() {
-        let tmp_dir = TempDir::new().unwrap();
-        let mut found_gcc_crate = false;
-
-        let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
+        let index = shared_index();
+        
         let mut ctx = DedupeContext::new();
-
+        let mut found_gcc_crate = false;
         for c in index.crates_refs().unwrap() {
-            if c.as_slice().map_or(false, |blob| blob.is_empty()) {
-                continue; // https://github.com/rust-lang/crates.io/issues/6159
-            }
             match c.parse(&mut ctx) {
                 Ok(c) => {
                     if c.name() == "gcc" {
@@ -645,6 +637,15 @@ mod test {
         }
 
         assert!(found_gcc_crate);
+    }
+    
+    fn shared_index() -> Index {
+        let index_path = "tests/testdata/git-registry";
+        if is_ci::cached() {
+            Index::new_cargo_default() .expect("CI has just cloned this index and its ours and valid")
+        } else {
+            Index::with_path(index_path, INDEX_GIT_URL).expect("clone works and there is no racing")
+        }
     }
 
     #[test]

@@ -37,8 +37,10 @@ smol_str = { version = "0.2.0", features = ["serde"] }
 toml = "0.7.3"
 
 [dev-dependencies]
+bytesize = "1.2.0"
+cap = { version = "0.1.2", features = ["stats"] }
+is_ci = "1.1.1"
 tempfile = "3.5.0"
-cap = "0.1.2"
 ureq = { version = "2.7.1", features = ["http-interop"] }
 reqwest = { version = "0.11.18", features = ["blocking", "gzip"] }
 

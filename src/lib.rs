@@ -67,6 +67,22 @@
 //! # }
 //! # Ok::<_, crates_index::Error>(())
 //! ```
+//! 
+//! ## Auto-cloning and parallelism
+//! 
+//! When using any means of instantiating the [`Index`] type, we  will 
+//! clone the default crates index (or the given one) if it no git
+//! repository is present at the destination path.
+//! 
+//! In order to protect from parallel operations of this kind, a 
+//! file-based lock is used. When interrupting the program with `Ctrl + C`,
+//! by default the program will be aborted which won't run destructors.
+//! This will cause the file lock to be stranded, causing all future operations
+//! to fail.
+//! 
+//! To prevent this issue, the application must integrate with the
+//! [`gix-tempfile` signal handler](https://docs.rs/gix-tempfile/latest/gix_tempfile/#initial-setup),
+//! which allows locks to be deleted when typical signals are received.
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
