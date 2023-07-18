@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 #[cfg(feature = "changes")]
 use crate::changes::ChangesIter;
 use crate::dedupe::DedupeContext;
@@ -359,7 +360,7 @@ impl Index {
 
     fn object_at_path(&self, path: PathBuf) -> Result<gix::Object<'_>, GixError> {
         let entry = self.tree()?.lookup_entry_by_path(&path)?
-                        .ok_or_else(|| GixError::PathMissing { path })?;
+                        .ok_or(GixError::PathMissing { path })?;
         Ok(entry.object()?)
     }
     
