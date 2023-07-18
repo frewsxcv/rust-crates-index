@@ -22,6 +22,7 @@ required-features = ["sparse-http"]
 
 [dependencies]
 git2 = { version = "0.17", default-features = false, optional = true }
+gix = { version = "0.48.0", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 http = { version = "0.2", optional = true }
@@ -48,11 +49,11 @@ features = ["sparse-http"]
 [features]
 default = ["git-index", "https", "parallel"]
 changes = ["git-index"]
-git-index = ["dep:git2"]
-https = ["git-index", "git2?/https"]
+git-index = ["dep:git2", "dep:gix"]
+https = ["git-index", "git2?/https", "gix?/blocking-http-transport-curl"]
 parallel = ["dep:rayon"]
-vendored-openssl = ["git-index", "git2?/vendored-openssl"]
-ssh = ["git-index", "git2?/ssh"]
+vendored-openssl = ["git-index", "git2/vendored-openssl"]
+ssh = ["git-index", "git2?/ssh"] # at this time, `gix` does not need feature toggles for this as the `ssh` program is used. Native support is planned to match `git2`.
 sparse-http = ["dep:http"]
 
 [badges]
