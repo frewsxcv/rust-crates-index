@@ -21,7 +21,7 @@
 //! ### Getting information about a single crate
 //!
 //! ```rust
-//! # #[cfg(feature = "git-index")]
+//! # #[cfg(all(not(debug_assertions), feature = "git-index"))]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! let serde_crate = index.crate_("serde").expect("you should handle errors here");
@@ -33,7 +33,7 @@
 //! ### Iterating over *all* crates in the index
 //!
 //! ```rust
-//! # #[cfg(all(feature = "parallel", feature = "git-index"))]
+//! # #[cfg(all(not(debug_assertions), feature = "parallel", feature = "git-index"))]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! for crate_ in index.crates() {
@@ -113,7 +113,7 @@ pub mod error;
 mod sparse_index;
 
 #[cfg(feature = "git-index")]
-pub use bare_index::Git2Crates;
+pub use bare_index::Crates;
 #[cfg(feature = "git-index")]
 pub use bare_index::Index;
 #[cfg(feature = "git-index")]
