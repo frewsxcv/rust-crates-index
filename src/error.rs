@@ -1,5 +1,3 @@
-#[cfg(feature = "git-index")]
-pub use git2::Error as Git2Error;
 pub use serde_json::Error as SerdeJsonError;
 use std::{fmt, io};
 pub use toml::de::Error as TomlDeError;
@@ -7,12 +5,12 @@ pub use toml::de::Error as TomlDeError;
 /// Oops
 #[derive(Debug)]
 pub enum Error {
-    /// git2 library failed. If problems persist, delete `~/.cargo/registry`
-    #[cfg(feature = "git-index")]
-    Git2(Git2Error),
     /// `gix` crate failed. If problems persist, delete `~/.cargo/registry`
     #[cfg(feature = "git-index")]
     Git(GixError),
+    /// git2 library failed. If problems persist, delete `~/.cargo/registry`
+    #[cfg(feature = "git-index")]
+    Git2(git2::Error),
     /// `Index::from_url` got a bogus URL
     Url(String),
     /// Filesystem error
@@ -28,9 +26,9 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             #[cfg(feature = "git-index")]
-            Self::Git2(e) => fmt::Display::fmt(&e, f),
-            #[cfg(feature = "git-index")]
             Self::Git(e) => fmt::Display::fmt(&e, f),
+            #[cfg(feature = "git-index")]
+            Self::Git2(e) => fmt::Display::fmt(&e, f),
             Self::Url(u) => f.write_str(u),
             Self::Io(e) => fmt::Display::fmt(&e, f),
             Self::Json(e) => fmt::Display::fmt(&e, f),
@@ -44,9 +42,9 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             #[cfg(feature = "git-index")]
-            Self::Git2(e) => Some(e),
-            #[cfg(feature = "git-index")]
             Self::Git(e) => Some(e),
+            #[cfg(feature = "git-index")]
+            Self::Git2(e) => Some(e),
             Self::Io(e) => Some(e),
             _ => None,
         }
@@ -75,17 +73,25 @@ pub enum GixError {
     #[error(transparent)]
     LockAcquire(#[from] gix::lock::acquire::Error),
     #[error(transparent)]
+    ParseRefSpec(#[from] gix::refspec::parse::Error),
+    #[error(transparent)]
+    RemoteConnect(#[from] gix::remote::connect::Error),
+    #[error(transparent)]
+    PrepareFetch(#[from] gix::remote::fetch::prepare::Error),
+    #[error(transparent)]
+    Fetch(#[from] gix::remote::fetch::Error),
+    #[error(transparent)]
     PrepareClone(#[from] gix::clone::Error),
     #[error(transparent)]
     RemoteName(#[from] gix::remote::name::Error),
     #[error(transparent)]
-    Fetch(#[from] gix::clone::fetch::Error),
+    FetchDuringClone(#[from] gix::clone::fetch::Error),
 }
 
 #[cfg(feature = "git-index")]
-impl From<Git2Error> for Error {
+impl From<git2::Error> for Error {
     #[cold]
-    fn from(e: Git2Error) -> Self {
+    fn from(e: git2::Error) -> Self {
         Self::Git2(e)
     }
 }
@@ -111,7 +117,7 @@ fn error_is_send() {
     is_send::<Error>();
 }
 
-/// Unknown error from [`crate::Index::git2_crates_parallel`]
+/// Unknown error from [`crate::Index::crates_parallel`]
 #[derive(Debug)]
 pub struct CratesIterError;
 

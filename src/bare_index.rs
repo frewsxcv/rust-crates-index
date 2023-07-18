@@ -3,7 +3,6 @@ use crate::changes::ChangesIter;
 use crate::dedupe::DedupeContext;
 use crate::dirs::get_index_details;
 use crate::{path_max_byte_len, Crate, Error, IndexConfig};
-use git2::Repository;
 use std::path::{Path, PathBuf};
 use std::io;
 use gix::config::tree::Key;
@@ -179,13 +178,14 @@ impl Index {
         };
 
         let head_commit = Self::find_repo_head(&repo, &path)?;
+        let git2_repo = git2::Repository::open(repo.path()).expect("valid repo opens fine");
         Ok(Self {
             path,
+            git2_repo,
+            git2_head: git2::Oid::from_bytes(head_commit.as_slice()).expect("valid head id"),
             url,
-            git2_repo: git2::Repository::open(repo.path()).expect("valid repo opens fine"),
             repo,
             head_commit_hex: head_commit.to_hex().to_string(),
-            git2_head: git2::Oid::zero(),
             head_commit,
         })
     }
@@ -217,26 +217,23 @@ impl Index {
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
     pub fn update(&mut self) -> Result<(), Error> {
-        {
-            let mut origin_remote = self
-                .git2_repo
-                .find_remote("origin")
-                .or_else(|_| self.git2_repo.remote_anonymous(&self.url))?;
+        (|| -> Result<(), GixError> {
+            let mut remote = self.repo.find_remote("origin").ok()
+                .unwrap_or_else(|| self.repo.remote_at(self.url.as_str()).expect("own URL is always valid"));
+            remote.replace_refspecs([
+                "HEAD:refs/remotes/origin/HEAD",
+                "master:refs/remotes/origin/master",
+            ], gix::remote::Direction::Fetch)?;
 
-            origin_remote.fetch(
-                &[
-                    "HEAD:refs/remotes/origin/HEAD",
-                    "master:refs/remotes/origin/master",
-                ],
-                Some(&mut fetch_opts()),
-                None,
-            )?;
-        }
+            remote.connect(gix::remote::Direction::Fetch)?
+                .prepare_fetch(gix::progress::Discard, Default::default())?
+                .receive(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+            Ok(())
+        })()?;
 
-        let head = Self::git2_find_valid_repo_head(&self.git2_repo, &self.path)?;
-
-        self.git2_head = head;
-        self.head_commit_hex = self.git2_head.to_string();
+        let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
+        self.head_commit = head_commit;
+        self.head_commit_hex = head_commit.to_hex().to_string();
 
         Ok(())
     }
@@ -371,26 +368,11 @@ impl Index {
         repo.head_id().ok()
             .filter(|id| repo.objects.header(id)
                                 .map_or(false, |h| h.kind() == gix::object::Kind::Commit))
-            .or_else(|| repo.find_reference("origin/HEAD").map(|r| r.id()).ok())
+            .or_else(|| repo.find_reference("origin/master").ok().and_then(|r| r.try_id()))
             .map(|id| id.detach())
             .ok_or_else(|| {
                 // TODO: The Error enum lacks a proper variant for this case
-                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference nor origin/HEAD", path.display()))
-            })
-    }
-
-    fn git2_find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
-        repo.refname_to_id("FETCH_HEAD")
-            .or_else(|_| repo.refname_to_id("HEAD"))
-            .and_then(|head| {
-                // Users of sparse registry reported git failures due to missing oids,
-                // which isn't supposed to happen.
-                let _ = repo.find_commit(head)?;
-                Ok(head)
-            })
-            .map_err(|e| {
-                // TODO: The Error enum lacks a proper variant for this case
-                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference: {e}", path.display()))
+                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference nor origin/master", path.display()))
             })
     }
 }
