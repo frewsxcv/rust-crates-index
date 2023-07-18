@@ -89,6 +89,19 @@
 //! By default, `gix` is compiled with `max-performance-safe`, which maximizes support for compilation environments but which 
 //! may be slower as it uses a pure-Rust Zlib implementation.
 //! To get best possible performance, use the `git-index-performance` feature toggle.
+//! 
+//! ## Using `rustls` instead of `openssl` when using the `https` feature in applications
+//! 
+//! When using the `https` feature, a choice will be made for you that involves selecting the `curl` backend for making
+//! the `https` protocol available. As using a different backend isn't additive, as cargo features should be, one will have
+//! to resort to the following.
+//! 
+//! * Change the `crates-index` dependency to not use any default features with `default-features = false`, and turn on
+//!   `features = ["git-index", …(everything else *but* "https")]`
+//! * Add the `gix` dependency with `default-features = false` and `features = ["blocking-http-transport-reqwest-rust-tls"]`.
+//!   Consider renaming the crate to `gix-for-configuration-only = { package = "gix", … }` to make the intend clear.
+//! 
+//! Please note that this should only be done in application manifests, who have the final say over the protocol and backend choices.
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 

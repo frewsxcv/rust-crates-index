@@ -7,6 +7,7 @@ use git2::Repository;
 use std::path::{Path, PathBuf};
 use std::io;
 use gix::config::tree::Key;
+use gix::odb::HeaderExt;
 use crate::error::GixError;
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
@@ -62,8 +63,8 @@ pub struct Index {
     pub(crate) git2_repo: git2::Repository,
     repo: gix::Repository,
     pub(crate) git2_head: git2::Oid,
-    head: gix::ObjectId,
-    head_str: String,
+    head_commit: gix::ObjectId,
+    head_commit_hex: String,
 }
 
 impl Index {
@@ -131,61 +132,66 @@ impl Index {
     }
 
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
-        let exists = git2::Repository::discover(&path)
-            .map(|repository| {
-                repository
-                    .find_remote("origin")
-                    .ok()
-                    // Cargo creates a checkout without an origin set,
-                    // so default to true in case of missing origin
-                    .map_or(true, |remote| remote.url().map_or(true, |u| u == url))
-            })
-            .unwrap_or(false);
+        let mut mapping = gix::sec::trust::Mapping::default();
+        let open_with_complete_config = gix::open::Options::default().permissions(gix::open::Permissions {
+            config: gix::open::permissions::Config {
+                // Be sure to get all configuration, some of which is only known by the git binary.
+                // That way we are sure to see all the systems credential helpers
+                git_binary: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        mapping.reduced = open_with_complete_config.clone();
+        mapping.full = open_with_complete_config.clone();
+        let repo = gix::ThreadSafeRepository::discover_opts(
+            &path,
+            gix::discover::upwards::Options::default().apply_environment(),
+            mapping,
+        )
+            .ok()
+            .map(|repo| repo.to_thread_local())
+            .filter(|repo| {
+                // The `cargo` standard registry clone has no configured origin (when created with `git2`).
+                repo.find_remote("origin").map_or(true, |remote| {
+                    remote
+                        .url(gix::remote::Direction::Fetch)
+                        .map_or(false, |remote_url| remote_url.to_bstring() == url)
+                })
+            });
 
-        let repo = if !exists {
-            let mut opts = git2::RepositoryInitOptions::new();
-            opts.external_template(false);
-            if let Some(parent) = path.parent() {
-                let _ = std::fs::create_dir_all(parent);
+        let repo = match repo {
+            Some(repo) => repo,
+            None => {
+                let _lock = gix::lock::Marker::acquire_to_hold_resource(
+                    path.with_extension("crates-index"),
+                    gix::lock::acquire::Fail::AfterDurationWithBackoff(
+                        std::time::Duration::from_secs(60 * 10),
+                    ),
+                    Some(PathBuf::from_iter(Some(std::path::Component::RootDir))),
+                ).map_err(GixError::from)?;
+                
+                match gix::open_opts(&path, open_with_complete_config).ok() {
+                    None => clone_url(&url, &path)?,
+                    Some(repo) => repo
+                }
             }
-            let _lock = gix::lock::Marker::acquire_to_hold_resource(path.with_extension("crates-index"), 
-                                                        gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(60 * 10)), 
-                                                        None).unwrap(); // TODO(git): normal error handling once `gix` is available.
-            let repo = git2::Repository::init_opts(&path, &opts)?;
-            {
-                let mut origin_remote = repo
-                    .find_remote("origin")
-                    .or_else(|_| repo.remote_anonymous(&url))?;
-
-                origin_remote.fetch(
-                    &[
-                        "HEAD:refs/remotes/origin/HEAD",
-                        "master:refs/remotes/origin/master",
-                    ],
-                    Some(&mut fetch_opts()),
-                    None,
-                )?;
-            }
-            repo
-        } else {
-            git2::Repository::open(&path)?
         };
 
-        let head = Self::git2_find_valid_repo_head(&repo, &path)?;
-
+        let head_commit = Self::find_repo_head(&repo, &path)?;
         Ok(Self {
             path,
             url,
-            repo: gix::open_opts(repo.path(), gix::open::Options::isolated()).expect("loads fine as `git2` can also do it"),
-            git2_repo: repo,
-            head_str: head.to_string(),
-            git2_head: head,
-            head: gix::ObjectId::from(head.as_bytes())
+            git2_repo: git2::Repository::open(repo.path()).expect("valid repo opens fine"),
+            repo,
+            head_commit_hex: head_commit.to_hex().to_string(),
+            git2_head: git2::Oid::zero(),
+            head_commit,
         })
     }
 
     fn tree(&self) -> Result<gix::Tree<'_>, GixError> {
-        Ok(self.repo.find_object(self.head)?.try_into_commit()?.tree()?)
+        Ok(self.repo.find_object(self.head_commit)?.try_into_commit()?.tree()?)
     }
 
     #[doc(hidden)]
@@ -230,7 +236,7 @@ impl Index {
         let head = Self::git2_find_valid_repo_head(&self.git2_repo, &self.path)?;
 
         self.git2_head = head;
-        self.head_str = self.git2_head.to_string();
+        self.head_commit_hex = self.git2_head.to_string();
 
         Ok(())
     }
@@ -254,7 +260,7 @@ impl Index {
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_str)) {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_commit_hex)) {
                     return Some(krate);
                 }
             }
@@ -359,6 +365,19 @@ impl Index {
                         .ok_or_else(|| GixError::PathMissing { path })?;
         Ok(entry.object()?)
     }
+    
+    fn find_repo_head(repo: &gix::Repository, path: &Path) -> Result<gix::ObjectId, Error> {
+        // TODO(git): provide access to `header` from `Repository
+        repo.head_id().ok()
+            .filter(|id| repo.objects.header(id)
+                                .map_or(false, |h| h.kind() == gix::object::Kind::Commit))
+            .or_else(|| repo.find_reference("origin/HEAD").map(|r| r.id()).ok())
+            .map(|id| id.detach())
+            .ok_or_else(|| {
+                // TODO: The Error enum lacks a proper variant for this case
+                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference nor origin/HEAD", path.display()))
+            })
+    }
 
     fn git2_find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
         repo.refname_to_id("FETCH_HEAD")
@@ -377,7 +396,7 @@ impl Index {
 }
 
 fn is_top_level_dir(entry: &gix::object::tree::EntryRef<'_, '_>) -> bool {
-    // TODO: probably `EntryMode` should be part of `gix::object::tree`
+    // TODO(git): probably `EntryMode` should be part of `gix::object::tree`
     entry.mode() == gix::objs::tree::EntryMode::Tree && entry.filename().len() <= 2
 }
 
@@ -390,6 +409,20 @@ fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
         config.set_value(&gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT, "96m").expect("in memory always works");
     }
     repo
+}
+
+fn clone_url(url: &str, destination: &Path) -> Result<gix::Repository, GixError> {
+    // Clones and fetches already know they need `bin_config` to work, so nothing to do here.
+    let (repo, _outcome) = gix::prepare_clone_bare(url, destination)?
+        .with_remote_name("origin")?
+        .configure_remote(|remote| {
+            Ok(remote.with_refspecs([
+                "HEAD:refs/remotes/origin/HEAD",
+                "master:refs/remotes/origin/master",
+            ], gix::remote::Direction::Fetch)?)
+        })
+        .fetch_only(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+    Ok(repo)
 }
 
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.

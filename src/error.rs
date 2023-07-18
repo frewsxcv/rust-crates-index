@@ -71,7 +71,15 @@ pub enum GixError {
     #[error("The '{}' file is missing at the root of the tree of the crates index", path.display())]
     PathMissing {
         path: std::path::PathBuf
-    }
+    },
+    #[error(transparent)]
+    LockAcquire(#[from] gix::lock::acquire::Error),
+    #[error(transparent)]
+    PrepareClone(#[from] gix::clone::Error),
+    #[error(transparent)]
+    RemoteName(#[from] gix::remote::name::Error),
+    #[error(transparent)]
+    Fetch(#[from] gix::clone::fetch::Error),
 }
 
 #[cfg(feature = "git-index")]
