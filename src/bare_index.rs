@@ -7,7 +7,6 @@ use crate::{path_max_byte_len, Crate, Error, IndexConfig};
 use std::path::{Path, PathBuf};
 use std::io;
 use gix::config::tree::Key;
-use gix::odb::HeaderExt;
 use crate::error::GixError;
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
@@ -365,10 +364,8 @@ impl Index {
     }
     
     fn find_repo_head(repo: &gix::Repository, path: &Path) -> Result<gix::ObjectId, Error> {
-        // TODO(git): provide access to `header` from `Repository
         repo.head_id().ok()
-            .filter(|id| repo.objects.header(id)
-                                .map_or(false, |h| h.kind() == gix::object::Kind::Commit))
+            .filter(|id| id.header().map_or(false, |h| h.kind().is_commit()))
             .or_else(|| repo.find_reference("origin/master").ok().and_then(|r| r.try_id()))
             .map(|id| id.detach())
             .ok_or_else(|| {
@@ -379,8 +376,7 @@ impl Index {
 }
 
 fn is_top_level_dir(entry: &gix::object::tree::EntryRef<'_, '_>) -> bool {
-    // TODO(git): probably `EntryMode` should be part of `gix::object::tree`
-    entry.mode() == gix::objs::tree::EntryMode::Tree && entry.filename().len() <= 2
+    entry.mode().is_tree() && entry.filename().len() <= 2
 }
 
 fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
@@ -429,7 +425,7 @@ impl Iterator for CratesTreesToBlobs {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(obj) = self.stack.pop() {
-            if obj.kind == gix::object::Kind::Tree {
+            if obj.kind.is_tree() {
                 let tree = gix::objs::TreeRef::from_bytes(&obj.data).unwrap();
                 for entry in tree.entries.into_iter().rev() {
                     self.stack.push(self.repo.find_object(entry.oid).unwrap().detach());
