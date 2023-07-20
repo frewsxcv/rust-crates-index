@@ -398,12 +398,17 @@ impl Index {
 
     fn find_repo_head(repo: &gix::Repository, path: &Path) -> Result<gix::ObjectId, Error> {
         repo.head_id().ok()
-            .filter(|id| id.header().map_or(false, |h| h.kind().is_commit()))
-            .or_else(|| repo.find_reference("origin/master").ok().and_then(|r| r.try_id()))
+            .or_else(|| repo.find_reference("origin/HEAD").ok().and_then(|r| r.into_fully_peeled_id().ok()))
+            // We assume that it points to a commit, and if not other operations are likely to fail, which is preferable 
+            // Over claiming we couldn't find a head.
             .map(|id| id.detach())
             .ok_or_else(|| {
                 // TODO: The Error enum lacks a proper variant for this case
-                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference nor origin/master", path.display()))
+                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference nor origin/HEAD, found the following references: {}", 
+                                   path.display(),
+                                   repo.references().ok()
+                                       .and_then(|p| p.all().ok().map(|refs| refs.filter_map(|r| r.ok().map(|r| r.name().as_bstr().to_string())).collect::<Vec<_>>().join(", ")))
+                                       .unwrap_or_default()))
             })
     }
 }
