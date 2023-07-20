@@ -144,6 +144,15 @@ impl Index {
             });
         mapping.reduced = open_with_complete_config.clone();
         mapping.full = open_with_complete_config.clone();
+
+        let _lock = gix::lock::Marker::acquire_to_hold_resource(
+            path.with_extension("crates-index"),
+            gix::lock::acquire::Fail::AfterDurationWithBackoff(
+                std::time::Duration::from_secs(60 * 10),
+            ),
+            Some(PathBuf::from_iter(Some(std::path::Component::RootDir))),
+        )
+            .map_err(GixError::from)?;
         let repo = gix::ThreadSafeRepository::discover_opts(
             &path,
             gix::discover::upwards::Options::default().apply_environment(),
@@ -163,15 +172,6 @@ impl Index {
         let repo = match repo {
             Some(repo) => repo,
             None => {
-                let _lock = gix::lock::Marker::acquire_to_hold_resource(
-                    path.with_extension("crates-index"),
-                    gix::lock::acquire::Fail::AfterDurationWithBackoff(
-                        std::time::Duration::from_secs(60 * 10),
-                    ),
-                    Some(PathBuf::from_iter(Some(std::path::Component::RootDir))),
-                )
-                .map_err(GixError::from)?;
-
                 match gix::open_opts(&path, open_with_complete_config).ok() {
                     None => clone_url(&url, &path)?,
                     Some(repo) => repo,
