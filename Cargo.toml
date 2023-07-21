@@ -30,6 +30,8 @@ toml = "0.7.3"
 [dev-dependencies]
 tempfile = "3.5.0"
 cap = "0.1.2"
+ureq = { version = "2.7.1", features = ["http-interop"] }
+reqwest = { version = "0.11.18", features = ["blocking", "gzip"] }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
