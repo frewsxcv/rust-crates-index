@@ -12,6 +12,14 @@ documentation = "https://docs.rs/crates-index/"
 edition = "2021"
 rust-version = "1.60"
 
+[[example]]
+name = "sparse_http_reqwest"
+required-features = ["sparse-http"]
+
+[[example]]
+name = "sparse_http_ureq"
+required-features = ["sparse-http"]
+
 [dependencies]
 git2 = { version = ">=0.16, <=0.17", default-features = false, optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
