@@ -53,6 +53,7 @@ impl Index {
 
     /// Creates a view over the sparse HTTP index at the exact specified path
     #[inline]
+    #[must_use]
     pub fn at_path(path: PathBuf, mut url: String) -> Self {
         if !url.ends_with('/') {
             url.push('/');
@@ -80,6 +81,7 @@ impl Index {
 
     /// The HTTP url of the index
     #[inline]
+    #[must_use]
     pub fn url(&self) -> &str {
         self.url.strip_prefix("sparse+").unwrap_or(&self.url)
     }
@@ -90,6 +92,7 @@ impl Index {
     /// The body of a successful response for the returned URL can be parsed
     /// via [`Crate::from_slice`]
     #[inline]
+    #[must_use]
     pub fn crate_url(&self, name: &str) -> Option<String> {
         let rel_path = crate::crate_name_to_relative_path(name, None)?;
         Some(format!("{}{rel_path}", self.url()))

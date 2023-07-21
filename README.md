@@ -21,6 +21,10 @@ for crate_releases in index.crates() {
 }
 ```
 
+## Migration from 0.19 to 1.0.0
+
+* `SparseIndex.make_cache_request` returns `request::Builder` instead of `Request`. Call `.body(())` on it.
+
 ## Migration from 0.18
 
 It should work without any code changes. Only the `git2` and `toml` dependencies were updated.
