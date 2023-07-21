@@ -23,6 +23,7 @@ for crate_releases in index.crates() {
 
 ## Migration from 0.19 to 1.0.0
 
+* `git2` is now optional if you use `default-features = false`. If `git-index` feature is enabled, `git2` v0.17 is required. You'll want to enable `https` feature too.
 * `SparseIndex.make_cache_request` returns `request::Builder` instead of `Request`. Call `.body(())` on it.
 
 ## Migration from 0.18

@@ -459,6 +459,7 @@ mod test {
     use tempfile::TempDir;
 
     #[test]
+    #[cfg(feature = "https")]
     fn bare_iterator() {
         let tmp_dir = tempfile::TempDir::new().unwrap();
 
@@ -483,6 +484,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "https")]
     fn clones_bare_index() {
         let tmp_dir = tempfile::TempDir::new().unwrap();
         let path = tmp_dir.path().join("some/sub/dir/testing/abc");
@@ -523,6 +525,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "https")]
     fn opens_bare_index() {
         let tmp_dir = tempfile::TempDir::new().unwrap();
 
@@ -597,6 +600,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "https")]
     fn test_cargo_default_updates() {
         let mut index = Index::new_cargo_default().unwrap();
         index
@@ -618,6 +622,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "https")]
     fn test_can_parse_all() {
         let tmp_dir = TempDir::new().unwrap();
         let mut found_gcc_crate = false;

@@ -33,7 +33,7 @@
 //! ### Iterating over *all* crates in the index
 //!
 //! ```rust
-//! # #[cfg(feature = "git-index")]
+//! # #[cfg(all(feature = "parallel", feature = "git-index"))]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! for crate_ in index.crates() {
@@ -54,7 +54,8 @@
 //!
 //! ### Getting most recently published or yanked crates (enable the `changes` feature!)
 //!
-//! ```rust
+//! # #![cfg(feature = "changes")]
+//! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //!
 //! for c in index.changes()?.take(20) {
@@ -62,6 +63,7 @@
 //!     println!("{} has changed in the index commit {}", c.crate_name(), c.commit_hex());
 //! }
 //!
+//! # }
 //! # Ok::<_, crates_index::Error>(())
 //! ```
 #![forbid(unsafe_code)]
