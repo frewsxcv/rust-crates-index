@@ -1,12 +1,12 @@
 use crate::bare_index::fetch_remote;
+use crate::error::GixError;
 use crate::Error;
 use crate::Index;
-use std::collections::{VecDeque, HashSet};
-use std::convert::TryInto;
-use std::time::{SystemTime, Duration};
 use gix::bstr::ByteSlice;
 use gix::prelude::TreeEntryRefExt;
-use crate::error::GixError;
+use std::collections::{HashSet, VecDeque};
+use std::convert::TryInto;
+use std::time::{Duration, SystemTime};
 
 const INDEX_GIT_ARCHIVE_URL: &str = "https://github.com/rust-lang/crates.io-index-archive";
 
@@ -90,7 +90,8 @@ impl<'repo> ChangesIter<'repo> {
     }
 
     fn get_parent(&self) -> Result<Option<gix::Commit<'repo>>, GixError> {
-        match self.current.parent_ids().next().map(|id| id.try_object()).transpose()?.flatten() {
+        match self.current.parent_ids().next().map(|id| id.try_object()).transpose()?.flatten()
+        {
             Some(obj) => Ok(Some(obj.try_into_commit()?)),
             None => {
                 let msg = self.current.message_raw_sloppy().to_str_lossy();
@@ -104,7 +105,7 @@ impl<'repo> ChangesIter<'repo> {
                         let mut remote = self.repo.remote_at(INDEX_GIT_ARCHIVE_URL)?;
                         fetch_remote(&mut remote, &[&format!("refs/heads/{}", branch)])?;
                         Ok(Some(self.repo.find_object(oid)?.try_into_commit()?))
-                    },
+                    }
                 }
             }
         }
@@ -124,15 +125,17 @@ impl<'repo> ChangesIter<'repo> {
             .collect::<Result<HashSet<_>, _>>()?;
         let old = old.decode()?;
         for new_entry in new.iter().filter_map(Result::ok) {
-            if old_oids.contains(new_entry.oid()) { 
-                continue 
+            if old_oids.contains(new_entry.oid()) {
+                continue;
             }
             if new_entry.mode().is_tree() {
                 let new_tree = new_entry.object()?.into_tree();
                 let name_bytes = new_entry.filename();
                 // Recurse only into crate subdirs, and they all happen to be 1 or 2 letters long
-                let old_obj = if name_bytes.len() <= 2 && name_bytes.iter().copied().all(valid_crate_name_char) {
-                    old.entries.binary_search_by(|entry| entry.filename.cmp(name_bytes))
+                let is_crates_subdir = name_bytes.len() <= 2 && name_bytes.iter().copied().all(valid_crate_name_char);
+                let old_obj = if is_crates_subdir {
+                    old.entries
+                        .binary_search_by(|entry| entry.filename.cmp(name_bytes))
                         .ok()
                         .map(|idx| old.entries[idx].attach(repo))
                 } else {
@@ -142,9 +145,7 @@ impl<'repo> ChangesIter<'repo> {
                     .transpose()?;
                 let old_tree = match old_obj.and_then(|o| o.try_into_tree().ok()) {
                     Some(t) => t,
-                    None => {
-                        repo.empty_tree()
-                    }
+                    None => repo.empty_tree(),
                 };
                 Self::tree_additions(repo, out, change_time, commit, &new_tree, &old_tree)?;
             } else {
@@ -154,7 +155,7 @@ impl<'repo> ChangesIter<'repo> {
                     out.push_back(Change {
                         time: change_time,
                         crate_name: name.to_string().into(),
-                        commit: commit.into()
+                        commit: commit.into(),
                     });
                 }
             }
@@ -170,21 +171,20 @@ fn valid_crate_name_char(c: u8) -> bool {
 
 fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)> {
     let hash_start = msg.split_once("Previous HEAD was ")?.1.trim_start_matches(|c: char| !c.is_ascii_hexdigit());
-    let (hash_str, rest) = hash_start.split_once(|c:char| !c.is_ascii_hexdigit())?;
+    let (hash_str, rest) = hash_start.split_once(|c: char| !c.is_ascii_hexdigit())?;
     let hash = gix::ObjectId::from_hex(hash_str.as_bytes()).ok()?;
     let snapshot_start = rest.find("snapshot-")?;
-    let branch = rest.get(snapshot_start..snapshot_start+"snapshot-xxxx-xx-xx".len())?;
+    let branch = rest.get(snapshot_start..snapshot_start + "snapshot-xxxx-xx-xx".len())?;
 
     Some((hash, branch))
 }
 
-
 #[cfg(test)]
 #[cfg(feature = "https")]
-pub(crate)  mod test {
-    use std::time::SystemTime;
+pub(crate) mod test {
     use crate::bare_index::test::shared_index;
-    use crate::changes::{ChangesIter, oid_and_branch_from_commit_message};
+    use crate::changes::{oid_and_branch_from_commit_message, ChangesIter};
+    use std::time::SystemTime;
 
     #[test]
     fn changes() {
@@ -205,12 +205,15 @@ pub(crate)  mod test {
 
     #[test]
     fn changes_parse_split_message() {
-        let (id, branch) = oid_and_branch_from_commit_message("Previous HEAD was 4181c62812c70fafb2b56cbbd66c31056671b445, now on the `snapshot-2021-07-02` branch
+        let (id, branch) = oid_and_branch_from_commit_message(
+            "Previous HEAD was 4181c62812c70fafb2b56cbbd66c31056671b445, now on the `snapshot-2021-07-02` branch
 
 More information about this change can be found [online] and on [this issue].
 
 [online]: https://internals.rust-lang.org/t/cargos-crate-index-upcoming-squash-into-one-commit/8440
-[this issue]: https://github.com/rust-lang/crates-io-cargo-teams/issues/47").unwrap();
+[this issue]: https://github.com/rust-lang/crates-io-cargo-teams/issues/47",
+        )
+            .unwrap();
         assert_eq!("4181c62812c70fafb2b56cbbd66c31056671b445", id.to_string());
         assert_eq!("snapshot-2021-07-02", branch);
     }
