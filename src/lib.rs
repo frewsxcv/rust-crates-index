@@ -54,6 +54,7 @@
 //!
 //! ### Getting most recently published or yanked crates (enable the `changes` feature!)
 //!
+//! ```rust
 //! # #![cfg(feature = "changes")]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
