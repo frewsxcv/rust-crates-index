@@ -57,6 +57,8 @@ impl std::error::Error for Error {
 #[cfg(feature = "git-index")]
 pub enum GixError {
     #[error(transparent)]
+    CreateInMemoryRemote(#[from] gix::remote::init::Error),
+    #[error(transparent)]
     HeadCommit(#[from] gix::reference::head_commit::Error),
     #[error(transparent)]
     TreeOfCommit(#[from] gix::object::commit::Error),
@@ -64,6 +66,8 @@ pub enum GixError {
     DecodeObject(#[from] gix::objs::decode::Error),
     #[error(transparent)]
     FindExistingObject(#[from] gix::object::find::existing::Error),
+    #[error(transparent)]
+    FindObject(#[from] gix::object::find::Error),
     #[error(transparent)]
     IntoObjectKind(#[from] gix::object::try_into::Error),
     #[error("The '{}' file is missing at the root of the tree of the crates index", path.display())]
@@ -86,6 +90,8 @@ pub enum GixError {
     RemoteName(#[from] gix::remote::name::Error),
     #[error(transparent)]
     FetchDuringClone(#[from] gix::clone::fetch::Error),
+    #[error(transparent)]
+    PeelToKind(#[from] gix::object::peel::to_kind::Error),
 }
 
 #[cfg(feature = "git-index")]

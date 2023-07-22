@@ -60,9 +60,9 @@ pub struct Index {
     url: String,
 
     pub(crate) git2_repo: git2::Repository,
-    repo: gix::Repository,
+    pub(crate) repo: gix::Repository,
     pub(crate) git2_head: git2::Oid,
-    head_commit: gix::ObjectId,
+    pub(crate) head_commit: gix::ObjectId,
     head_commit_hex: String,
 }
 
@@ -223,26 +223,16 @@ impl Index {
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
     pub fn update(&mut self) -> Result<(), Error> {
-        (|| -> Result<(), GixError> {
-            let mut remote = self.repo.find_remote("origin").ok().unwrap_or_else(|| {
-                self.repo
-                    .remote_at(self.url.as_str())
-                    .expect("own URL is always valid")
-            });
-            remote.replace_refspecs(
-                [
-                    "HEAD:refs/remotes/origin/HEAD",
-                    "master:refs/remotes/origin/master",
-                ],
-                gix::remote::Direction::Fetch,
-            )?;
-
-            remote
-                .connect(gix::remote::Direction::Fetch)?
-                .prepare_fetch(gix::progress::Discard, Default::default())?
-                .receive(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
-            Ok(())
-        })()?;
+        let mut remote = self.repo.find_remote("origin").ok().unwrap_or_else(|| {
+            self.repo
+                .remote_at(self.url.as_str())
+                .expect("own URL is always valid")
+        });
+        fetch_remote(&mut remote, &[
+                "HEAD:refs/remotes/origin/HEAD",
+                "master:refs/remotes/origin/master",
+            ]
+        )?;
 
         let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
         self.head_commit = head_commit;
@@ -250,7 +240,7 @@ impl Index {
 
         Ok(())
     }
-
+    
     /// Reads a crate from the index, it will attempt to use a cached entry if
     /// one is available, otherwise it will fallback to reading the crate
     /// directly from the git blob containing the crate information.
@@ -377,7 +367,7 @@ impl Index {
             if !is_top_level_dir(&entry) {
                 continue;
             };
-            stack.push(entry.oid());
+            stack.push(entry.oid().to_owned());
         }
         Ok(stack)
     }
@@ -391,7 +381,7 @@ impl Index {
     fn object_at_path(&self, path: PathBuf) -> Result<gix::Object<'_>, GixError> {
         let entry = self
             .tree()?
-            .lookup_entry_by_path(&path)?
+            .peel_to_entry_by_path(&path)?
             .ok_or(GixError::PathMissing { path })?;
         Ok(entry.object()?)
     }
@@ -434,6 +424,19 @@ fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
             .expect("in memory always works");
     }
     repo
+}
+
+pub(crate) fn fetch_remote(remote: &mut gix::Remote<'_>, refspecs: &[&str]) -> Result<(), GixError> {
+    remote.replace_refspecs(
+        refspecs,
+        gix::remote::Direction::Fetch,
+    )?;
+
+    remote
+        .connect(gix::remote::Direction::Fetch)?
+        .prepare_fetch(gix::progress::Discard, Default::default())?
+        .receive(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+    Ok(())
 }
 
 fn clone_url(url: &str, destination: &Path) -> Result<gix::Repository, GixError> {
