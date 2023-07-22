@@ -478,7 +478,7 @@ impl<'a> Iterator for Crates<'a> {
 
 #[cfg(test)]
 #[cfg(feature = "https")]
-mod test {
+pub(crate)  mod test {
     use super::*;
     use gix::bstr::ByteSlice;
 
@@ -660,7 +660,7 @@ mod test {
         assert!(found_gcc_crate);
     }
 
-    fn shared_index() -> Index {
+    pub(crate) fn shared_index() -> Index {
         let index_path = "tests/testdata/git-registry";
         if is_ci::cached() {
             Index::new_cargo_default()

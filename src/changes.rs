@@ -11,6 +11,7 @@ use crate::error::GixError;
 const INDEX_GIT_ARCHIVE_URL: &str = "https://github.com/rust-lang/crates.io-index-archive";
 
 /// An individual change to a crate in the crates.io index, returned by [the changes iterator](Index::changes).
+#[derive(Debug, Clone)]
 pub struct Change {
     /// Name of a crate, can be used in [`Index::crate_`]
     crate_name: Box<str>,
@@ -177,31 +178,40 @@ fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)
     Some((hash, branch))
 }
 
-#[test]
-fn changes() {
-    let index = Index::new_cargo_default().unwrap();
-    let ch = ChangesIter::new(&index).unwrap();
-    let mut last_time = SystemTime::now();
-    let desired = 500;
-    let mut count = 0;
-    for c in ch.take(desired) {
-        let c = c.unwrap();
-        count += 1;
-        index.crate_(&c.crate_name).unwrap();
-        assert!(last_time >= c.time);
-        last_time = c.time;
-    }
-    assert_eq!(count, desired);
-}
 
-#[test]
-fn changes_parse_split_message() {
-    let (id, branch) = oid_and_branch_from_commit_message("Previous HEAD was 4181c62812c70fafb2b56cbbd66c31056671b445, now on the `snapshot-2021-07-02` branch
+#[cfg(test)]
+#[cfg(feature = "https")]
+pub(crate)  mod test {
+    use std::time::SystemTime;
+    use crate::bare_index::test::shared_index;
+    use crate::changes::{ChangesIter, oid_and_branch_from_commit_message};
+
+    #[test]
+    fn changes() {
+        let index = shared_index();
+        let ch = ChangesIter::new(&index).unwrap();
+        let mut last_time = SystemTime::now();
+        let desired = 500;
+        let mut count = 0;
+        for c in ch.take(desired) {
+            let c = c.unwrap();
+            count += 1;
+            index.crate_(&c.crate_name).unwrap();
+            assert!(last_time >= c.time);
+            last_time = c.time;
+        }
+        assert_eq!(count, desired);
+    }
+
+    #[test]
+    fn changes_parse_split_message() {
+        let (id, branch) = oid_and_branch_from_commit_message("Previous HEAD was 4181c62812c70fafb2b56cbbd66c31056671b445, now on the `snapshot-2021-07-02` branch
 
 More information about this change can be found [online] and on [this issue].
 
 [online]: https://internals.rust-lang.org/t/cargos-crate-index-upcoming-squash-into-one-commit/8440
 [this issue]: https://github.com/rust-lang/crates-io-cargo-teams/issues/47").unwrap();
-    assert_eq!("4181c62812c70fafb2b56cbbd66c31056671b445", id.to_string());
-    assert_eq!("snapshot-2021-07-02", branch);
+        assert_eq!("4181c62812c70fafb2b56cbbd66c31056671b445", id.to_string());
+        assert_eq!("snapshot-2021-07-02", branch);
+    }
 }
