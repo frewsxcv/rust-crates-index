@@ -130,14 +130,12 @@ impl<'repo> ChangesIter<'repo> {
             }
             if new_entry.mode().is_tree() {
                 let new_tree = new_entry.object()?.into_tree();
-                let name_bytes = new_entry.filename();
+                let name = new_entry.filename();
                 // Recurse only into crate subdirs, and they all happen to be 1 or 2 letters long
-                let is_crates_subdir = name_bytes.len() <= 2 && name_bytes.iter().copied().all(valid_crate_name_char);
+                let is_crates_subdir = name.len() <= 2 && name.iter().copied().all(valid_crate_name_char);
                 let old_obj = if is_crates_subdir {
-                    old.entries
-                        .binary_search_by(|entry| entry.filename.cmp(name_bytes))
-                        .ok()
-                        .map(|idx| old.entries[idx].attach(repo))
+                    old.bisect_entry(name, true)
+                        .map(|entry| entry.attach(repo))
                 } else {
                     None
                 }
