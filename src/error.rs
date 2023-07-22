@@ -8,9 +8,6 @@ pub enum Error {
     /// `gix` crate failed. If problems persist, delete `~/.cargo/registry`
     #[cfg(feature = "git-index")]
     Git(GixError),
-    /// git2 library failed. If problems persist, delete `~/.cargo/registry`
-    #[cfg(feature = "git-index")]
-    Git2(git2::Error),
     /// `Index::from_url` got a bogus URL
     Url(String),
     /// Filesystem error
@@ -27,8 +24,6 @@ impl fmt::Display for Error {
         match self {
             #[cfg(feature = "git-index")]
             Self::Git(e) => fmt::Display::fmt(&e, f),
-            #[cfg(feature = "git-index")]
-            Self::Git2(e) => fmt::Display::fmt(&e, f),
             Self::Url(u) => f.write_str(u),
             Self::Io(e) => fmt::Display::fmt(&e, f),
             Self::Json(e) => fmt::Display::fmt(&e, f),
@@ -43,8 +38,6 @@ impl std::error::Error for Error {
         match self {
             #[cfg(feature = "git-index")]
             Self::Git(e) => Some(e),
-            #[cfg(feature = "git-index")]
-            Self::Git2(e) => Some(e),
             Self::Io(e) => Some(e),
             _ => None,
         }
@@ -92,14 +85,6 @@ pub enum GixError {
     FetchDuringClone(#[from] gix::clone::fetch::Error),
     #[error(transparent)]
     PeelToKind(#[from] gix::object::peel::to_kind::Error),
-}
-
-#[cfg(feature = "git-index")]
-impl From<git2::Error> for Error {
-    #[cold]
-    fn from(e: git2::Error) -> Self {
-        Self::Git2(e)
-    }
 }
 
 #[cfg(feature = "git-index")]

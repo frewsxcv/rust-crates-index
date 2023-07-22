@@ -12,45 +12,6 @@ use std::path::{Path, PathBuf};
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
-pub(crate) fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
-    let mut proxy_opts = git2::ProxyOptions::new();
-    proxy_opts.auto();
-    let mut fetch_opts = git2::FetchOptions::new();
-    fetch_opts.proxy_options(proxy_opts);
-
-    let mut remote_callbacks = git2::RemoteCallbacks::new();
-    remote_callbacks.credentials(|url, username_from_url, allowed_types| {
-        let config = git2::Config::open_default()?;
-
-        if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-            if let Some((username, password)) = git2::CredentialHelper::new(url)
-                .config(&config)
-                .username(username_from_url)
-                .execute()
-            {
-                let cred = git2::Cred::userpass_plaintext(&username, &password)?;
-                return Ok(cred);
-            }
-        }
-
-        #[cfg(feature = "ssh")]
-        if allowed_types.contains(git2::CredentialType::SSH_KEY) {
-            if let Some(username) = username_from_url {
-                if let Ok(cred) = git2::Cred::ssh_key_from_agent(username) {
-                    return Ok(cred);
-                }
-            }
-        }
-
-        Err(git2::Error::from_str(
-            "failed to acquire appropriate credentials from local configuration",
-        ))
-    });
-    fetch_opts.remote_callbacks(remote_callbacks);
-
-    fetch_opts
-}
-
 /// Wrapper around managing the crates.io-index git repository
 ///
 /// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
@@ -59,9 +20,7 @@ pub struct Index {
     path: PathBuf,
     url: String,
 
-    pub(crate) git2_repo: git2::Repository,
     pub(crate) repo: gix::Repository,
-    pub(crate) git2_head: git2::Oid,
     pub(crate) head_commit: gix::ObjectId,
     head_commit_hex: String,
 }
@@ -180,11 +139,8 @@ impl Index {
         };
 
         let head_commit = Self::find_repo_head(&repo, &path)?;
-        let git2_repo = git2::Repository::open(repo.path()).expect("valid repo opens fine");
         Ok(Self {
             path,
-            git2_repo,
-            git2_head: git2::Oid::from_bytes(head_commit.as_slice()).expect("valid head id"),
             url,
             repo,
             head_commit_hex: head_commit.to_hex().to_string(),

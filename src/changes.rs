@@ -1,7 +1,6 @@
-use crate::bare_index::{fetch_opts, fetch_remote};
+use crate::bare_index::fetch_remote;
 use crate::Error;
 use crate::Index;
-use git2::{Commit, Tree, Oid};
 use std::collections::{VecDeque, HashSet};
 use std::convert::TryInto;
 use std::time::{SystemTime, Duration};
@@ -17,7 +16,7 @@ pub struct Change {
     crate_name: Box<str>,
     /// Timestamp in the crates.io index repository
     time: SystemTime,
-    git2_commit: Oid,
+    commit: gix::ObjectId,
 }
 
 impl Change {
@@ -38,23 +37,20 @@ impl Change {
     /// git hash of a commit in the crates.io repository
     #[must_use]
     pub fn commit(&self) -> &[u8; 20] {
-        self.git2_commit.as_bytes().try_into().unwrap()
+        self.commit.as_bytes().try_into().unwrap()
     }
 
     /// git hash of a commit in the crates.io repository
     #[must_use]
     pub fn commit_hex(&self) -> String {
-        self.git2_commit.to_string()
+        self.commit.to_string()
     }
 }
 
 /// See [`Index::changes`]
 pub struct ChangesIter<'repo> {
     repo: &'repo gix::Repository,
-    git2_repo: &'repo git2::Repository,
-    git2_current: Commit<'repo>,
     current: gix::Commit<'repo>,
-    git2_current_tree: Tree<'repo>,
     current_tree: gix::Tree<'repo>,
     out: VecDeque<Change>,
 }
@@ -81,48 +77,17 @@ impl<'repo> Iterator for ChangesIter<'repo> {
 
 impl<'repo> ChangesIter<'repo> {
     pub(crate) fn new(index: &'repo Index) -> Result<Self, GixError> {
-        let git2_current = index.git2_repo.find_object(index.git2_head, None).expect("remove me").peel_to_commit().expect("remove me");
         let current = index.repo.find_object(index.head_commit)?.peel_to_kind(gix::object::Kind::Commit)?.into_commit();
-        let git2_current_tree = git2_current.tree().expect("remove me");
         let current_tree = current.tree()?;
 
         Ok(Self {
             repo: &index.repo,
-            git2_repo: &index.git2_repo,
             current,
             current_tree,
-            git2_current,
-            git2_current_tree,
             out: VecDeque::new(),
         })
     }
 
-    fn git2_get_parent(&self) -> Result<Option<Commit<'repo>>, Error> {
-        match self.git2_current.parents().next() {
-            Some(ok) => Ok(Some(ok)),
-            None => {
-                let (oid, branch) = match git2_oid_and_branch_from_commit_message(self.git2_current.body().unwrap_or_default()) {
-                    Some(res) => res,
-                    None => return Ok(None),
-                };
-                match self.git2_repo.find_commit(oid) {
-                    Ok(ok) => Ok(Some(ok)),
-                    Err(_) => {
-                        // TODO: this happens when a history split/squash was detected. 
-                        //       This is only valid for the main index, but let's be sure and use the original URL instead.
-                        let mut archive_origin = self.git2_repo.remote_anonymous(INDEX_GIT_ARCHIVE_URL)?;
-                        archive_origin.fetch(
-                            &[format!("refs/heads/{}", branch)],
-                            Some(&mut fetch_opts()),
-                            None,
-                        )?;
-                        Ok(Some(self.git2_repo.find_commit(oid)?))
-                    },
-                }
-            }
-        }
-    }
-    
     fn get_parent(&self) -> Result<Option<gix::Commit<'repo>>, GixError> {
         match self.current.parent_ids().next().map(|id| id.try_object()).transpose()?.flatten() {
             Some(obj) => Ok(Some(obj.try_into_commit()?)),
@@ -143,43 +108,6 @@ impl<'repo> ChangesIter<'repo> {
             }
         }
     }
-
-    fn git2_tree_additions(repo: &git2::Repository, out: &mut VecDeque<Change>, change_time: SystemTime, commit: &Oid, new: &Tree, old: &Tree) -> Result<(), git2::Error> {
-        let old_oids = old.iter().map(|old| old.id()).collect::<HashSet<_>>();
-        for new_entry in new.iter() {
-            let new_id = new_entry.id();
-            if !old_oids.contains(&new_id) {
-                let new_obj = new_entry.to_object(repo)?;
-                if let Some(new_tree) = new_obj.as_tree() {
-                    let name_bytes = new_entry.name_bytes();
-                    // Recurse only into crate subdirs, and they all happen to be 1 or 2 letters long
-                    let old_obj = if name_bytes.len() <= 2 && name_bytes.iter().copied().all(valid_crate_name_char)
-                        { old.get_name_bytes(name_bytes) } else { None }
-                        .map(|o| o.to_object(repo))
-                        .transpose()?;
-                    let empty;
-                    let old_tree = match old_obj.as_ref().and_then(|o| o.as_tree()) {
-                        Some(t) => t,
-                        None => { empty = Self::empty_tree(repo); &empty }
-                    };
-                    Self::git2_tree_additions(repo, out, change_time, commit, new_tree, old_tree)?;
-                } else {
-                    if let Some(name) = new_entry.name() {
-                        // filter out config.json
-                        if name.bytes().all(valid_crate_name_char) {
-                            out.push_back(Change {
-                                time: change_time,
-                                crate_name: name.into(),
-                                git2_commit: commit.clone(),
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-
 
     fn tree_additions(
         repo: &gix::Repository,
@@ -225,33 +153,18 @@ impl<'repo> ChangesIter<'repo> {
                     out.push_back(Change {
                         time: change_time,
                         crate_name: name.to_string().into(),
-                        git2_commit: git2::Oid::from_bytes(commit.as_bytes()).expect("valid hash"),
+                        commit: commit.into()
                     });
                 }
             }
         }
         Ok(())
     }
-
-    fn empty_tree(repo: &git2::Repository) -> Tree<'_> {
-        let magic_empty = Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904").unwrap();
-        repo.find_tree(magic_empty).expect("oops, git changed its implementation detail")
-    }
 }
 
 #[inline]
 fn valid_crate_name_char(c: u8) -> bool {
     c.is_ascii_alphanumeric() || c == b'-' || c == b'_'
-}
-
-fn git2_oid_and_branch_from_commit_message(msg: &str) -> Option<(Oid, &str)> {
-    let hash_start = msg.split_once("Previous HEAD was ")?.1.trim_start_matches(|c: char| !c.is_ascii_hexdigit());
-    let (hash_str, rest) = hash_start.split_once(|c:char| !c.is_ascii_hexdigit())?;
-    let hash = Oid::from_str(hash_str).ok()?;
-    let snapshot_start = rest.find("snapshot-")?;
-    let branch = rest.get(snapshot_start..snapshot_start+"snapshot-xxxx-xx-xx".len())?;
-
-    Some((hash, branch))
 }
 
 fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)> {
