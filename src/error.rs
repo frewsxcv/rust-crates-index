@@ -1,5 +1,6 @@
 pub use serde_json::Error as SerdeJsonError;
 use std::{fmt, io};
+use std::path::PathBuf;
 pub use toml::de::Error as TomlDeError;
 
 /// Oops
@@ -10,6 +11,15 @@ pub enum Error {
     Git(GixError),
     /// `Index::from_url` got a bogus URL
     Url(String),
+    /// Could not obtain the most recent head commit.
+    MissingHead {
+        /// The references we tried to get commits for.
+        refs_tried: &'static [&'static str],
+        /// The references that were actually present in the repository.
+        refs_available: Vec<String>,
+        /// The path of the repository we tried
+        repo_path: PathBuf,
+    },
     /// Filesystem error
     Io(io::Error),
     /// If this happens, the registry is seriously corrupted. Delete `~/.cargo/registry`.
@@ -24,6 +34,8 @@ impl fmt::Display for Error {
         match self {
             #[cfg(feature = "git-index")]
             Self::Git(e) => fmt::Display::fmt(&e, f),
+            // TODO: switch to thiserror
+            Self::MissingHead{..} => f.write_str("TBD"),
             Self::Url(u) => f.write_str(u),
             Self::Io(e) => fmt::Display::fmt(&e, f),
             Self::Json(e) => fmt::Display::fmt(&e, f),

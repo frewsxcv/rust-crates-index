@@ -342,20 +342,53 @@ impl Index {
         Ok(entry.object()?)
     }
 
+    /// Find the most recent commit of `repo` at `path`.
+    /// 
+    /// This is complicated by a few specialities of the cargo git index.
+    /// 
+    /// * it's possible for `origin/HEAD` and `origin/master` to be stalled and out of date if they have been fetched with 
+    ///   non-force refspecs.
+    ///   This was done by this crate as well, but is not done by cargo.
+    /// * if `origin/master` is out of date, `FETCH_HEAD` is the only chance for getting the most recent commit.
+    /// * if `gix` is updating the index, `FETCH_HEAD` will not be written at all, *only* the references are. Note that
+    ///   `cargo` does not rely on `FETCH_HEAD`, but relies on `origin/master` directly.
+    /// 
+    /// This, we get a list of candidates and use the most recent commit.
     fn find_repo_head(repo: &gix::Repository, path: &Path) -> Result<gix::ObjectId, Error> {
-        repo.head_id().ok()
-            .or_else(|| repo.find_reference("origin/HEAD").ok().and_then(|r| r.into_fully_peeled_id().ok()))
-            // We assume that it points to a commit, and if not other operations are likely to fail, which is preferable 
-            // Over claiming we couldn't find a head.
-            .map(|id| id.detach())
-            .ok_or_else(|| {
-                // TODO: The Error enum lacks a proper variant for this case
-                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference nor origin/HEAD, found the following references: {}", 
-                                   path.display(),
-                                   repo.references().ok()
-                                       .and_then(|p| p.all().ok().map(|refs| refs.filter_map(|r| r.ok().map(|r| r.name().as_bstr().to_string())).collect::<Vec<_>>().join(", ")))
-                                       .unwrap_or_default()))
+        #[rustfmt::skip]
+        const CANDIDATE_REFS: &[&str] = &[
+            "FETCH_HEAD",    /* the location with the most-recent updates, as written by git2 */
+            "origin/HEAD",   /* typical refspecs update this symbolic ref to point to the actual remote ref with the fetched commit */
+            "origin/master", /* for good measure, resolve this branch by hand in case origin/HEAD is broken */
+        ];
+        let mut candidates: Vec<_> = CANDIDATE_REFS
+            .iter()
+            .filter_map(|refname| repo.find_reference(*refname).ok()?.into_fully_peeled_id().ok())
+            .filter_map(|r| {
+                let c = r.object().ok()?.try_into_commit().ok()?;
+                Some((c.id, c.time().ok()?.seconds))
             })
+            .collect();
+
+        candidates.sort_by_key(|t| t.1);
+        // get the most recent commit, the one with most time passed since unix epoch.
+        Ok(candidates
+            .last()
+            .ok_or_else(|| Error::MissingHead {
+                repo_path: path.to_owned(),
+                refs_tried: CANDIDATE_REFS,
+                refs_available: repo
+                    .references()
+                    .ok()
+                    .and_then(|p| {
+                        p.all()
+                            .ok()?
+                            .map(|r| r.ok().map(|r| r.name().as_bstr().to_string()))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            })?
+            .0)
     }
 }
 
