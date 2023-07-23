@@ -402,8 +402,8 @@ fn clone_url(url: &str, destination: &Path) -> Result<gix::Repository, GixError>
         .configure_remote(|remote| {
             Ok(remote.with_refspecs(
                 [
-                    "HEAD:refs/remotes/origin/HEAD",
-                    "master:refs/remotes/origin/master",
+                    "+HEAD:refs/remotes/origin/HEAD",
+                    "+master:refs/remotes/origin/master",
                 ],
                 gix::remote::Direction::Fetch,
             )?)

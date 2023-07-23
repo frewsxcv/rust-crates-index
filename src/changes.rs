@@ -103,7 +103,7 @@ impl<'repo> ChangesIter<'repo> {
                     Some(obj) => Ok(Some(obj.try_into_commit()?)),
                     None => {
                         let mut remote = self.repo.remote_at(INDEX_GIT_ARCHIVE_URL)?;
-                        fetch_remote(&mut remote, &[&format!("refs/heads/{}", branch)])?;
+                        fetch_remote(&mut remote, &[&format!("+refs/heads/{}", branch)])?;
                         Ok(Some(self.repo.find_object(oid)?.try_into_commit()?))
                     }
                 }
