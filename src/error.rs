@@ -1,17 +1,18 @@
 pub use serde_json::Error as SerdeJsonError;
-use std::{fmt, io};
+use std::{io};
 use std::path::PathBuf;
 pub use toml::de::Error as TomlDeError;
 
-/// Oops
-#[derive(Debug)]
+/// The catch-all error for the entire crate.
+#[derive(Debug, thiserror::Error)]
+#[allow(missing_docs)]
 pub enum Error {
-    /// `gix` crate failed. If problems persist, delete `~/.cargo/registry`
+    #[error("\"gix\" crate failed. If problems persist, consider deleting `~/.cargo/registry/index/github.com-1ecc6299db9ec823/`")]
     #[cfg(feature = "git-index")]
-    Git(GixError),
-    /// `Index::from_url` got a bogus URL
+    Git(#[from] GixError),
+    #[error("{0}")]
     Url(String),
-    /// Could not obtain the most recent head commit.
+    #[error("Could not obtain the most recent head commit in repo at {}. Tried {}, had {} available", repo_path.display(), refs_tried.join(", "), refs_available.join(", "))] 
     MissingHead {
         /// The references we tried to get commits for.
         refs_tried: &'static [&'static str],
@@ -20,40 +21,12 @@ pub enum Error {
         /// The path of the repository we tried
         repo_path: PathBuf,
     },
-    /// Filesystem error
-    Io(io::Error),
-    /// If this happens, the registry is seriously corrupted. Delete `~/.cargo/registry`.
-    Json(SerdeJsonError),
-    /// Cargo config.toml deserialization error
-    Toml(TomlDeError),
-}
-
-impl fmt::Display for Error {
-    #[cold]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            #[cfg(feature = "git-index")]
-            Self::Git(e) => fmt::Display::fmt(&e, f),
-            // TODO: switch to thiserror
-            Self::MissingHead{..} => f.write_str("TBD"),
-            Self::Url(u) => f.write_str(u),
-            Self::Io(e) => fmt::Display::fmt(&e, f),
-            Self::Json(e) => fmt::Display::fmt(&e, f),
-            Self::Toml(e) => fmt::Display::fmt(&e, f),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    #[cold]
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            #[cfg(feature = "git-index")]
-            Self::Git(e) => Some(e),
-            Self::Io(e) => Some(e),
-            _ => None,
-        }
-    }
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error("If this happens, the registry is seriously corrupted. Consider deleting `~/.cargo/registry/index/`")]
+    Json(#[from] SerdeJsonError),
+    #[error(transparent)]
+    Toml(#[from] TomlDeError),
 }
 
 /// Any error produced by `gix` or the `gix-*` family of crates.
@@ -99,36 +72,18 @@ pub enum GixError {
     PeelToKind(#[from] gix::object::peel::to_kind::Error),
 }
 
-#[cfg(feature = "git-index")]
-impl From<GixError> for Error {
-    #[cold]
-    fn from(e: GixError) -> Self {
-        Self::Git(e)
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-impl From<io::Error> for Error {
-    #[cold]
-    fn from(e: io::Error) -> Self {
-        Self::Io(e)
+    #[test]
+    fn error_is_send() {
+        fn is_send<T: Send>() {}
+        is_send::<Error>();
     }
-}
-
-#[test]
-fn error_is_send() {
-    fn is_send<T: Send>() {}
-    is_send::<Error>();
 }
 
 /// Unknown error from [`crate::Index::crates_parallel`]
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
+#[error("error while iterating git repository")]
 pub struct CratesIterError;
-
-impl std::error::Error for CratesIterError {}
-
-impl fmt::Display for CratesIterError {
-    #[cold]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("error while iterating git repository")
-    }
-}
