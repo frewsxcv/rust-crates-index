@@ -47,6 +47,7 @@ is_ci = "1.1.1"
 tempfile = "3.5.0"
 ureq = { version = "2.7.1", features = ["http-interop"] }
 reqwest = { version = "0.11.18", features = ["blocking", "gzip"] }
+serial_test = "2.0.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

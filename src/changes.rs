@@ -178,28 +178,8 @@ fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)
 }
 
 #[cfg(test)]
-#[cfg(feature = "https")]
 pub(crate) mod test {
-    use crate::bare_index::test::shared_index;
-    use crate::changes::{oid_and_branch_from_commit_message, ChangesIter};
-    use std::time::SystemTime;
-
-    #[test]
-    fn changes() {
-        let index = shared_index();
-        let ch = ChangesIter::new(&index).unwrap();
-        let mut last_time = SystemTime::now();
-        let desired = 500;
-        let mut count = 0;
-        for c in ch.take(desired) {
-            let c = c.unwrap();
-            count += 1;
-            index.crate_(&c.crate_name).unwrap();
-            assert!(last_time >= c.time);
-            last_time = c.time;
-        }
-        assert_eq!(count, desired);
-    }
+    use crate::changes::{oid_and_branch_from_commit_message, };
 
     #[test]
     fn changes_parse_split_message() {

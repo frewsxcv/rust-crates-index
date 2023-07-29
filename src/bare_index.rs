@@ -511,169 +511,13 @@ impl<'a> Iterator for Crates<'a> {
 
 #[cfg(test)]
 #[cfg(feature = "https")]
-pub(crate)  mod test {
-    use super::*;
+mod test {
     use gix::bstr::ByteSlice;
-
-    #[test]
-    fn bare_iterator() {
-        let repo = shared_index();
-        assert_eq!("time", repo.crate_("time").unwrap().name());
-
-        let mut found_first_crate = false;
-        let mut found_second_crate = false;
-
-        // Note that crates are roughly ordered in reverse.
-        for c in repo.crates() {
-            if c.name() == "zzzz" {
-                found_first_crate = true;
-            } else if c.name() == "zulip" {
-                found_second_crate = true;
-            }
-            if found_first_crate && found_second_crate {
-                break;
-            }
-        }
-        assert!(found_first_crate);
-        assert!(found_second_crate);
-    }
-
-    #[test]
-    fn clones_bare_index() {
-        let tmp_dir = tempfile::TempDir::new().unwrap();
-        let path = tmp_dir.path().join("some/sub/dir/testing/abc");
-
-        let mut repo =
-            Index::with_path(path, crate::INDEX_GIT_URL).expect("Failed to clone crates.io index");
-
-        fn test_sval(repo: &Index) {
-            let krate = repo
-                .crate_("sval")
-                .expect("Could not find the crate sval in the index");
-
-            let version = krate
-                .versions()
-                .iter()
-                .find(|v| v.version() == "0.0.1")
-                .expect("Version 0.0.1 of sval does not exist?");
-            let dep_with_package_name = version
-                .dependencies()
-                .iter()
-                .find(|d| d.name() == "serde_lib")
-                .expect("sval does not have expected dependency?");
-            assert_ne!(
-                dep_with_package_name.name(),
-                dep_with_package_name.package().unwrap()
-            );
-            assert_eq!(
-                dep_with_package_name.crate_name(),
-                dep_with_package_name.package().unwrap()
-            );
-        }
-
-        test_sval(&repo);
-
-        repo.update().expect("Failed to fetch crates.io index");
-
-        test_sval(&repo);
-    }
-
-    #[test]
-    fn opens_bare_index() {
-        let mut repo = shared_index();
-        fn test_sval(repo: &Index) {
-            let krate = repo
-                .crate_("sval")
-                .expect("Could not find the crate sval in the index");
-
-            let version = krate
-                .versions()
-                .iter()
-                .find(|v| v.version() == "0.0.1")
-                .expect("Version 0.0.1 of sval does not exist?");
-            let dep_with_package_name = version
-                .dependencies()
-                .iter()
-                .find(|d| d.name() == "serde_lib")
-                .expect("sval does not have expected dependency?");
-            assert_ne!(
-                dep_with_package_name.name(),
-                dep_with_package_name.package().unwrap()
-            );
-            assert_eq!(
-                dep_with_package_name.crate_name(),
-                dep_with_package_name.package().unwrap()
-            );
-        }
-
-        test_sval(&repo);
-
-        repo.update().expect("Failed to fetch crates.io index");
-
-        test_sval(&repo);
-    }
-
-    #[test]
-    fn reads_replaced_source() {
-        let index = shared_index();
-        let _config = index
-            .index_config()
-            .expect("we are able to obtain and parse the configuration of the default registry");
-    }
-
-    #[test]
-    fn test_dependencies() {
-        let index = shared_index();
-
-        let crate_ = index
-            .crate_("sval")
-            .expect("Could not find the crate libnotify in the index");
-        let _ = format!("supports debug {crate_:?}");
-
-        let version = crate_
-            .versions()
-            .iter()
-            .find(|v| v.version() == "0.0.1")
-            .expect("Version 0.0.1 of sval does not exist?");
-        let dep_with_package_name = version
-            .dependencies()
-            .iter()
-            .find(|d| d.name() == "serde_lib")
-            .expect("sval does not have expected dependency?");
-        assert_ne!(
-            dep_with_package_name.name(),
-            dep_with_package_name.package().unwrap()
-        );
-        assert_eq!(
-            dep_with_package_name.crate_name(),
-            dep_with_package_name.package().unwrap()
-        );
-    }
-
-    #[test]
-    fn test_cargo_default_updates() {
-        let mut index = shared_index();
-        index
-            .update()
-            .map_err(|e| {
-                format!(
-                    "could not fetch cargo's index in {}: {}",
-                    index.path().display(),
-                    e
-                )
-            })
-            .unwrap();
-        assert!(index.crate_("crates-index").is_some());
-        assert!(index.crate_("toml").is_some());
-        assert!(index.crate_("gcc").is_some());
-        assert!(index.crate_("cc").is_some());
-        assert!(index.crate_("CC").is_some());
-        assert!(index.crate_("無").is_none());
-    }
+    use super::*;
 
     #[test]
     #[cfg_attr(debug_assertions, ignore = "too slow in debug mode")]
-    fn test_can_parse_all() {
+    fn parse_all_blobs() {
         let index = shared_index();
 
         let mut ctx = DedupeContext::new();
@@ -693,7 +537,7 @@ pub(crate)  mod test {
         assert!(found_gcc_crate);
     }
 
-    pub(crate) fn shared_index() -> Index {
+    fn shared_index() -> Index {
         let index_path = "tests/testdata/git-registry";
         if is_ci::cached() {
             Index::new_cargo_default()
@@ -701,30 +545,5 @@ pub(crate)  mod test {
         } else {
             Index::with_path(index_path, INDEX_GIT_URL).expect("clone works and there is no racing")
         }
-    }
-
-    #[test]
-    fn matches_cargo() {
-        assert_eq!(
-            crate::dirs::url_to_local_dir(crate::INDEX_GIT_URL).unwrap(),
-            (
-                "github.com-1ecc6299db9ec823".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
-            )
-        );
-
-        // Ensure we actually strip off the irrelevant parts of a url, note that
-        // the .git suffix is not part of the canonical url, but *is* used when hashing
-        assert_eq!(
-            crate::dirs::url_to_local_dir(&format!(
-                "registry+{}.git?one=1&two=2#fragment",
-                crate::INDEX_GIT_URL
-            ))
-            .unwrap(),
-            (
-                "github.com-c786010fb7ef2e6e".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
-            )
-        );
     }
 }

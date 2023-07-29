@@ -1,5 +1,5 @@
 use std::io;
-use crates_index::{Crate, Error, SparseIndex};
+use crates_index::{SparseIndex};
 
 ///
 /// **important**:<br>

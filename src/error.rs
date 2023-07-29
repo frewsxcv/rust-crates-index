@@ -72,17 +72,6 @@ pub enum GixError {
     PeelToKind(#[from] gix::object::peel::to_kind::Error),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn error_is_send() {
-        fn is_send<T: Send>() {}
-        is_send::<Error>();
-    }
-}
-
 /// Unknown error from [`crate::Index::crates_parallel`]
 #[derive(Debug, thiserror::Error)]
 #[error("error while iterating git repository")]
