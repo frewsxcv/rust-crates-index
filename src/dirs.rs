@@ -196,7 +196,7 @@ mod test {
     }
     
     #[test]
-    #[cfg(feature = "git-index")]
+    #[cfg(feature = "git")]
     fn git_url_matches_cargo() {
         use crate::git::URL;
         assert_eq!(

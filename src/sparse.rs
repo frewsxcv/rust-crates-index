@@ -108,7 +108,7 @@ impl SparseIndex {
     /// 
     /// The version is of the form `key:value`, where, currently, the key is either
     /// `etag` or `last-modified`
-    #[cfg(feature = "sparse-http")]
+    #[cfg(feature = "sparse")]
     fn read_cache_version(&self, name: &str) -> Option<String> {
         let cache_path = self.cache_path(name)?;
         let bytes = std::fs::read(cache_path).ok()?;
@@ -144,7 +144,7 @@ impl SparseIndex {
     /// 
     /// It is highly recommended to assume HTTP/2 when making requests to remote
     /// indices, at least crates.io
-    #[cfg(feature = "sparse-http")]
+    #[cfg(feature = "sparse")]
     pub fn make_cache_request(&self, name: &str) -> Result<http::request::Builder, Error> {
         use http::header;
 
@@ -215,7 +215,7 @@ impl SparseIndex {
     /// Note that responses from sparse HTTP indices, at least crates.io, may
     /// send responses with `gzip` compression, it is your responsibility to
     /// decompress it before sending to this function
-    #[cfg(feature = "sparse-http")]
+    #[cfg(feature = "sparse")]
     pub fn parse_cache_response(&self, name: &str, response: http::Response<Vec<u8>>, write_cache_entry: bool) -> Result<Option<Crate>, Error> {
         use http::{header, StatusCode};
         let (parts, body) = response.into_parts();
@@ -271,7 +271,7 @@ impl SparseIndex {
 }
 
 #[cfg(test)]
-#[cfg(feature = "sparse-http")]
+#[cfg(feature = "sparse")]
 mod tests {
     use http::header;
     use crate::SparseIndex;

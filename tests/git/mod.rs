@@ -1,4 +1,4 @@
-#[cfg(feature = "https")]
+#[cfg(feature = "git-https")]
 pub(crate)  mod with_https {
     use std::time::SystemTime;
     use crates_index::{GitIndex};

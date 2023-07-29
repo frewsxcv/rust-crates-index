@@ -539,5 +539,5 @@ impl<'a> Iterator for Crates<'a> {
 }
 
 #[cfg(test)]
-#[cfg(feature = "https")]
+#[cfg(feature = "git-https")]
 mod test;

@@ -15,15 +15,15 @@ include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [[example]]
 name = "sparse_http_reqwest"
-required-features = ["sparse-http"]
+required-features = ["sparse"]
 
 [[example]]
 name = "sparse_http_ureq"
-required-features = ["sparse-http"]
+required-features = ["sparse"]
 
 [[example]]
 name = "update_and_get_latest"
-required-features = ["git-index"]
+required-features = ["git"]
 
 [dependencies]
 gix = { version = "0.50.0", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
@@ -54,28 +54,26 @@ serial_test = "2.0.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
-features = ["sparse-http"]
+features = ["sparse", "git", "git-https", "parallel", "document-features"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 
 [features]
-default = ["git-index", "https", "parallel"]
-## Activate support for accessing git-powered cargo indices. These have been superseded by the sparse-index, see the `sparse-http` feature.
-git-index = ["dep:gix"]
+default = ["sparse"]
+## Activate support for accessing git-powered cargo indices. These have been superseded by the sparse-index, see the `sparse` feature.
+git = ["dep:gix"]
 ## Activate support for git-powered cargo indices, but configure the underlying `gix` crate to use higher-performance sub-crates at the expense of platform compatibility.
 ##
-## If it compiles for you, this should be preferred over `
-git-index-performance = ["git-index", "gix?/max-performance"]
+## If it compiles for you, this should be preferred over `git`.
+git-performance = ["git", "gix?/max-performance"]
 ## Add support for https based URLs in git indices.
 ##
 ## Most will want this enabled unless they know to only have to access non-https URLs for their indices.
-https = ["git-index", "gix?/blocking-http-transport-curl"]
+git-https = ["git", "gix?/blocking-http-transport-curl"]
 ## Allow some functions to receive `rayon`-powered siblings for higher performance.
 parallel = ["dep:rayon"]
-## TO BE REMOVED
-ssh = ["git-index"] # at this time, `gix` does not need feature toggles for this as the `ssh` program is used. Native support is planned to match `git2`.
 ## Add support for communicating with sparse indices.
-sparse-http = ["dep:http"]
+sparse = ["dep:http"]
 
 [badges]
-maintenance = { status = "looking-for-maintainer" }
+maintenance = { status = "passively-maintained" }

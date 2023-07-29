@@ -8,7 +8,7 @@ pub use toml::de::Error as TomlDeError;
 #[allow(missing_docs)]
 pub enum Error {
     #[error("\"gix\" crate failed. If problems persist, consider deleting `~/.cargo/registry/index/github.com-1ecc6299db9ec823/`")]
-    #[cfg(feature = "git-index")]
+    #[cfg(feature = "git")]
     Git(#[from] GixError),
     #[error("{0}")]
     Url(String),
@@ -32,7 +32,7 @@ pub enum Error {
 /// Any error produced by `gix` or the `gix-*` family of crates.
 #[derive(Debug, thiserror::Error)]
 #[allow(missing_docs)]
-#[cfg(feature = "git-index")]
+#[cfg(feature = "git")]
 pub enum GixError {
     #[error(transparent)]
     CreateInMemoryRemote(#[from] gix::remote::init::Error),

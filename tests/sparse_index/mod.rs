@@ -13,7 +13,7 @@ fn crate_from_cache() {
     assert_eq!(crate_.highest_version().version(), "1.1.0");
 }
 
-#[cfg(all(test, feature = "sparse-http"))]
+#[cfg(all(test, feature = "sparse"))]
 mod with_sparse_http_feature {
     use crates_index::SparseIndex;
 

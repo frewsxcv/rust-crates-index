@@ -14,14 +14,14 @@
 // limitations under the License.
 
 //! Library for retrieving and interacting with the
-//! [crates.io git index](https://github.com/rust-lang/crates.io-index).
+//! [crates.io index](https://github.com/rust-lang/crates.io-index).
 //!
 //! ## Examples
 //!
 //! ### Getting information about a single crate
 //!
 //! ```rust
-//! # #[cfg(all(not(debug_assertions), feature = "git-index"))]
+//! # #[cfg(all(not(debug_assertions), feature = "git"))]
 //! # {
 //! let index = crates_index::GitIndex::new_cargo_default()?;
 //! let serde_crate = index.crate_("serde").expect("you should handle errors here");
@@ -33,7 +33,7 @@
 //! ### Iterating over *all* crates in the index
 //!
 //! ```rust
-//! # #[cfg(all(not(debug_assertions), feature = "parallel", feature = "git-index"))]
+//! # #[cfg(all(not(debug_assertions), feature = "parallel", feature = "git"))]
 //! # {
 //! let index = crates_index::GitIndex::new_cargo_default()?;
 //! for crate_ in index.crates() {
@@ -55,7 +55,7 @@
 //! ### Getting most recently published or yanked crates 
 //!
 //! ```rust
-//! # #[cfg(feature = "git-index")]
+//! # #[cfg(feature = "git")]
 //! # {
 //! let index = crates_index::GitIndex::new_cargo_default()?;
 //!
@@ -90,14 +90,13 @@
 //! may be slower as it uses a pure-Rust Zlib implementation.
 //! To get best possible performance, use the `git-index-performance` feature toggle.
 //! 
-//! ## Using `rustls` instead of `openssl` when using the `https` feature in applications
+//! ## Using `rustls` instead of `openssl` when using the `git-https` feature in applications
 //! 
-//! When using the `https` feature, a choice will be made for you that involves selecting the `curl` backend for making
+//! When using the `git-https` feature, a choice will be made for you that involves selecting the `curl` backend for making
 //! the `https` protocol available. As using a different backend isn't additive, as cargo features should be, one will have
 //! to resort to the following.
 //! 
-//! * Change the `crates-index` dependency to not use any default features with `default-features = false`, and turn on
-//!   `features = ["git-index", …(everything else *but* "https")]`
+//! * Change the `crates-index` dependency to `features = ["git-index", …(everything else *but* "git-https")]`
 //! * Add the `gix` dependency with `default-features = false` and `features = ["blocking-http-transport-reqwest-rust-tls"]`.
 //!   Consider renaming the crate to `gix-for-configuration-only = { package = "gix", … }` to make the intend clear.
 //! 
@@ -116,7 +115,7 @@ use std::path::{PathBuf, Path};
 ///
 /// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
 /// Uses Cargo's cache.
-#[cfg(feature = "git-index")]
+#[cfg(feature = "git")]
 pub struct GitIndex {
     path: std::path::PathBuf,
     url: String,
@@ -127,7 +126,7 @@ pub struct GitIndex {
 }
 
 ///
-#[cfg(feature = "git-index")]
+#[cfg(feature = "git")]
 pub mod git;
 
 mod config;

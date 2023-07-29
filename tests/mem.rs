@@ -1,4 +1,4 @@
-#[cfg(all(feature = "parallel", feature = "git-index"))]
+#[cfg(all(feature = "parallel", feature = "git"))]
 mod mem {
     use cap::Cap;
     use std::alloc;

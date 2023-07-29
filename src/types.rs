@@ -371,7 +371,7 @@ impl Crate {
     }
 
     /// Writes a cache entry to disk in the same format as cargo
-    #[cfg(feature = "sparse-http")]
+    #[cfg(feature = "sparse")]
     pub(crate) fn write_cache_entry(&self, path: &Path, version: &str) -> io::Result<()> {
         const CURRENT_CACHE_VERSION: u8 = 3;
         const CURRENT_INDEX_FORMAT_VERSION: u32 = 2;
