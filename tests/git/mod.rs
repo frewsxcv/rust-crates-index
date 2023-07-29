@@ -1,8 +1,8 @@
 #[cfg(feature = "git-https")]
-pub(crate)  mod with_https {
-    use std::time::SystemTime;
-    use crates_index::{GitIndex};
+pub(crate) mod with_https {
     use crates_index::git::URL;
+    use crates_index::GitIndex;
+    use std::time::SystemTime;
 
     #[test]
     fn changes() {
@@ -50,13 +50,10 @@ pub(crate)  mod with_https {
         let tmp_dir = tempfile::TempDir::new().unwrap();
         let path = tmp_dir.path().join("some/sub/dir/testing/abc");
 
-        let mut repo =
-            GitIndex::with_path(path, URL).expect("Failed to clone crates.io index");
+        let mut repo = GitIndex::with_path(path, URL).expect("Failed to clone crates.io index");
 
         fn test_sval(repo: &GitIndex) {
-            let krate = repo
-                .crate_("sval")
-                .expect("Could not find the crate sval in the index");
+            let krate = repo.crate_("sval").expect("Could not find the crate sval in the index");
 
             let version = krate
                 .versions()
@@ -68,10 +65,7 @@ pub(crate)  mod with_https {
                 .iter()
                 .find(|d| d.name() == "serde_lib")
                 .expect("sval does not have expected dependency?");
-            assert_ne!(
-                dep_with_package_name.name(),
-                dep_with_package_name.package().unwrap()
-            );
+            assert_ne!(dep_with_package_name.name(), dep_with_package_name.package().unwrap());
             assert_eq!(
                 dep_with_package_name.crate_name(),
                 dep_with_package_name.package().unwrap()
@@ -90,9 +84,7 @@ pub(crate)  mod with_https {
     fn opens_bare_index_and_can_update_it() {
         let mut repo = shared_index();
         fn test_sval(repo: &GitIndex) {
-            let krate = repo
-                .crate_("sval")
-                .expect("Could not find the crate sval in the index");
+            let krate = repo.crate_("sval").expect("Could not find the crate sval in the index");
 
             let version = krate
                 .versions()
@@ -104,10 +96,7 @@ pub(crate)  mod with_https {
                 .iter()
                 .find(|d| d.name() == "serde_lib")
                 .expect("sval does not have expected dependency?");
-            assert_ne!(
-                dep_with_package_name.name(),
-                dep_with_package_name.package().unwrap()
-            );
+            assert_ne!(dep_with_package_name.name(), dep_with_package_name.package().unwrap());
             assert_eq!(
                 dep_with_package_name.crate_name(),
                 dep_with_package_name.package().unwrap()
@@ -148,10 +137,7 @@ pub(crate)  mod with_https {
             .iter()
             .find(|d| d.name() == "serde_lib")
             .expect("sval does not have expected dependency?");
-        assert_ne!(
-            dep_with_package_name.name(),
-            dep_with_package_name.package().unwrap()
-        );
+        assert_ne!(dep_with_package_name.name(), dep_with_package_name.package().unwrap());
         assert_eq!(
             dep_with_package_name.crate_name(),
             dep_with_package_name.package().unwrap()
@@ -164,13 +150,7 @@ pub(crate)  mod with_https {
         let mut index = shared_index();
         index
             .update()
-            .map_err(|e| {
-                format!(
-                    "could not fetch cargo's index in {}: {}",
-                    index.path().display(),
-                    e
-                )
-            })
+            .map_err(|e| format!("could not fetch cargo's index in {}: {}", index.path().display(), e))
             .unwrap();
         assert!(index.crate_("crates-index").is_some());
         assert!(index.crate_("toml").is_some());
@@ -183,8 +163,7 @@ pub(crate)  mod with_https {
     pub(crate) fn shared_index() -> GitIndex {
         let index_path = "tests/fixtures/git-registry";
         if is_ci::cached() {
-            GitIndex::new_cargo_default()
-                .expect("CI has just cloned this index and its ours and valid")
+            GitIndex::new_cargo_default().expect("CI has just cloned this index and its ours and valid")
         } else {
             GitIndex::with_path(index_path, URL).expect("clone works and there is no racing")
         }

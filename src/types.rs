@@ -1,13 +1,13 @@
 use crate::dedupe::DedupeContext;
 
-use std::sync::Arc;
+use crate::IndexConfig;
 use semver::Version as SemverVersion;
 use serde_derive::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::collections::HashMap;
 use std::io;
 use std::path::Path;
-use crate::IndexConfig;
+use std::sync::Arc;
 
 /// A single version of a crate (package) published to the index
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -75,7 +75,7 @@ impl Version {
     /// combines features and features2
     ///
     /// dedupes dependencies and features
-    fn build_data(&mut self, dedupe: &mut DedupeContext){
+    fn build_data(&mut self, dedupe: &mut DedupeContext) {
         if let Some(features2) = self.features2.take() {
             if let Some(f1) = Arc::get_mut(&mut self.features) {
                 for (key, mut val) in features2.into_iter() {
@@ -266,8 +266,8 @@ impl Crate {
         let num_versions = bytes.split(is_newline).count();
         let mut versions = Vec::with_capacity(num_versions);
         for line in bytes.split(is_newline) {
-            let mut version: Version = serde_json::from_slice(line)
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            let mut version: Version =
+                serde_json::from_slice(line).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
             version.build_data(dedupe);
 
@@ -303,8 +303,10 @@ impl Crate {
                 let index_v_bytes = rest.get(..4).ok_or(io::ErrorKind::UnexpectedEof)?;
                 let index_v = u32::from_le_bytes(index_v_bytes.try_into().unwrap());
                 if index_v != CURRENT_INDEX_FORMAT_VERSION {
-                    return Err(io::Error::new(io::ErrorKind::Unsupported,
-                                              format!("wrong index format version: {index_v} (expected {CURRENT_INDEX_FORMAT_VERSION}))")));
+                    return Err(io::Error::new(
+                        io::ErrorKind::Unsupported,
+                        format!("wrong index format version: {index_v} (expected {CURRENT_INDEX_FORMAT_VERSION}))"),
+                    ));
                 }
                 rest = &rest[4..];
             }
@@ -347,9 +349,7 @@ impl Crate {
         Self::from_version_entries_iter(iter)
     }
 
-    pub(crate) fn from_version_entries_iter<'a, I: Iterator<Item = &'a [u8]> + 'a>(
-        mut iter: I,
-    ) -> io::Result<Crate> {
+    pub(crate) fn from_version_entries_iter<'a, I: Iterator<Item = &'a [u8]> + 'a>(mut iter: I) -> io::Result<Crate> {
         let mut versions = Vec::new();
 
         let mut dedupe = DedupeContext::new();
@@ -357,8 +357,8 @@ impl Crate {
         // Each entry is a tuple of (semver, version_json)
         while let Some(_version) = iter.next() {
             let version_slice = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
-            let mut version: Version = serde_json::from_slice(version_slice)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+            let mut version: Version =
+                serde_json::from_slice(version_slice).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
             version.build_data(&mut dedupe);
 

@@ -31,12 +31,30 @@ pub(crate) fn crate_prefix(accumulator: &mut String, crate_name: &str, separator
         3 => {
             accumulator.push('3');
             accumulator.push(separator);
-            accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..1)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
         }
         _ => {
-            accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..2)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
             accumulator.push(separator);
-            accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(2..4)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
         }
     };
     Some(())
@@ -51,7 +69,6 @@ pub(crate) fn crate_name_to_relative_path(crate_name: &str, separator: Option<ch
 
     Some(rel_path)
 }
-
 
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
 /// the root directory name where cargo itself will fetch it on disk
@@ -174,51 +191,35 @@ mod test {
         use crate::sparse::URL;
         assert_eq!(
             super::url_to_local_dir(URL).unwrap(),
-            (
-                "index.crates.io-6f17d22bba15001f".to_owned(),
-                URL.to_owned(),
-            )
+            ("index.crates.io-6f17d22bba15001f".to_owned(), URL.to_owned(),)
         );
 
         // I've confirmed this also works with a custom registry, unfortunately
         // that one includes a secret key as part of the url which would allow
         // anyone to publish to the registry, so uhh...here's a fake one instead
         assert_eq!(
-            super::url_to_local_dir(
-                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git"
-            )
-            .unwrap(),
+            super::url_to_local_dir("https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git").unwrap(),
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
                 "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
             )
         );
     }
-    
+
     #[test]
     #[cfg(feature = "git")]
     fn git_url_matches_cargo() {
         use crate::git::URL;
         assert_eq!(
             crate::dirs::url_to_local_dir(URL).unwrap(),
-            (
-                "github.com-1ecc6299db9ec823".to_owned(),
-                URL.to_owned()
-            )
+            ("github.com-1ecc6299db9ec823".to_owned(), URL.to_owned())
         );
 
         // Ensure we actually strip off the irrelevant parts of a url, note that
         // the .git suffix is not part of the canonical url, but *is* used when hashing
         assert_eq!(
-            crate::dirs::url_to_local_dir(&format!(
-                "registry+{}.git?one=1&two=2#fragment",
-                URL
-            ))
-                .unwrap(),
-            (
-                "github.com-c786010fb7ef2e6e".to_owned(),
-                URL.to_owned()
-            )
+            crate::dirs::url_to_local_dir(&format!("registry+{}.git?one=1&two=2#fragment", URL)).unwrap(),
+            ("github.com-c786010fb7ef2e6e".to_owned(), URL.to_owned())
         );
     }
 }

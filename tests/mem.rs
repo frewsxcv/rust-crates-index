@@ -1,9 +1,9 @@
 #[cfg(all(feature = "parallel", feature = "git"))]
 mod mem {
+    use bytesize::ByteSize;
     use cap::Cap;
     use std::alloc;
     use std::time::Instant;
-    use bytesize::ByteSize;
 
     #[global_allocator]
     static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
@@ -33,6 +33,9 @@ mod mem {
             total = ByteSize(ALLOCATOR.total_allocated() as u64),
             peak = ByteSize(ALLOCATOR.max_allocated() as u64),
         );
-        assert!(per_crate < 6300, "per crate limit {per_crate}B should remain below memory limit");
+        assert!(
+            per_crate < 6300,
+            "per crate limit {per_crate}B should remain below memory limit"
+        );
     }
 }

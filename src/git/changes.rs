@@ -1,5 +1,5 @@
-use crate::git::{Change, fetch_remote};
 use crate::error::GixError;
+use crate::git::{fetch_remote, Change};
 use crate::Error;
 use crate::GitIndex;
 use gix::bstr::ByteSlice;
@@ -8,7 +8,6 @@ use std::collections::{HashSet, VecDeque};
 use std::time::{Duration, SystemTime};
 
 const INDEX_GIT_ARCHIVE_URL: &str = "https://github.com/rust-lang/crates.io-index-archive";
-
 
 /// An iterator over individual changes, see [`GitIndex::changes`] for more.
 pub struct Changes<'repo> {
@@ -30,7 +29,15 @@ impl<'repo> Iterator for Changes<'repo> {
             };
             let parent_tree = parent.tree().ok()?;
             let time = SystemTime::UNIX_EPOCH + Duration::from_secs(self.current.time().ok()?.seconds.max(0) as _);
-            Self::tree_additions(&self.repo, &mut self.out, time, &self.current.id(), &self.current_tree, &parent_tree).ok()?;
+            Self::tree_additions(
+                &self.repo,
+                &mut self.out,
+                time,
+                &self.current.id(),
+                &self.current_tree,
+                &parent_tree,
+            )
+            .ok()?;
             self.current_tree = parent_tree;
             self.current = parent;
         }
@@ -40,7 +47,11 @@ impl<'repo> Iterator for Changes<'repo> {
 
 impl<'repo> Changes<'repo> {
     pub(crate) fn new(index: &'repo GitIndex) -> Result<Self, GixError> {
-        let current = index.repo.find_object(index.head_commit)?.peel_to_kind(gix::object::Kind::Commit)?.into_commit();
+        let current = index
+            .repo
+            .find_object(index.head_commit)?
+            .peel_to_kind(gix::object::Kind::Commit)?
+            .into_commit();
         let current_tree = current.tree()?;
 
         Ok(Self {
@@ -52,7 +63,13 @@ impl<'repo> Changes<'repo> {
     }
 
     fn get_parent(&self) -> Result<Option<gix::Commit<'repo>>, GixError> {
-        match self.current.parent_ids().next().map(|id| id.try_object()).transpose()?.flatten()
+        match self
+            .current
+            .parent_ids()
+            .next()
+            .map(|id| id.try_object())
+            .transpose()?
+            .flatten()
         {
             Some(obj) => Ok(Some(obj.try_into_commit()?)),
             None => {
@@ -96,13 +113,12 @@ impl<'repo> Changes<'repo> {
                 // Recurse only into crate subdirs, and they all happen to be 1 or 2 letters long
                 let is_crates_subdir = name.len() <= 2 && name.iter().copied().all(valid_crate_name_char);
                 let old_obj = if is_crates_subdir {
-                    old.bisect_entry(name, true)
-                        .map(|entry| entry.attach(repo))
+                    old.bisect_entry(name, true).map(|entry| entry.attach(repo))
                 } else {
                     None
                 }
-                    .map(|o| o.object())
-                    .transpose()?;
+                .map(|o| o.object())
+                .transpose()?;
                 let old_tree = match old_obj.and_then(|o| o.try_into_tree().ok()) {
                     Some(t) => t,
                     None => repo.empty_tree(),
@@ -130,7 +146,10 @@ fn valid_crate_name_char(c: u8) -> bool {
 }
 
 fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)> {
-    let hash_start = msg.split_once("Previous HEAD was ")?.1.trim_start_matches(|c: char| !c.is_ascii_hexdigit());
+    let hash_start = msg
+        .split_once("Previous HEAD was ")?
+        .1
+        .trim_start_matches(|c: char| !c.is_ascii_hexdigit());
     let (hash_str, rest) = hash_start.split_once(|c: char| !c.is_ascii_hexdigit())?;
     let hash = gix::ObjectId::from_hex(hash_str.as_bytes()).ok()?;
     let snapshot_start = rest.find("snapshot-")?;
@@ -141,7 +160,7 @@ fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)
 
 #[cfg(test)]
 pub(crate) mod test {
-    use super::{oid_and_branch_from_commit_message};
+    use super::oid_and_branch_from_commit_message;
 
     #[test]
     fn changes_parse_split_message() {
@@ -153,7 +172,7 @@ More information about this change can be found [online] and on [this issue].
 [online]: https://internals.rust-lang.org/t/cargos-crate-index-upcoming-squash-into-one-commit/8440
 [this issue]: https://github.com/rust-lang/crates-io-cargo-teams/issues/47",
         )
-            .unwrap();
+        .unwrap();
         assert_eq!("4181c62812c70fafb2b56cbbd66c31056671b445", id.to_string());
         assert_eq!("snapshot-2021-07-02", branch);
     }

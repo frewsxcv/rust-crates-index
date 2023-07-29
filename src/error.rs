@@ -1,5 +1,5 @@
 pub use serde_json::Error as SerdeJsonError;
-use std::{io};
+use std::io;
 use std::path::PathBuf;
 pub use toml::de::Error as TomlDeError;
 
@@ -12,7 +12,7 @@ pub enum Error {
     Git(#[from] GixError),
     #[error("{0}")]
     Url(String),
-    #[error("Could not obtain the most recent head commit in repo at {}. Tried {}, had {} available", repo_path.display(), refs_tried.join(", "), refs_available.join(", "))] 
+    #[error("Could not obtain the most recent head commit in repo at {}. Tried {}, had {} available", repo_path.display(), refs_tried.join(", "), refs_available.join(", "))]
     MissingHead {
         /// The references we tried to get commits for.
         refs_tried: &'static [&'static str],
@@ -49,9 +49,7 @@ pub enum GixError {
     #[error(transparent)]
     IntoObjectKind(#[from] gix::object::try_into::Error),
     #[error("The '{}' file is missing at the root of the tree of the crates index", path.display())]
-    PathMissing {
-        path: std::path::PathBuf
-    },
+    PathMissing { path: std::path::PathBuf },
     #[error(transparent)]
     LockAcquire(#[from] gix::lock::acquire::Error),
     #[error(transparent)]

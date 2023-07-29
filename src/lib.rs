@@ -52,7 +52,7 @@
 //! # Ok::<_, crates_index::Error>(())
 //! ```
 //!
-//! ### Getting most recently published or yanked crates 
+//! ### Getting most recently published or yanked crates
 //!
 //! ```rust
 //! # #[cfg(feature = "git")]
@@ -67,39 +67,39 @@
 //! # }
 //! # Ok::<_, crates_index::Error>(())
 //! ```
-//! 
+//!
 //! ## Auto-cloning and parallelism
-//! 
-//! When using any means of instantiating the [`GitIndex`] type, we  will 
+//!
+//! When using any means of instantiating the [`GitIndex`] type, we  will
 //! clone the default crates index (or the given one) if it no git
 //! repository is present at the destination path.
-//! 
-//! In order to protect from parallel operations of this kind, a 
+//!
+//! In order to protect from parallel operations of this kind, a
 //! file-based lock is used. When interrupting the program with `Ctrl + C`,
 //! by default the program will be aborted which won't run destructors.
 //! This will cause the file lock to be stranded, causing all future operations
 //! to fail.
-//! 
+//!
 //! To prevent this issue, the application must integrate with the
 //! [`gix-tempfile` signal handler](https://docs.rs/gix-tempfile/latest/gix_tempfile/#initial-setup),
 //! which allows locks to be deleted when typical signals are received.
 //!
 //! ## Git Repository Performance
 //!
-//! By default, `gix` is compiled with `max-performance-safe`, which maximizes support for compilation environments but which 
+//! By default, `gix` is compiled with `max-performance-safe`, which maximizes support for compilation environments but which
 //! may be slower as it uses a pure-Rust Zlib implementation.
 //! To get best possible performance, use the `git-index-performance` feature toggle.
-//! 
+//!
 //! ## Using `rustls` instead of `openssl` when using the `git-https` feature in applications
-//! 
+//!
 //! When using the `git-https` feature, a choice will be made for you that involves selecting the `curl` backend for making
 //! the `https` protocol available. As using a different backend isn't additive, as cargo features should be, one will have
 //! to resort to the following.
-//! 
+//!
 //! * Change the `crates-index` dependency to `features = ["git-index", …(everything else *but* "git-https")]`
 //! * Add the `gix` dependency with `default-features = false` and `features = ["blocking-http-transport-reqwest-rust-tls"]`.
 //!   Consider renaming the crate to `gix-for-configuration-only = { package = "gix", … }` to make the intend clear.
-//! 
+//!
 //! Please note that this should only be done in application manifests, who have the final say over the protocol and backend choices.
 //! ## Feature Flags
 #![cfg_attr(
@@ -109,7 +109,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![forbid(unsafe_code)]
 #![deny(rust_2018_compatibility, missing_docs)]
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 /// Wrapper around managing the crates.io-index git repository
 ///
@@ -139,10 +139,10 @@ pub use dirs::local_path_and_canonical_url;
 /// Re-exports in case you want to inspect specific error details
 pub mod error;
 #[doc(hidden)]
-pub use error::{Error};
-#[doc(hidden)]
 #[cfg(feature = "parallel")]
-pub use error::{CratesIterError};
+pub use error::CratesIterError;
+#[doc(hidden)]
+pub use error::Error;
 
 /// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
 ///
@@ -155,10 +155,8 @@ pub struct SparseIndex {
 ///
 pub mod sparse;
 
-
 mod types;
-pub use types::{Crate, Version, Dependency, DependencyKind};
-
+pub use types::{Crate, Dependency, DependencyKind, Version};
 
 pub(crate) fn split(haystack: &[u8], needle: u8) -> impl Iterator<Item = &[u8]> + '_ {
     struct Split<'a> {

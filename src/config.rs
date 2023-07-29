@@ -1,5 +1,5 @@
-use serde_derive::Deserialize;
 use crate::dirs::crate_prefix;
+use serde_derive::Deserialize;
 
 /// Global configuration of an index, reflecting the [contents of config.json](https://doc.rust-lang.org/cargo/reference/registries.html#index-format).
 #[derive(Clone, Debug, Deserialize)]

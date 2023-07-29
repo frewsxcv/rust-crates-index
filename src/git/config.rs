@@ -15,10 +15,7 @@ fn read_cargo_config<T>(
 ) -> Result<Option<T>, Error> {
     use std::borrow::Cow;
 
-    if let Some(mut path) = root
-        .map(PathBuf::from)
-        .or_else(|| std::env::current_dir().ok())
-    {
+    if let Some(mut path) = root.map(PathBuf::from).or_else(|| std::env::current_dir().ok()) {
         loop {
             path.push(".cargo/config.toml");
             if let Some(toml) = try_read_toml(&path)? {

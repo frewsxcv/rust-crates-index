@@ -2,7 +2,7 @@
 use crate::dedupe::DedupeContext;
 use crate::dirs::{crate_name_to_relative_path, local_path_and_canonical_url};
 use crate::error::GixError;
-use crate::{path_max_byte_len, Crate, Error, IndexConfig, GitIndex};
+use crate::{path_max_byte_len, Crate, Error, GitIndex, IndexConfig};
 use gix::config::tree::Key;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -77,7 +77,7 @@ impl GitIndex {
 
     /// Creates a bare index from a provided URL, opening the same location on
     /// disk that Cargo uses for that registry index.
-    /// 
+    ///
     /// *Note that this clones a new index if none is present yet.
     ///
     /// It can be used to access custom registries.
@@ -87,7 +87,7 @@ impl GitIndex {
     }
 
     /// Creates a bare index at the provided `path` with the specified repository `URL`.
-    /// 
+    ///
     /// *Note that this clones a new index to `path` if none is present there yet.
     #[inline]
     pub fn with_path<P: Into<PathBuf>, S: Into<String>>(path: P, url: S) -> Result<Self, Error> {
@@ -125,27 +125,24 @@ impl GitIndex {
 
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
         let mut mapping = gix::sec::trust::Mapping::default();
-        let open_with_complete_config =
-            gix::open::Options::default().permissions(gix::open::Permissions {
-                config: gix::open::permissions::Config {
-                    // Be sure to get all configuration, some of which is only known by the git binary.
-                    // That way we are sure to see all the systems credential helpers
-                    git_binary: true,
-                    ..Default::default()
-                },
+        let open_with_complete_config = gix::open::Options::default().permissions(gix::open::Permissions {
+            config: gix::open::permissions::Config {
+                // Be sure to get all configuration, some of which is only known by the git binary.
+                // That way we are sure to see all the systems credential helpers
+                git_binary: true,
                 ..Default::default()
-            });
+            },
+            ..Default::default()
+        });
         mapping.reduced = open_with_complete_config.clone();
         mapping.full = open_with_complete_config.clone();
 
         let _lock = gix::lock::Marker::acquire_to_hold_resource(
             path.with_extension("crates-index"),
-            gix::lock::acquire::Fail::AfterDurationWithBackoff(
-                std::time::Duration::from_secs(60 * 10),
-            ),
+            gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(60 * 10)),
             Some(PathBuf::from_iter(Some(std::path::Component::RootDir))),
         )
-            .map_err(GixError::from)?;
+        .map_err(GixError::from)?;
         let repo = gix::ThreadSafeRepository::discover_opts(
             &path,
             gix::discover::upwards::Options::default().apply_environment(),
@@ -164,12 +161,10 @@ impl GitIndex {
 
         let repo = match repo {
             Some(repo) => repo,
-            None => {
-                match gix::open_opts(&path, open_with_complete_config).ok() {
-                    None => clone_url(&url, &path)?,
-                    Some(repo) => repo,
-                }
-            }
+            None => match gix::open_opts(&path, open_with_complete_config).ok() {
+                None => clone_url(&url, &path)?,
+                Some(repo) => repo,
+            },
         };
 
         let head_commit = Self::find_repo_head(&repo, &path)?;
@@ -183,11 +178,7 @@ impl GitIndex {
     }
 
     fn tree(&self) -> Result<gix::Tree<'_>, GixError> {
-        Ok(self
-            .repo
-            .find_object(self.head_commit)?
-            .try_into_commit()?
-            .tree()?)
+        Ok(self.repo.find_object(self.head_commit)?.try_into_commit()?.tree()?)
     }
 
     #[doc(hidden)]
@@ -213,15 +204,14 @@ impl GitIndex {
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
     pub fn update(&mut self) -> Result<(), Error> {
-        let mut remote = self.repo.find_remote("origin").ok().unwrap_or_else(|| {
-            self.repo
-                .remote_at(self.url.as_str())
-                .expect("own URL is always valid")
-        });
-        fetch_remote(&mut remote, &[
-                "HEAD:refs/remotes/origin/HEAD",
-                "master:refs/remotes/origin/master",
-            ]
+        let mut remote = self
+            .repo
+            .find_remote("origin")
+            .ok()
+            .unwrap_or_else(|| self.repo.remote_at(self.url.as_str()).expect("own URL is always valid"));
+        fetch_remote(
+            &mut remote,
+            &["HEAD:refs/remotes/origin/HEAD", "master:refs/remotes/origin/master"],
         )?;
 
         let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
@@ -230,7 +220,7 @@ impl GitIndex {
 
         Ok(())
     }
-    
+
     /// Reads a crate from the index, it will attempt to use a cached entry if
     /// one is available, otherwise it will fallback to reading the crate
     /// directly from the git blob containing the crate information.
@@ -245,15 +235,12 @@ impl GitIndex {
         // mechanism and can fail for a few reasons that are non-fatal
         {
             // avoid realloc on each push
-            let mut cache_path =
-                PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
+            let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
             cache_path.push(&self.path);
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) =
-                    Crate::from_cache_slice(&cache_bytes, Some(&self.head_commit_hex))
-                {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_commit_hex)) {
                     return Some(krate);
                 }
             }
@@ -292,8 +279,7 @@ impl GitIndex {
     #[must_use]
     pub fn crates_parallel(
         &self,
-    ) -> impl rayon::iter::ParallelIterator<Item = Result<Crate, crate::error::CratesIterError>> + '_
-    {
+    ) -> impl rayon::iter::ParallelIterator<Item = Result<Crate, crate::error::CratesIterError>> + '_ {
         use rayon::iter::{IntoParallelIterator, ParallelIterator};
         let tree_oids = match self.crates_top_level_ids() {
             Ok(objs) => objs,
@@ -377,16 +363,16 @@ impl GitIndex {
     }
 
     /// Find the most recent commit of `repo` at `path`.
-    /// 
+    ///
     /// This is complicated by a few specialities of the cargo git index.
-    /// 
-    /// * it's possible for `origin/HEAD` and `origin/master` to be stalled and out of date if they have been fetched with 
+    ///
+    /// * it's possible for `origin/HEAD` and `origin/master` to be stalled and out of date if they have been fetched with
     ///   non-force refspecs.
     ///   This was done by this crate as well, but is not done by cargo.
     /// * if `origin/master` is out of date, `FETCH_HEAD` is the only chance for getting the most recent commit.
     /// * if `gix` is updating the index, `FETCH_HEAD` will not be written at all, *only* the references are. Note that
     ///   `cargo` does not rely on `FETCH_HEAD`, but relies on `origin/master` directly.
-    /// 
+    ///
     /// This, we get a list of candidates and use the most recent commit.
     fn find_repo_head(repo: &gix::Repository, path: &Path) -> Result<gix::ObjectId, Error> {
         #[rustfmt::skip]
@@ -433,11 +419,7 @@ fn is_top_level_dir(entry: &gix::object::tree::EntryRef<'_, '_>) -> bool {
 fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
     if repo
         .config_snapshot()
-        .integer_by_key(
-            gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT
-                .logical_name()
-                .as_str(),
-        )
+        .integer_by_key(gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT.logical_name().as_str())
         .is_none()
     {
         let mut config = repo.config_snapshot_mut();
@@ -450,10 +432,7 @@ fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
 }
 
 pub(crate) fn fetch_remote(remote: &mut gix::Remote<'_>, refspecs: &[&str]) -> Result<(), GixError> {
-    remote.replace_refspecs(
-        refspecs,
-        gix::remote::Direction::Fetch,
-    )?;
+    remote.replace_refspecs(refspecs, gix::remote::Direction::Fetch)?;
 
     remote
         .connect(gix::remote::Direction::Fetch)?
@@ -468,10 +447,7 @@ fn clone_url(url: &str, destination: &Path) -> Result<gix::Repository, GixError>
         .with_remote_name("origin")?
         .configure_remote(|remote| {
             Ok(remote.with_refspecs(
-                [
-                    "+HEAD:refs/remotes/origin/HEAD",
-                    "+master:refs/remotes/origin/master",
-                ],
+                ["+HEAD:refs/remotes/origin/HEAD", "+master:refs/remotes/origin/master"],
                 gix::remote::Direction::Fetch,
             )?)
         })
@@ -503,8 +479,7 @@ impl Iterator for CratesTreesToBlobs {
             if obj.kind.is_tree() {
                 let tree = gix::objs::TreeRef::from_bytes(&obj.data).unwrap();
                 for entry in tree.entries.into_iter().rev() {
-                    self.stack
-                        .push(self.repo.find_object(entry.oid).unwrap().detach());
+                    self.stack.push(self.repo.find_object(entry.oid).unwrap().detach());
                 }
                 continue;
             } else {

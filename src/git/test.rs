@@ -1,5 +1,5 @@
-use gix::bstr::ByteSlice;
 use super::*;
+use gix::bstr::ByteSlice;
 
 #[test]
 #[cfg_attr(debug_assertions, ignore = "too slow in debug mode")]
@@ -35,8 +35,7 @@ fn parse_all_blobs() {
 fn shared_index() -> GitIndex {
     let index_path = "tests/fixtures/git-registry";
     if is_ci::cached() {
-        GitIndex::new_cargo_default()
-            .expect("CI has just cloned this index and its ours and valid")
+        GitIndex::new_cargo_default().expect("CI has just cloned this index and its ours and valid")
     } else {
         GitIndex::with_path(index_path, URL).expect("clone works and there is no racing")
     }
