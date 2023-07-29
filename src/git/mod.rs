@@ -1,6 +1,6 @@
 #![allow(clippy::result_large_err)]
 use crate::dedupe::DedupeContext;
-use crate::dirs::{crate_name_to_relative_path, get_index_details};
+use crate::dirs::{crate_name_to_relative_path, local_path_and_canonical_url};
 use crate::error::GixError;
 use crate::{path_max_byte_len, Crate, Error, IndexConfig, GitIndex};
 use gix::config::tree::Key;
@@ -82,7 +82,7 @@ impl GitIndex {
     ///
     /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (path, canonical_url) = get_index_details(url, None)?;
+        let (path, canonical_url) = local_path_and_canonical_url(url, None)?;
         Self::from_path_and_url(path, canonical_url)
     }
 

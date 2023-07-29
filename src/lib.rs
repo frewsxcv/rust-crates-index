@@ -134,6 +134,7 @@ pub use config::IndexConfig;
 
 mod dedupe;
 mod dirs;
+pub use dirs::local_path_and_canonical_url;
 
 /// Re-exports in case you want to inspect specific error details
 pub mod error;

@@ -1,7 +1,7 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::{Crate, dirs::get_index_details, Error, IndexConfig, path_max_byte_len, SparseIndex};
+use crate::{Crate, dirs::local_path_and_canonical_url, Error, IndexConfig, path_max_byte_len, SparseIndex};
 use crate::dirs::crate_name_to_relative_path;
 
 /// The default URL of the crates.io HTTP index, see [`SparseIndex::from_url`] and [`SparseIndex::new_cargo_default`]
@@ -40,7 +40,7 @@ impl SparseIndex {
             return Err(Error::Url(url.to_owned()));
         }
 
-        let (path, url) = get_index_details(url, Some(cargo_home.as_ref()))?;
+        let (path, url) = local_path_and_canonical_url(url, Some(cargo_home.as_ref()))?;
         Ok(Self::at_path(path, url))
     }
 

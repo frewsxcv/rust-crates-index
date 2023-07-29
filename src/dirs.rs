@@ -1,11 +1,11 @@
 use crate::Error;
 
-/// Get the disk location of the specified url, as well as its canonical form,
-/// exactly as cargo would
+/// Get the disk location of the specified `url`, as well as its canonical form,
+/// exactly as cargo would.
 ///
 /// `cargo_home` is used to root the directory at specific location, if not
-/// specified `CARGO_HOME` or else the default cargo location is used as the root
-pub(crate) fn get_index_details(
+/// specified `CARGO_HOME` or else the default cargo location is used as the root.
+pub fn local_path_and_canonical_url(
     url: &str,
     cargo_home: Option<&std::path::Path>,
 ) -> Result<(std::path::PathBuf, String), Error> {
