@@ -11,7 +11,7 @@ license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
 edition = "2021"
 rust-version = "1.60"
-include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
+include = ["src/**/*", "examples/*.rs", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [[example]]
 name = "sparse_http_reqwest"
