@@ -41,6 +41,8 @@ smol_str = { version = "0.2.0", features = ["serde"] }
 thiserror = "1.0.43"
 toml = "0.7.3"
 
+document-features = { version = "0.2.0", optional = true }
+
 [dev-dependencies]
 bytesize = "1.2.0"
 cap = { version = "0.1.2", features = ["stats"] }
@@ -53,14 +55,26 @@ serial_test = "2.0.0"
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 features = ["sparse-http"]
+rustdoc-args = ["--cfg", "docsrs"]
+
 
 [features]
 default = ["git-index", "https", "parallel"]
+## Activate support for accessing git-powered cargo indices. These have been superseded by the sparse-index, see the `sparse-http` feature.
 git-index = ["dep:gix"]
+## Activate support for git-powered cargo indices, but configure the underlying `gix` crate to use higher-performance sub-crates at the expense of platform compatibility.
+##
+## If it compiles for you, this should be preferred over `
 git-index-performance = ["git-index", "gix?/max-performance"]
+## Add support for https based URLs in git indices.
+##
+## Most will want this enabled unless they know to only have to access non-https URLs for their indices.
 https = ["git-index", "gix?/blocking-http-transport-curl"]
+## Allow some functions to receive `rayon`-powered siblings for higher performance.
 parallel = ["dep:rayon"]
+## TO BE REMOVED
 ssh = ["git-index"] # at this time, `gix` does not need feature toggles for this as the `ssh` program is used. Native support is planned to match `git2`.
+## Add support for communicating with sparse indices.
 sparse-http = ["dep:http"]
 
 [badges]

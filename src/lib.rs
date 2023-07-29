@@ -102,9 +102,15 @@
 //!   Consider renaming the crate to `gix-for-configuration-only = { package = "gix", … }` to make the intend clear.
 //! 
 //! Please note that this should only be done in application manifests, who have the final say over the protocol and backend choices.
+//! ## Feature Flags
+#![cfg_attr(
+    feature = "document-features",
+    cfg_attr(doc, doc = ::document_features::document_features!())
+)]
+#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![forbid(unsafe_code)]
-#![deny(missing_docs)]
-use std::path::{Path, PathBuf};
+#![deny(rust_2018_compatibility, missing_docs)]
+use std::path::{PathBuf, Path};
 
 /// Wrapper around managing the crates.io-index git repository
 ///
