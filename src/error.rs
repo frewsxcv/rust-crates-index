@@ -72,7 +72,8 @@ pub enum GixError {
     PeelToKind(#[from] gix::object::peel::to_kind::Error),
 }
 
-/// Unknown error from [`crate::Index::crates_parallel`]
+/// Unknown error from [`crate::GitIndex::crates_parallel`]
+#[cfg(feature = "parallel")]
 #[derive(Debug, thiserror::Error)]
 #[error("error while iterating git repository")]
 pub struct CratesIterError;

@@ -11,10 +11,10 @@ mod mem {
     #[test]
     #[cfg_attr(debug_assertions, ignore = "too slow when running in debug mode")]
     fn usage() {
-        use crates_index::Index;
+        use crates_index::GitIndex;
         use rayon::iter::ParallelIterator;
 
-        let index = Index::new_cargo_default().unwrap();
+        let index = GitIndex::new_cargo_default().unwrap();
 
         let before = ALLOCATOR.allocated();
         // let all_crates: Vec<_> = index.crates().collect();

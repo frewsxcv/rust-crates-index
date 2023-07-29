@@ -2,7 +2,7 @@
 fn crate_from_cache() {
     let index = crates_index::SparseIndex::with_path(
         std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/sparse_registry_cache/cargo_home"),
-        crates_index::CRATES_IO_HTTP_INDEX
+        crates_index::sparse::URL
     ).unwrap();
 
     let crate_ = index.crate_from_cache("autocfg").unwrap();
@@ -21,7 +21,7 @@ mod with_sparse_http_feature {
     fn crates_io() -> SparseIndex {
         SparseIndex::with_path(
             std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/sparse_registry_cache/cargo_home"),
-            crates_index::CRATES_IO_HTTP_INDEX
+            crates_index::sparse::URL
         ).unwrap()
     }
 

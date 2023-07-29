@@ -1,34 +1,65 @@
 #![allow(clippy::result_large_err)]
-use crate::changes::ChangesIter;
 use crate::dedupe::DedupeContext;
-use crate::dirs::get_index_details;
+use crate::dirs::{crate_name_to_relative_path, get_index_details};
 use crate::error::GixError;
-use crate::{path_max_byte_len, Crate, Error, IndexConfig};
+use crate::{path_max_byte_len, Crate, Error, IndexConfig, GitIndex};
 use gix::config::tree::Key;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
-/// The default URL of the crates.io index for use with git, see [`Index::with_path`]
-pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
+/// The default URL of the crates.io index for use with git, see [`GitIndex::with_path`]
+pub const URL: &str = "https://github.com/rust-lang/crates.io-index";
 
-/// Wrapper around managing the crates.io-index git repository
 ///
-/// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
-/// Uses Cargo's cache.
-pub struct Index {
-    path: PathBuf,
-    url: String,
+mod changes;
+pub use changes::Changes;
 
-    pub(crate) repo: gix::Repository,
-    pub(crate) head_commit: gix::ObjectId,
-    head_commit_hex: String,
+mod config;
+
+/// An individual change to a crate in the crates.io index, returned by [the changes iterator](GitIndex::changes).
+#[derive(Debug, Clone)]
+pub struct Change {
+    /// Name of a crate, can be used in [`GitIndex::crate_`]
+    crate_name: Box<str>,
+    /// Timestamp in the crates.io index repository
+    time: SystemTime,
+    commit: gix::ObjectId,
 }
 
-impl Index {
+impl Change {
+    /// Name of a crate, can be used in [`GitIndex::crate_`]
+    #[inline]
+    #[must_use]
+    pub fn crate_name(&self) -> &str {
+        &*self.crate_name
+    }
+
+    /// Timestamp in the crates.io index repository, which may be publication or modification date
+    #[inline]
+    #[must_use]
+    pub fn time(&self) -> SystemTime {
+        self.time
+    }
+
+    /// git hash of a commit in the crates.io repository
+    #[must_use]
+    pub fn commit(&self) -> &[u8; 20] {
+        self.commit.as_bytes().try_into().unwrap()
+    }
+
+    /// git hash of a commit in the crates.io repository
+    #[must_use]
+    pub fn commit_hex(&self) -> String {
+        self.commit.to_string()
+    }
+}
+
+impl GitIndex {
     #[doc(hidden)]
     #[deprecated(note = "use new_cargo_default()")]
     pub fn new<P: Into<PathBuf>>(path: P) -> Self {
-        Self::from_path_and_url(path.into(), crate::INDEX_GIT_URL.into()).unwrap()
+        Self::from_path_and_url(path.into(), URL.into()).unwrap()
     }
 
     /// Creates an index for the default crates.io registry, using the same
@@ -39,8 +70,8 @@ impl Index {
     /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        let url = crate::config::get_crates_io_replacement(None, None)?;
-        Self::from_url(url.as_deref().unwrap_or(crate::INDEX_GIT_URL))
+        let url = config::get_crates_io_replacement(None, None)?;
+        Self::from_url(url.as_deref().unwrap_or(URL))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
@@ -77,14 +108,14 @@ impl Index {
     /// This iterator is aware of periodic index squashing crates.io performs,
     /// and will perform (slow and blocking) network requests to fetch the additional history from <https://github.com/rust-lang/crates.io-index-archive> if needed.
     ///
-    /// If you want to track newly added/changed crates over time, make a note of the last [`commit`](crate::changes::Change::commit) or [`timestamp`](crate::changes::Change) you've processed,
+    /// If you want to track newly added/changed crates over time, make a note of the last [`commit`](Change::commit) or [`timestamp`](Change) you've processed,
     /// and stop iteration on it next time.
     ///
     /// Crates will be reported multiple times, once for each publish/yank/unyank event that happened.
     ///
     /// If you like to know publication dates of all crates, consider <https://crates.io/data-access> instead.
-    pub fn changes(&self) -> Result<ChangesIter<'_>, Error> {
-        Ok(ChangesIter::new(self)?)
+    pub fn changes(&self) -> Result<changes::Changes<'_>, Error> {
+        Ok(changes::Changes::new(self)?)
     }
 
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
@@ -200,10 +231,10 @@ impl Index {
     /// directly from the git blob containing the crate information.
     ///
     /// Use this only if you need to get very few crates. If you're going
-    /// to read majority of crates, prefer the [`Index::crates()`] iterator.
+    /// to read majority of crates, prefer the [`GitIndex::crates()`] iterator.
     #[must_use]
     pub fn crate_(&self, name: &str) -> Option<Crate> {
-        let rel_path = crate::crate_name_to_relative_path(name, None)?;
+        let rel_path = crate_name_to_relative_path(name, None)?;
 
         // Attempt to load the .cache/ entry first, this is purely an acceleration
         // mechanism and can fail for a few reasons that are non-fatal
@@ -235,7 +266,7 @@ impl Index {
 
     /// Single-threaded iterator over all the crates in the index.
     ///
-    /// [`Index::crates_parallel`] is typically 4 times faster.
+    /// [`GitIndex::crates_parallel`] is typically 4 times faster.
     ///
     /// Skips crates that can not be parsed (but there shouldn't be any such crates in the crates-io index).
     /// Also consider to enable `git-index-performance` feature toggle for better performance.
@@ -509,48 +540,4 @@ impl<'a> Iterator for Crates<'a> {
 
 #[cfg(test)]
 #[cfg(feature = "https")]
-mod test {
-    use gix::bstr::ByteSlice;
-    use super::*;
-
-    #[test]
-    #[cfg_attr(debug_assertions, ignore = "too slow in debug mode")]
-    fn parse_all_blobs() {
-        std::thread::scope(|scope| {
-            let (tx, rx) = std::sync::mpsc::channel();
-            let blobs = scope.spawn(move || {
-                let index = shared_index();
-                for c in index.crates_blobs().unwrap() {
-                    tx.send(c).unwrap();
-                }
-            });
-            let parse = scope.spawn(move || {
-                let mut found_gcc_crate = false;
-                let mut ctx = DedupeContext::new();
-                for c in rx {
-                    match c.parse(&mut ctx) {
-                        Ok(c) => {
-                            if c.name() == "gcc" {
-                                found_gcc_crate = true;
-                            }
-                        }
-                        Err(e) => panic!("can't parse :( {:?}: {e}", c.0.as_bstr()),
-                    }
-                }
-                assert!(found_gcc_crate);
-            });
-            parse.join().unwrap();
-            blobs.join().unwrap();
-        });
-    }
-
-    fn shared_index() -> Index {
-        let index_path = "tests/fixtures/git-registry";
-        if is_ci::cached() {
-            Index::new_cargo_default()
-                .expect("CI has just cloned this index and its ours and valid")
-        } else {
-            Index::with_path(index_path, INDEX_GIT_URL).expect("clone works and there is no racing")
-        }
-    }
-}
+mod test;

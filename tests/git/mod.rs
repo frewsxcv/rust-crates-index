@@ -1,8 +1,9 @@
 #[cfg(feature = "https")]
 pub(crate)  mod with_https {
     use std::time::SystemTime;
-    use crates_index::{Index, INDEX_GIT_URL};
-    
+    use crates_index::{GitIndex};
+    use crates_index::git::URL;
+
     #[test]
     fn changes() {
         let index = shared_index();
@@ -50,9 +51,9 @@ pub(crate)  mod with_https {
         let path = tmp_dir.path().join("some/sub/dir/testing/abc");
 
         let mut repo =
-            Index::with_path(path, INDEX_GIT_URL).expect("Failed to clone crates.io index");
+            GitIndex::with_path(path, URL).expect("Failed to clone crates.io index");
 
-        fn test_sval(repo: &Index) {
+        fn test_sval(repo: &GitIndex) {
             let krate = repo
                 .crate_("sval")
                 .expect("Could not find the crate sval in the index");
@@ -88,7 +89,7 @@ pub(crate)  mod with_https {
     #[serial_test::serial]
     fn opens_bare_index_and_can_update_it() {
         let mut repo = shared_index();
-        fn test_sval(repo: &Index) {
+        fn test_sval(repo: &GitIndex) {
             let krate = repo
                 .crate_("sval")
                 .expect("Could not find the crate sval in the index");
@@ -179,13 +180,13 @@ pub(crate)  mod with_https {
         assert!(index.crate_("無").is_none());
     }
 
-    pub(crate) fn shared_index() -> Index {
+    pub(crate) fn shared_index() -> GitIndex {
         let index_path = "tests/fixtures/git-registry";
         if is_ci::cached() {
-            Index::new_cargo_default()
+            GitIndex::new_cargo_default()
                 .expect("CI has just cloned this index and its ours and valid")
         } else {
-            Index::with_path(index_path, INDEX_GIT_URL).expect("clone works and there is no racing")
+            GitIndex::with_path(index_path, URL).expect("clone works and there is no racing")
         }
     }
 }

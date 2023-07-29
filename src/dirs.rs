@@ -1,8 +1,61 @@
 use crate::Error;
 
+/// Get the disk location of the specified url, as well as its canonical form,
+/// exactly as cargo would
+///
+/// `cargo_home` is used to root the directory at specific location, if not
+/// specified `CARGO_HOME` or else the default cargo location is used as the root
+pub(crate) fn get_index_details(
+    url: &str,
+    cargo_home: Option<&std::path::Path>,
+) -> Result<(std::path::PathBuf, String), Error> {
+    let (dir_name, canonical_url) = url_to_local_dir(url)?;
+
+    let mut path = match cargo_home {
+        Some(path) => path.to_owned(),
+        None => home::cargo_home()?,
+    };
+
+    path.push("registry");
+    path.push("index");
+    path.push(dir_name);
+
+    Ok((path, canonical_url))
+}
+
+pub(crate) fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> Option<()> {
+    match crate_name.len() {
+        0 => return None,
+        1 => accumulator.push('1'),
+        2 => accumulator.push('2'),
+        3 => {
+            accumulator.push('3');
+            accumulator.push(separator);
+            accumulator.extend(crate_name.as_bytes().get(0..1)?.iter().map(|c| c.to_ascii_lowercase() as char));
+        }
+        _ => {
+            accumulator.extend(crate_name.as_bytes().get(0..2)?.iter().map(|c| c.to_ascii_lowercase() as char));
+            accumulator.push(separator);
+            accumulator.extend(crate_name.as_bytes().get(2..4)?.iter().map(|c| c.to_ascii_lowercase() as char));
+        }
+    };
+    Some(())
+}
+
+pub(crate) fn crate_name_to_relative_path(crate_name: &str, separator: Option<char>) -> Option<String> {
+    let separator = separator.unwrap_or(std::path::MAIN_SEPARATOR);
+    let mut rel_path = String::with_capacity(crate_name.len() + 6);
+    crate_prefix(&mut rel_path, crate_name, separator)?;
+    rel_path.push(separator);
+    rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
+
+    Some(rel_path)
+}
+
+
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
 /// the root directory name where cargo itself will fetch it on disk
-pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
+fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     fn to_hex(num: u64) -> String {
         const CHARS: &[u8] = b"0123456789abcdef";
 
@@ -113,40 +166,17 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     Ok((format!("{host}-{ident}"), url))
 }
 
-/// Get the disk location of the specified url, as well as its canonical form,
-/// exactly as cargo would
-/// 
-/// `cargo_home` is used to root the directory at specific location, if not
-/// specified `CARGO_HOME` or else the default cargo location is used as the root
-pub(crate) fn get_index_details(
-    url: &str,
-    cargo_home: Option<&std::path::Path>,
-) -> Result<(std::path::PathBuf, String), Error> {
-    let (dir_name, canonical_url) = url_to_local_dir(url)?;
-
-    let mut path = match cargo_home {
-        Some(path) => path.to_owned(),
-        None => home::cargo_home()?,
-    };
-
-    path.push("registry");
-    path.push("index");
-    path.push(dir_name);
-
-    Ok((path, canonical_url))
-}
-
 #[cfg(test)]
 mod test {
-    use crate::{CRATES_IO_HTTP_INDEX, INDEX_GIT_URL};
 
     #[test]
     fn http_index_url_matches_cargo() {
+        use crate::sparse::URL;
         assert_eq!(
-            super::url_to_local_dir(CRATES_IO_HTTP_INDEX).unwrap(),
+            super::url_to_local_dir(URL).unwrap(),
             (
                 "index.crates.io-6f17d22bba15001f".to_owned(),
-                CRATES_IO_HTTP_INDEX.to_owned(),
+                URL.to_owned(),
             )
         );
 
@@ -166,12 +196,14 @@ mod test {
     }
     
     #[test]
+    #[cfg(feature = "git-index")]
     fn git_url_matches_cargo() {
+        use crate::git::URL;
         assert_eq!(
-            crate::dirs::url_to_local_dir(INDEX_GIT_URL).unwrap(),
+            crate::dirs::url_to_local_dir(URL).unwrap(),
             (
                 "github.com-1ecc6299db9ec823".to_owned(),
-                INDEX_GIT_URL.to_owned()
+                URL.to_owned()
             )
         );
 
@@ -180,12 +212,12 @@ mod test {
         assert_eq!(
             crate::dirs::url_to_local_dir(&format!(
                 "registry+{}.git?one=1&two=2#fragment",
-                INDEX_GIT_URL
+                URL
             ))
                 .unwrap(),
             (
                 "github.com-c786010fb7ef2e6e".to_owned(),
-                INDEX_GIT_URL.to_owned()
+                URL.to_owned()
             )
         );
     }

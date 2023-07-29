@@ -1,62 +1,24 @@
-use crate::bare_index::fetch_remote;
+use crate::git::{Change, fetch_remote};
 use crate::error::GixError;
 use crate::Error;
-use crate::Index;
+use crate::GitIndex;
 use gix::bstr::ByteSlice;
 use gix::prelude::TreeEntryRefExt;
 use std::collections::{HashSet, VecDeque};
-use std::convert::TryInto;
 use std::time::{Duration, SystemTime};
 
 const INDEX_GIT_ARCHIVE_URL: &str = "https://github.com/rust-lang/crates.io-index-archive";
 
-/// An individual change to a crate in the crates.io index, returned by [the changes iterator](Index::changes).
-#[derive(Debug, Clone)]
-pub struct Change {
-    /// Name of a crate, can be used in [`Index::crate_`]
-    crate_name: Box<str>,
-    /// Timestamp in the crates.io index repository
-    time: SystemTime,
-    commit: gix::ObjectId,
-}
 
-impl Change {
-    /// Name of a crate, can be used in [`Index::crate_`]
-    #[inline]
-    #[must_use]
-    pub fn crate_name(&self) -> &str {
-        &*self.crate_name
-    }
-
-    /// Timestamp in the crates.io index repository, which may be publication or modification date
-    #[inline]
-    #[must_use]
-    pub fn time(&self) -> SystemTime {
-        self.time
-    }
-
-    /// git hash of a commit in the crates.io repository
-    #[must_use]
-    pub fn commit(&self) -> &[u8; 20] {
-        self.commit.as_bytes().try_into().unwrap()
-    }
-
-    /// git hash of a commit in the crates.io repository
-    #[must_use]
-    pub fn commit_hex(&self) -> String {
-        self.commit.to_string()
-    }
-}
-
-/// See [`Index::changes`]
-pub struct ChangesIter<'repo> {
+/// An iterator over individual changes, see [`GitIndex::changes`] for more.
+pub struct Changes<'repo> {
     repo: &'repo gix::Repository,
     current: gix::Commit<'repo>,
     current_tree: gix::Tree<'repo>,
     out: VecDeque<Change>,
 }
 
-impl<'repo> Iterator for ChangesIter<'repo> {
+impl<'repo> Iterator for Changes<'repo> {
     type Item = Result<Change, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -76,8 +38,8 @@ impl<'repo> Iterator for ChangesIter<'repo> {
     }
 }
 
-impl<'repo> ChangesIter<'repo> {
-    pub(crate) fn new(index: &'repo Index) -> Result<Self, GixError> {
+impl<'repo> Changes<'repo> {
+    pub(crate) fn new(index: &'repo GitIndex) -> Result<Self, GixError> {
         let current = index.repo.find_object(index.head_commit)?.peel_to_kind(gix::object::Kind::Commit)?.into_commit();
         let current_tree = current.tree()?;
 
@@ -179,7 +141,7 @@ fn oid_and_branch_from_commit_message(msg: &str) -> Option<(gix::ObjectId, &str)
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::changes::{oid_and_branch_from_commit_message, };
+    use super::{oid_and_branch_from_commit_message};
 
     #[test]
     fn changes_parse_split_message() {

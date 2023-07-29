@@ -1,20 +1,13 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::{Crate, dirs::get_index_details, Error, IndexConfig, path_max_byte_len};
+use crate::{Crate, dirs::get_index_details, Error, IndexConfig, path_max_byte_len, SparseIndex};
+use crate::dirs::crate_name_to_relative_path;
 
-/// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
-pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
+/// The default URL of the crates.io HTTP index, see [`SparseIndex::from_url`] and [`SparseIndex::new_cargo_default`]
+pub const URL: &str = "sparse+https://index.crates.io/";
 
-/// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
-///
-/// Currently it only uses local Cargo cache, and does not access the network in any way.
-pub struct Index {
-    path: PathBuf,
-    url: String,
-}
-
-impl Index {
+impl SparseIndex {
     /// Creates a view over the sparse HTTP index from a provided URL, opening
     /// the same location on disk that Cargo uses for that registry index's
     /// metadata and cache.
@@ -33,7 +26,7 @@ impl Index {
     /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        Self::from_url(CRATES_IO_HTTP_INDEX)
+        Self::from_url(URL)
     }
 
     /// Creates a view over the sparse HTTP index from the provided URL, rooted
@@ -94,13 +87,13 @@ impl Index {
     #[inline]
     #[must_use]
     pub fn crate_url(&self, name: &str) -> Option<String> {
-        let rel_path = crate::crate_name_to_relative_path(name, None)?;
+        let rel_path = crate_name_to_relative_path(name, None)?;
         Some(format!("{}{rel_path}", self.url()))
     }
 
     /// Gets the full path to the cache file for the specified crate
     fn cache_path(&self, name: &str) -> Option<PathBuf> {
-        let rel_path = crate::crate_name_to_relative_path(name, None)?;
+        let rel_path = crate_name_to_relative_path(name, None)?;
 
         // avoid realloc on each push
         let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
@@ -287,7 +280,7 @@ mod tests {
     fn crates_io() -> SparseIndex {
         SparseIndex::with_path(
             std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/sparse_registry_cache/cargo_home"),
-            crate::CRATES_IO_HTTP_INDEX
+            crate::sparse::URL
         ).unwrap()
     }
 

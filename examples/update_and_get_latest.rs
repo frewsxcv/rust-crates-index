@@ -1,6 +1,6 @@
 //! Updates the local git registry and extracts the latest most recent changes.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut index = crates_index::Index::new_cargo_default()?;
+    let mut index = crates_index::GitIndex::new_cargo_default()?;
     println!("Updating index…");
     index.update()?;
     
