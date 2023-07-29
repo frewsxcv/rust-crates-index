@@ -21,7 +21,7 @@
 //! ### Getting information about a single crate
 //!
 //! ```rust
-//! # #[cfg(feature = "git-index")]
+//! # #[cfg(all(not(debug_assertions), feature = "git-index"))]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! let serde_crate = index.crate_("serde").expect("you should handle errors here");
@@ -33,7 +33,7 @@
 //! ### Iterating over *all* crates in the index
 //!
 //! ```rust
-//! # #[cfg(all(feature = "parallel", feature = "git-index"))]
+//! # #[cfg(all(not(debug_assertions), feature = "parallel", feature = "git-index"))]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //! for crate_ in index.crates() {
@@ -54,6 +54,7 @@
 //!
 //! ### Getting most recently published or yanked crates (enable the `changes` feature!)
 //!
+//! ```rust
 //! # #![cfg(feature = "changes")]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
@@ -66,6 +67,41 @@
 //! # }
 //! # Ok::<_, crates_index::Error>(())
 //! ```
+//! 
+//! ## Auto-cloning and parallelism
+//! 
+//! When using any means of instantiating the [`Index`] type, we  will 
+//! clone the default crates index (or the given one) if it no git
+//! repository is present at the destination path.
+//! 
+//! In order to protect from parallel operations of this kind, a 
+//! file-based lock is used. When interrupting the program with `Ctrl + C`,
+//! by default the program will be aborted which won't run destructors.
+//! This will cause the file lock to be stranded, causing all future operations
+//! to fail.
+//! 
+//! To prevent this issue, the application must integrate with the
+//! [`gix-tempfile` signal handler](https://docs.rs/gix-tempfile/latest/gix_tempfile/#initial-setup),
+//! which allows locks to be deleted when typical signals are received.
+//!
+//! ## Git Repository Performance
+//!
+//! By default, `gix` is compiled with `max-performance-safe`, which maximizes support for compilation environments but which 
+//! may be slower as it uses a pure-Rust Zlib implementation.
+//! To get best possible performance, use the `git-index-performance` feature toggle.
+//! 
+//! ## Using `rustls` instead of `openssl` when using the `https` feature in applications
+//! 
+//! When using the `https` feature, a choice will be made for you that involves selecting the `curl` backend for making
+//! the `https` protocol available. As using a different backend isn't additive, as cargo features should be, one will have
+//! to resort to the following.
+//! 
+//! * Change the `crates-index` dependency to not use any default features with `default-features = false`, and turn on
+//!   `features = ["git-index", …(everything else *but* "https")]`
+//! * Add the `gix` dependency with `default-features = false` and `features = ["blocking-http-transport-reqwest-rust-tls"]`.
+//!   Consider renaming the crate to `gix-for-configuration-only = { package = "gix", … }` to make the intend clear.
+//! 
+//! Please note that this should only be done in application manifests, who have the final say over the protocol and backend choices.
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 

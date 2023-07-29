@@ -1,54 +1,16 @@
+#![allow(clippy::result_large_err)]
 #[cfg(feature = "changes")]
 use crate::changes::ChangesIter;
 use crate::dedupe::DedupeContext;
 use crate::dirs::get_index_details;
+use crate::error::GixError;
 use crate::{path_max_byte_len, Crate, Error, IndexConfig};
-use git2::Repository;
-use std::fmt;
-use std::path::{Path, PathBuf};
+use gix::config::tree::Key;
 use std::io;
+use std::path::{Path, PathBuf};
 
 /// The default URL of the crates.io index for use with git, see [`Index::with_path`]
 pub const INDEX_GIT_URL: &str = "https://github.com/rust-lang/crates.io-index";
-
-pub(crate) fn fetch_opts<'cb>() -> git2::FetchOptions<'cb> {
-    let mut proxy_opts = git2::ProxyOptions::new();
-    proxy_opts.auto();
-    let mut fetch_opts = git2::FetchOptions::new();
-    fetch_opts.proxy_options(proxy_opts);
-
-    let mut remote_callbacks = git2::RemoteCallbacks::new();
-    remote_callbacks.credentials(|url, username_from_url, allowed_types| {
-        let config = git2::Config::open_default()?;
-
-        if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-            if let Some((username, password)) = git2::CredentialHelper::new(url)
-                .config(&config)
-                .username(username_from_url)
-                .execute()
-            {
-                let cred = git2::Cred::userpass_plaintext(&username, &password)?;
-                return Ok(cred);
-            }
-        }
-
-        #[cfg(feature = "ssh")]
-        if allowed_types.contains(git2::CredentialType::SSH_KEY) {
-            if let Some(username) = username_from_url {
-                if let Ok(cred) = git2::Cred::ssh_key_from_agent(username) {
-                    return Ok(cred);
-                }
-            }
-        }
-
-        Err(git2::Error::from_str(
-            "failed to acquire appropriate credentials from local configuration",
-        ))
-    });
-    fetch_opts.remote_callbacks(remote_callbacks);
-
-    fetch_opts
-}
 
 /// Wrapper around managing the crates.io-index git repository
 ///
@@ -58,9 +20,9 @@ pub struct Index {
     path: PathBuf,
     url: String,
 
-    pub(crate) repo: git2::Repository,
-    pub(crate) head: git2::Oid,
-    head_str: String,
+    pub(crate) repo: gix::Repository,
+    pub(crate) head_commit: gix::ObjectId,
+    head_commit_hex: String,
 }
 
 impl Index {
@@ -128,57 +90,70 @@ impl Index {
     }
 
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
-        let exists = git2::Repository::discover(&path)
-            .map(|repository| {
-                repository
-                    .find_remote("origin")
-                    .ok()
-                    // Cargo creates a checkout without an origin set,
-                    // so default to true in case of missing origin
-                    .map_or(true, |remote| remote.url().map_or(true, |u| u == url))
+        let mut mapping = gix::sec::trust::Mapping::default();
+        let open_with_complete_config =
+            gix::open::Options::default().permissions(gix::open::Permissions {
+                config: gix::open::permissions::Config {
+                    // Be sure to get all configuration, some of which is only known by the git binary.
+                    // That way we are sure to see all the systems credential helpers
+                    git_binary: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
+        mapping.reduced = open_with_complete_config.clone();
+        mapping.full = open_with_complete_config.clone();
+
+        let _lock = gix::lock::Marker::acquire_to_hold_resource(
+            path.with_extension("crates-index"),
+            gix::lock::acquire::Fail::AfterDurationWithBackoff(
+                std::time::Duration::from_secs(60 * 10),
+            ),
+            Some(PathBuf::from_iter(Some(std::path::Component::RootDir))),
+        )
+            .map_err(GixError::from)?;
+        let repo = gix::ThreadSafeRepository::discover_opts(
+            &path,
+            gix::discover::upwards::Options::default().apply_environment(),
+            mapping,
+        )
+        .ok()
+        .map(|repo| repo.to_thread_local())
+        .filter(|repo| {
+            // The `cargo` standard registry clone has no configured origin (when created with `git2`).
+            repo.find_remote("origin").map_or(true, |remote| {
+                remote
+                    .url(gix::remote::Direction::Fetch)
+                    .map_or(false, |remote_url| remote_url.to_bstring() == url)
             })
-            .unwrap_or(false);
+        });
 
-        let repo = if !exists {
-            let mut opts = git2::RepositoryInitOptions::new();
-            opts.external_template(false);
-            if let Some(parent) = path.parent() {
-                let _ = std::fs::create_dir_all(parent);
+        let repo = match repo {
+            Some(repo) => repo,
+            None => {
+                match gix::open_opts(&path, open_with_complete_config).ok() {
+                    None => clone_url(&url, &path)?,
+                    Some(repo) => repo,
+                }
             }
-            let repo = git2::Repository::init_opts(&path, &opts)?;
-            {
-                let mut origin_remote = repo
-                    .find_remote("origin")
-                    .or_else(|_| repo.remote_anonymous(&url))?;
-
-                origin_remote.fetch(
-                    &[
-                        "HEAD:refs/remotes/origin/HEAD",
-                        "master:refs/remotes/origin/master",
-                    ],
-                    Some(&mut fetch_opts()),
-                    None,
-                )?;
-            }
-            repo
-        } else {
-            git2::Repository::open(&path)?
         };
 
-        let head = Self::find_valid_repo_head(&repo, &path)?;
-
+        let head_commit = Self::find_repo_head(&repo, &path)?;
         Ok(Self {
             path,
             url,
             repo,
-            head_str: head.to_string(),
-            head,
+            head_commit_hex: head_commit.to_hex().to_string(),
+            head_commit,
         })
     }
 
-    fn tree(&self) -> Result<git2::Tree<'_>, git2::Error> {
-        let commit = self.repo.find_commit(self.head)?;
-        commit.tree()
+    fn tree(&self) -> Result<gix::Tree<'_>, GixError> {
+        Ok(self
+            .repo
+            .find_object(self.head_commit)?
+            .try_into_commit()?
+            .tree()?)
     }
 
     #[doc(hidden)]
@@ -204,30 +179,24 @@ impl Index {
     /// method will mean no cache entries will be used, if a new commit is fetched
     /// from the repository, as their commit version will no longer match.
     pub fn update(&mut self) -> Result<(), Error> {
-        {
-            let mut origin_remote = self
-                .repo
-                .find_remote("origin")
-                .or_else(|_| self.repo.remote_anonymous(&self.url))?;
+        let mut remote = self.repo.find_remote("origin").ok().unwrap_or_else(|| {
+            self.repo
+                .remote_at(self.url.as_str())
+                .expect("own URL is always valid")
+        });
+        fetch_remote(&mut remote, &[
+                "HEAD:refs/remotes/origin/HEAD",
+                "master:refs/remotes/origin/master",
+            ]
+        )?;
 
-            origin_remote.fetch(
-                &[
-                    "HEAD:refs/remotes/origin/HEAD",
-                    "master:refs/remotes/origin/master",
-                ],
-                Some(&mut fetch_opts()),
-                None,
-            )?;
-        }
-
-        let head = Self::find_valid_repo_head(&self.repo, &self.path)?;
-
-        self.head = head;
-        self.head_str = self.head.to_string();
+        let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
+        self.head_commit = head_commit;
+        self.head_commit_hex = head_commit.to_hex().to_string();
 
         Ok(())
     }
-
+    
     /// Reads a crate from the index, it will attempt to use a cached entry if
     /// one is available, otherwise it will fallback to reading the crate
     /// directly from the git blob containing the crate information.
@@ -242,12 +211,15 @@ impl Index {
         // mechanism and can fail for a few reasons that are non-fatal
         {
             // avoid realloc on each push
-            let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
+            let mut cache_path =
+                PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
             cache_path.push(&self.path);
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_str)) {
+                if let Ok(krate) =
+                    Crate::from_cache_slice(&cache_bytes, Some(&self.head_commit_hex))
+                {
                     return Some(krate);
                 }
             }
@@ -255,29 +227,25 @@ impl Index {
 
         // Fallback to reading the blob directly via git if we don't have a
         // valid cache entry
-        self.crate_from_rel_path(&rel_path).ok()
+        self.crate_from_rel_path(rel_path).ok()
     }
 
-    fn crate_from_rel_path(&self, path: &str) -> Result<Crate, Error> {
-        let entry = self.tree()?.get_path(Path::new(path))?;
-        let object = entry.to_object(&self.repo)?;
-        let blob = object
-            .as_blob()
-            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
-
-        Crate::from_slice(blob.content()).map_err(Error::Io)
+    fn crate_from_rel_path(&self, rel_path: String) -> Result<Crate, Error> {
+        let object = self.object_at_path(rel_path.into())?;
+        Crate::from_slice(&object.data).map_err(Error::Io)
     }
 
     /// Single-threaded iterator over all the crates in the index.
     ///
-    /// [`Index::crates_parallel`] is typically 3 times faster.
+    /// [`Index::crates_parallel`] is typically 4 times faster.
     ///
     /// Skips crates that can not be parsed (but there shouldn't be any such crates in the crates-io index).
+    /// Also consider to enable `git-index-performance` feature toggle for better performance.
     #[inline]
     #[must_use]
     pub fn crates(&self) -> Crates<'_> {
         Crates {
-            blobs: self.crates_refs().expect("HEAD commit disappeared"),
+            blobs: self.crates_blobs().expect("HEAD commit disappeared"),
             dedupe: MaybeOwned::Owned(DedupeContext::new()),
         }
     }
@@ -285,32 +253,45 @@ impl Index {
     /// Iterate over all crates using rayon.
     ///
     /// This method is available only if the "parallel" feature is enabled.
+    /// Also consider to enable `git-index-performance` feature toggle for better performance.
     #[cfg(feature = "parallel")]
-    #[must_use] pub fn crates_parallel(&self) -> impl rayon::iter::ParallelIterator<Item=Result<Crate, crate::error::CratesIterError>> + '_ {
-        use rayon::iter::{IntoParallelIterator, ParallelIterator, IndexedParallelIterator};
-
-        let tree_oids = match self.crates_top_level_refs() {
-            Ok(objs) => objs.into_iter().map(|obj| obj.id()).collect::<Vec<_>>(),
-            Err(_) => vec![git2::Oid::zero()], // intentionally broken oid to return error from the iterator
+    #[must_use]
+    pub fn crates_parallel(
+        &self,
+    ) -> impl rayon::iter::ParallelIterator<Item = Result<Crate, crate::error::CratesIterError>> + '_
+    {
+        use rayon::iter::{IntoParallelIterator, ParallelIterator};
+        let tree_oids = match self.crates_top_level_ids() {
+            Ok(objs) => objs,
+            Err(_) => vec![self.repo.object_hash().null()], // intentionally broken oid to return error from the iterator
         };
 
-        let path = self.repo.path();
-
-        tree_oids.into_par_iter()
-            .with_min_len(64)
+        tree_oids
+            .into_par_iter()
             .map_init(
-                move || (Repository::open_bare(path), DedupeContext::new()),
+                {
+                    let repo = self.repo.clone().into_sync();
+                    move || {
+                        (
+                            {
+                                let mut repo = repo.to_thread_local();
+                                repo.objects.unset_pack_cache();
+                                repo
+                            },
+                            DedupeContext::new(),
+                        )
+                    }
+                },
                 |(repo, ctx), oid| {
-                    let repo = match repo.as_ref() {
-                        Ok(repo) => repo,
-                        Err(_) => return vec![Err(crate::error::CratesIterError)],
-                    };
                     let mut stack = Vec::with_capacity(64);
-                    match repo.find_object(oid, None) {
-                        Ok(obj) => stack.push(obj),
+                    match repo.find_object(oid) {
+                        Ok(obj) => stack.push(obj.detach()),
                         Err(_) => return vec![Err(crate::error::CratesIterError)],
                     };
-                    let blobs = CratesRefs { stack, repo };
+                    let blobs = CratesTreesToBlobs {
+                        stack,
+                        repo: repo.clone(),
+                    };
                     Crates {
                         blobs,
                         dedupe: MaybeOwned::Borrowed(ctx),
@@ -322,106 +303,181 @@ impl Index {
             .flat_map_iter(|chunk| chunk.into_iter())
     }
 
-    /// update an iterator over all the crates in the index.
-    /// Returns opaque reference for each crate in the index, which can be used with [`CrateRef::parse`]
-    pub(crate) fn crates_refs(&self) -> Result<CratesRefs<'_>, git2::Error> {
-        Ok(CratesRefs {
-            stack: self.crates_top_level_refs()?,
-            repo: &self.repo,
+    fn crates_blobs(&self) -> Result<CratesTreesToBlobs, GixError> {
+        let repo = with_delta_cache(self.repo.clone());
+        Ok(CratesTreesToBlobs {
+            stack: self
+                .crates_top_level_ids()?
+                .into_iter()
+                .map(|id| self.repo.find_object(id).map(|tree| tree.detach()))
+                .collect::<Result<_, _>>()?,
+            repo,
         })
     }
 
-    pub(crate) fn crates_top_level_refs(&self) -> Result<Vec<git2::Object<'_>>, git2::Error> {
+    fn crates_top_level_ids(&self) -> Result<Vec<gix::ObjectId>, GixError> {
         let mut stack = Vec::with_capacity(800);
         for entry in self.tree()?.iter() {
-            // crates are in short dirs, skip .git/.cache
-            if entry.name_bytes().len() <= 2 {
-                let entry = entry.to_object(&self.repo)?;
-                // Scan only directories at top level
-                if entry.as_tree().is_some() {
-                    stack.push(entry);
-                }
-            }
+            let entry = entry?;
+            // crates are in directories no longer than 2 letters.
+            if !is_top_level_dir(&entry) {
+                continue;
+            };
+            stack.push(entry.oid().to_owned());
         }
         Ok(stack)
     }
 
     /// Get the global configuration of the index.
     pub fn index_config(&self) -> Result<IndexConfig, Error> {
-        let entry = self.tree()?.get_path(Path::new("config.json"))?;
-        let object = entry.to_object(&self.repo)?;
-        let blob = object
-            .as_blob()
-            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, "config.json")))?;
-        serde_json::from_slice(blob.content()).map_err(Error::Json)
+        let blob = self.object_at_path("config.json".into())?;
+        serde_json::from_slice(&blob.data).map_err(Error::Json)
     }
 
-    fn find_valid_repo_head(repo: &Repository, path: &Path) -> Result<git2::Oid, Error> {
-        repo.refname_to_id("FETCH_HEAD")
-            .or_else(|_| repo.refname_to_id("HEAD"))
-            .and_then(|head| {
-                // Users of sparse registry reported git failures due to missing oids,
-                // which isn't supposed to happen.
-                let _ = repo.find_commit(head)?;
-                Ok(head)
-            })
-            .map_err(|e| {
-                // TODO: The Error enum lacks a proper variant for this case
-                Error::Url(format!("The repo at path {} is unusable due to having an invalid HEAD reference: {e}", path.display()))
-            })
+    fn object_at_path(&self, path: PathBuf) -> Result<gix::Object<'_>, GixError> {
+        let entry = self
+            .tree()?
+            .peel_to_entry_by_path(&path)?
+            .ok_or(GixError::PathMissing { path })?;
+        Ok(entry.object()?)
     }
+
+    /// Find the most recent commit of `repo` at `path`.
+    /// 
+    /// This is complicated by a few specialities of the cargo git index.
+    /// 
+    /// * it's possible for `origin/HEAD` and `origin/master` to be stalled and out of date if they have been fetched with 
+    ///   non-force refspecs.
+    ///   This was done by this crate as well, but is not done by cargo.
+    /// * if `origin/master` is out of date, `FETCH_HEAD` is the only chance for getting the most recent commit.
+    /// * if `gix` is updating the index, `FETCH_HEAD` will not be written at all, *only* the references are. Note that
+    ///   `cargo` does not rely on `FETCH_HEAD`, but relies on `origin/master` directly.
+    /// 
+    /// This, we get a list of candidates and use the most recent commit.
+    fn find_repo_head(repo: &gix::Repository, path: &Path) -> Result<gix::ObjectId, Error> {
+        #[rustfmt::skip]
+        const CANDIDATE_REFS: &[&str] = &[
+            "FETCH_HEAD",    /* the location with the most-recent updates, as written by git2 */
+            "origin/HEAD",   /* typical refspecs update this symbolic ref to point to the actual remote ref with the fetched commit */
+            "origin/master", /* for good measure, resolve this branch by hand in case origin/HEAD is broken */
+        ];
+        let mut candidates: Vec<_> = CANDIDATE_REFS
+            .iter()
+            .filter_map(|refname| repo.find_reference(*refname).ok()?.into_fully_peeled_id().ok())
+            .filter_map(|r| {
+                let c = r.object().ok()?.try_into_commit().ok()?;
+                Some((c.id, c.time().ok()?.seconds))
+            })
+            .collect();
+
+        candidates.sort_by_key(|t| t.1);
+        // get the most recent commit, the one with most time passed since unix epoch.
+        Ok(candidates
+            .last()
+            .ok_or_else(|| Error::MissingHead {
+                repo_path: path.to_owned(),
+                refs_tried: CANDIDATE_REFS,
+                refs_available: repo
+                    .references()
+                    .ok()
+                    .and_then(|p| {
+                        p.all()
+                            .ok()?
+                            .map(|r| r.ok().map(|r| r.name().as_bstr().to_string()))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            })?
+            .0)
+    }
+}
+
+fn is_top_level_dir(entry: &gix::object::tree::EntryRef<'_, '_>) -> bool {
+    entry.mode().is_tree() && entry.filename().len() <= 2
+}
+
+fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
+    if repo
+        .config_snapshot()
+        .integer_by_key(
+            gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT
+                .logical_name()
+                .as_str(),
+        )
+        .is_none()
+    {
+        let mut config = repo.config_snapshot_mut();
+        // Set a memory-backed delta-cache to the same size as git for ~40% more speed in this workload.
+        config
+            .set_value(&gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT, "96m")
+            .expect("in memory always works");
+    }
+    repo
+}
+
+pub(crate) fn fetch_remote(remote: &mut gix::Remote<'_>, refspecs: &[&str]) -> Result<(), GixError> {
+    remote.replace_refspecs(
+        refspecs,
+        gix::remote::Direction::Fetch,
+    )?;
+
+    remote
+        .connect(gix::remote::Direction::Fetch)?
+        .prepare_fetch(gix::progress::Discard, Default::default())?
+        .receive(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+    Ok(())
+}
+
+fn clone_url(url: &str, destination: &Path) -> Result<gix::Repository, GixError> {
+    // Clones and fetches already know they need `bin_config` to work, so nothing to do here.
+    let (repo, _outcome) = gix::prepare_clone_bare(url, destination)?
+        .with_remote_name("origin")?
+        .configure_remote(|remote| {
+            Ok(remote.with_refspecs(
+                [
+                    "+HEAD:refs/remotes/origin/HEAD",
+                    "+master:refs/remotes/origin/master",
+                ],
+                gix::remote::Direction::Fetch,
+            )?)
+        })
+        .fetch_only(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+    Ok(repo)
 }
 
 /// Iterator over all crates in the index, but returns opaque objects that can be parsed separately.
-///
-/// See [`CrateRef::parse`].
-pub(crate) struct CratesRefs<'a> {
-    stack: Vec<git2::Object<'a>>,
-    repo: &'a git2::Repository,
+struct CratesTreesToBlobs {
+    stack: Vec<gix::ObjectDetached>,
+    repo: gix::Repository,
 }
 
-/// Opaque representation of a crate in the index. See [`CrateRef::parse`].
-pub(crate) struct CrateRef<'a>(git2::Object<'a>);
+/// Opaque representation of a crate in the index. See [`CrateUnparsed::parse`].
+struct CrateUnparsed(Vec<u8>);
 
-impl CrateRef<'_> {
+impl CrateUnparsed {
     #[inline]
-    /// Parse a crate from [`Index::crates_blobs`] iterator
-    pub fn parse(&self, ctx: &mut DedupeContext) -> io::Result<Crate> {
-        let blob = self.as_slice().ok_or(io::ErrorKind::InvalidData)?;
-        Crate::from_slice_with_context(blob, ctx)
-    }
-
-    /// Raw crate data that can be parsed with [`Crate::from_slice`]
-    pub fn as_slice(&self) -> Option<&[u8]> {
-        Some(self.0.as_blob()?.content())
+    fn parse(&self, ctx: &mut DedupeContext) -> io::Result<Crate> {
+        Crate::from_slice_with_context(self.0.as_slice(), ctx)
     }
 }
 
-impl<'a> Iterator for CratesRefs<'a> {
-    type Item = CrateRef<'a>;
+impl Iterator for CratesTreesToBlobs {
+    type Item = CrateUnparsed;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(last) = self.stack.pop() {
-            match last.as_tree() {
-                None => return Some(CrateRef(last)),
-                Some(tree) => {
-                    for entry in tree.iter().rev() {
-                        self.stack.push(entry.to_object(self.repo).unwrap());
-                    }
-                    continue;
+        while let Some(obj) = self.stack.pop() {
+            if obj.kind.is_tree() {
+                let tree = gix::objs::TreeRef::from_bytes(&obj.data).unwrap();
+                for entry in tree.entries.into_iter().rev() {
+                    self.stack
+                        .push(self.repo.find_object(entry.oid).unwrap().detach());
                 }
+                continue;
+            } else {
+                return Some(CrateUnparsed(obj.data));
             }
         }
         None
-    }
-}
-
-impl fmt::Debug for CrateRef<'_> {
-    #[cold]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CrateRef")
-            .field("oid", &self.0.id())
-            .finish()
     }
 }
 
@@ -432,7 +488,7 @@ enum MaybeOwned<'a, T> {
 
 /// Iterator over all crates in the index. Skips crates that failed to parse.
 pub struct Crates<'a> {
-    blobs: CratesRefs<'a>,
+    blobs: CratesTreesToBlobs,
     dedupe: MaybeOwned<'a, DedupeContext>,
 }
 
@@ -445,7 +501,7 @@ impl<'a> Iterator for Crates<'a> {
                 MaybeOwned::Owned(d) => d,
                 MaybeOwned::Borrowed(d) => d,
             };
-            if let Ok(k) = CrateRef::parse(&next, dedupe) {
+            if let Ok(k) = CrateUnparsed::parse(&next, dedupe) {
                 return Some(k);
             }
         }
@@ -454,43 +510,41 @@ impl<'a> Iterator for Crates<'a> {
 }
 
 #[cfg(test)]
-mod test {
+#[cfg(feature = "https")]
+pub(crate)  mod test {
     use super::*;
-    use tempfile::TempDir;
+    use gix::bstr::ByteSlice;
 
     #[test]
-    #[cfg(feature = "https")]
     fn bare_iterator() {
-        let tmp_dir = tempfile::TempDir::new().unwrap();
-
-        let repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
-            .expect("Failed to clone crates.io index");
+        let repo = shared_index();
         assert_eq!("time", repo.crate_("time").unwrap().name());
 
-        let mut found_gcc_crate = false;
-        let mut found_time_crate = false;
+        let mut found_first_crate = false;
+        let mut found_second_crate = false;
 
+        // Note that crates are roughly ordered in reverse.
         for c in repo.crates() {
-            if c.name() == "gcc" {
-                found_gcc_crate = true;
+            if c.name() == "zzzz" {
+                found_first_crate = true;
+            } else if c.name() == "zulip" {
+                found_second_crate = true;
             }
-            if c.name() == "time" {
-                found_time_crate = true;
+            if found_first_crate && found_second_crate {
+                break;
             }
         }
-
-        assert!(found_gcc_crate);
-        assert!(found_time_crate);
+        assert!(found_first_crate);
+        assert!(found_second_crate);
     }
 
     #[test]
-    #[cfg(feature = "https")]
     fn clones_bare_index() {
         let tmp_dir = tempfile::TempDir::new().unwrap();
         let path = tmp_dir.path().join("some/sub/dir/testing/abc");
 
-        let mut repo = Index::with_path(path, crate::INDEX_GIT_URL)
-            .expect("Failed to clone crates.io index");
+        let mut repo =
+            Index::with_path(path, crate::INDEX_GIT_URL).expect("Failed to clone crates.io index");
 
         fn test_sval(repo: &Index) {
             let krate = repo
@@ -525,13 +579,8 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "https")]
     fn opens_bare_index() {
-        let tmp_dir = tempfile::TempDir::new().unwrap();
-
-        let mut repo = Index::with_path(tmp_dir.path().to_owned(), crate::INDEX_GIT_URL)
-            .expect("Failed to open crates.io index");
-
+        let mut repo = shared_index();
         fn test_sval(repo: &Index) {
             let krate = repo
                 .crate_("sval")
@@ -566,13 +615,15 @@ mod test {
 
     #[test]
     fn reads_replaced_source() {
-        let index = Index::new_cargo_default();
-        assert!(index.unwrap().index_config().is_ok());
+        let index = shared_index();
+        let _config = index
+            .index_config()
+            .expect("we are able to obtain and parse the configuration of the default registry");
     }
 
     #[test]
     fn test_dependencies() {
-        let index = Index::new_cargo_default().unwrap();
+        let index = shared_index();
 
         let crate_ = index
             .crate_("sval")
@@ -600,9 +651,8 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "https")]
     fn test_cargo_default_updates() {
-        let mut index = Index::new_cargo_default().unwrap();
+        let mut index = shared_index();
         index
             .update()
             .map_err(|e| {
@@ -622,29 +672,35 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "https")]
+    #[cfg_attr(debug_assertions, ignore = "too slow in debug mode")]
     fn test_can_parse_all() {
-        let tmp_dir = TempDir::new().unwrap();
-        let mut found_gcc_crate = false;
+        let index = shared_index();
 
-        let index = Index::with_path(tmp_dir.path(), crate::INDEX_GIT_URL).unwrap();
         let mut ctx = DedupeContext::new();
 
-        for c in index.crates_refs().unwrap() {
-            if c.as_slice().map_or(false, |blob| blob.is_empty()) {
-                continue; // https://github.com/rust-lang/crates.io/issues/6159
-            }
+        let mut found_gcc_crate = false;
+        for c in index.crates_blobs().unwrap() {
             match c.parse(&mut ctx) {
                 Ok(c) => {
                     if c.name() == "gcc" {
                         found_gcc_crate = true;
                     }
                 }
-                Err(e) => panic!("can't parse :( {c:?}: {e}"),
+                Err(e) => panic!("can't parse :( {:?}: {e}", c.0.as_bstr()),
             }
         }
 
         assert!(found_gcc_crate);
+    }
+
+    pub(crate) fn shared_index() -> Index {
+        let index_path = "tests/testdata/git-registry";
+        if is_ci::cached() {
+            Index::new_cargo_default()
+                .expect("CI has just cloned this index and its ours and valid")
+        } else {
+            Index::with_path(index_path, INDEX_GIT_URL).expect("clone works and there is no racing")
+        }
     }
 
     #[test]

@@ -20,8 +20,12 @@ required-features = ["sparse-http"]
 name = "sparse_http_ureq"
 required-features = ["sparse-http"]
 
+[[example]]
+name = "update_and_get_latest"
+required-features = ["changes"]
+
 [dependencies]
-git2 = { version = "0.17", default-features = false, optional = true }
+gix = { version = "0.50.0", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 http = { version = "0.2", optional = true }
@@ -33,11 +37,14 @@ serde = { version = "1.0.160", features = ["rc"] }
 serde_derive = "1.0.160"
 serde_json = "1.0.96"
 smol_str = { version = "0.2.0", features = ["serde"] }
+thiserror = "1.0.43"
 toml = "0.7.3"
 
 [dev-dependencies]
+bytesize = "1.2.0"
+cap = { version = "0.1.2", features = ["stats"] }
+is_ci = "1.1.1"
 tempfile = "3.5.0"
-cap = "0.1.2"
 ureq = { version = "2.7.1", features = ["http-interop"] }
 reqwest = { version = "0.11.18", features = ["blocking", "gzip"] }
 
@@ -48,11 +55,11 @@ features = ["sparse-http"]
 [features]
 default = ["git-index", "https", "parallel"]
 changes = ["git-index"]
-git-index = ["dep:git2"]
-https = ["git-index", "git2?/https"]
+git-index = ["dep:gix"]
+git-index-performance = ["git-index", "gix?/max-performance"]
+https = ["git-index", "gix?/blocking-http-transport-curl"]
 parallel = ["dep:rayon"]
-vendored-openssl = ["git-index", "git2?/vendored-openssl"]
-ssh = ["git-index", "git2?/ssh"]
+ssh = ["git-index"] # at this time, `gix` does not need feature toggles for this as the `ssh` program is used. Native support is planned to match `git2`.
 sparse-http = ["dep:http"]
 
 [badges]
