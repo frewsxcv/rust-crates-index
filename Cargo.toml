@@ -20,10 +20,6 @@ required-features = ["sparse-http"]
 name = "sparse_http_ureq"
 required-features = ["sparse-http"]
 
-[[example]]
-name = "update_and_get_latest"
-required-features = ["changes"]
-
 [dependencies]
 gix = { version = "0.50.0", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
@@ -55,7 +51,6 @@ features = ["sparse-http"]
 
 [features]
 default = ["git-index", "https", "parallel"]
-changes = ["git-index"]
 git-index = ["dep:gix"]
 git-index-performance = ["git-index", "gix?/max-performance"]
 https = ["git-index", "gix?/blocking-http-transport-curl"]

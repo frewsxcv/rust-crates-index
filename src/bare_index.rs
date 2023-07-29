@@ -1,5 +1,4 @@
 #![allow(clippy::result_large_err)]
-#[cfg(feature = "changes")]
 use crate::changes::ChangesIter;
 use crate::dedupe::DedupeContext;
 use crate::dirs::get_index_details;
@@ -84,7 +83,6 @@ impl Index {
     /// Crates will be reported multiple times, once for each publish/yank/unyank event that happened.
     ///
     /// If you like to know publication dates of all crates, consider <https://crates.io/data-access> instead.
-    #[cfg(feature = "changes")]
     pub fn changes(&self) -> Result<ChangesIter<'_>, Error> {
         Ok(ChangesIter::new(self)?)
     }
@@ -518,23 +516,32 @@ mod test {
     #[test]
     #[cfg_attr(debug_assertions, ignore = "too slow in debug mode")]
     fn parse_all_blobs() {
-        let index = shared_index();
-
-        let mut ctx = DedupeContext::new();
-
-        let mut found_gcc_crate = false;
-        for c in index.crates_blobs().unwrap() {
-            match c.parse(&mut ctx) {
-                Ok(c) => {
-                    if c.name() == "gcc" {
-                        found_gcc_crate = true;
+        std::thread::scope(|scope| {
+            let (tx, rx) = std::sync::mpsc::channel();
+            let blobs = scope.spawn(move || {
+                let index = shared_index();
+                for c in index.crates_blobs().unwrap() {
+                    tx.send(c).unwrap();
+                }
+            });
+            let parse = scope.spawn(move || {
+                let mut found_gcc_crate = false;
+                let mut ctx = DedupeContext::new();
+                for c in rx {
+                    match c.parse(&mut ctx) {
+                        Ok(c) => {
+                            if c.name() == "gcc" {
+                                found_gcc_crate = true;
+                            }
+                        }
+                        Err(e) => panic!("can't parse :( {:?}: {e}", c.0.as_bstr()),
                     }
                 }
-                Err(e) => panic!("can't parse :( {:?}: {e}", c.0.as_bstr()),
-            }
-        }
-
-        assert!(found_gcc_crate);
+                assert!(found_gcc_crate);
+            });
+            parse.join().unwrap();
+            blobs.join().unwrap();
+        });
     }
 
     fn shared_index() -> Index {

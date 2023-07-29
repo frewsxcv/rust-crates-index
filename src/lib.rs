@@ -52,10 +52,9 @@
 //! # Ok::<_, crates_index::Error>(())
 //! ```
 //!
-//! ### Getting most recently published or yanked crates (enable the `changes` feature!)
+//! ### Getting most recently published or yanked crates 
 //!
 //! ```rust
-//! # #![cfg(feature = "changes")]
 //! # {
 //! let index = crates_index::Index::new_cargo_default()?;
 //!
@@ -118,7 +117,6 @@ use std::sync::Arc;
 mod bare_index;
 mod config;
 mod dedupe;
-#[cfg(feature = "changes")]
 mod changes;
 mod dirs;
 /// Re-exports in case you want to inspect specific error details
