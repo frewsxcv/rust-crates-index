@@ -1,9 +1,9 @@
-#[cfg(all(feature = "parallel", feature = "git-index"))]
+#[cfg(all(feature = "parallel", feature = "git"))]
 mod mem {
+    use bytesize::ByteSize;
     use cap::Cap;
     use std::alloc;
     use std::time::Instant;
-    use bytesize::ByteSize;
 
     #[global_allocator]
     static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
@@ -11,10 +11,10 @@ mod mem {
     #[test]
     #[cfg_attr(debug_assertions, ignore = "too slow when running in debug mode")]
     fn usage() {
-        use crates_index::Index;
+        use crates_index::GitIndex;
         use rayon::iter::ParallelIterator;
 
-        let index = Index::new_cargo_default().unwrap();
+        let index = GitIndex::new_cargo_default().unwrap();
 
         let before = ALLOCATOR.allocated();
         // let all_crates: Vec<_> = index.crates().collect();
@@ -33,6 +33,9 @@ mod mem {
             total = ByteSize(ALLOCATOR.total_allocated() as u64),
             peak = ByteSize(ALLOCATOR.max_allocated() as u64),
         );
-        assert!(per_crate < 6300, "per crate limit {per_crate}B should remain below memory limit");
+        assert!(
+            per_crate < 6300,
+            "per crate limit {per_crate}B should remain below memory limit"
+        );
     }
 }

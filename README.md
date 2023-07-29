@@ -21,23 +21,9 @@ for crate_releases in index.crates() {
 }
 ```
 
-## Migration from 0.19 to 1.0.0
+## Changelog
 
-* `git2` is now optional if you use `default-features = false`. If `git-index` feature is enabled, `git2` v0.17 is required. You'll want to enable `https` feature too.
-* `SparseIndex.make_cache_request` returns `request::Builder` instead of `Request`. Call `.body(())` on it.
-
-## Migration from 0.18
-
-It should work without any code changes. Only the `git2` and `toml` dependencies were updated.
-
-## Migration from 0.16 and 0.17
-
-* `BareIndex` and `BareIndexRepo` have become the `Index`.
-* `Index::new_cargo_default()?` is the preferred way of accessing the index. Use `with_path()` to clone to a different directory.
-* There's no need to call `retrieve()` or `exists()`. It's always retrieved and always exists.
-* `retrieve_or_update()` is just `update()`.
-* `highest_version()` returns crate metadata rather than just the version number. Call `highest_version().version().parse()` to get `semver::Version`.
-* There's no `crate_index_paths()`, because there are no files any more. Use `crate_` to get individual crates.
+Please find the changelog in [CHANGELOG.md](https://github.com/frewsxcv/rust-crates-index/blob/master/CHANGELOG.md).
 
 ## Similar crates
 

@@ -1,5 +1,4 @@
-use std::io;
-use crates_index::{Crate, Error, SparseIndex};
+use crates_index::SparseIndex;
 
 ///
 /// **important**:<br>
@@ -19,18 +18,18 @@ fn main() {
     print_crate(&mut index);
 }
 
-fn print_crate(index: &mut SparseIndex){
+fn print_crate(index: &mut SparseIndex) {
     match index.crate_from_cache(CRATE_TO_FETCH) {
         Ok(krate) => {
             println!("{:?}", krate.highest_normal_version().unwrap().version());
         }
         Err(_err) => {
-            println!("could not find crate {}",CRATE_TO_FETCH)
+            println!("could not find crate {}", CRATE_TO_FETCH)
         }
     }
 }
 
-fn update(index: &mut SparseIndex){
+fn update(index: &mut SparseIndex) {
     let req = index.make_cache_request(CRATE_TO_FETCH).unwrap().body(()).unwrap();
 
     let (parts, _) = req.into_parts();
@@ -42,9 +41,7 @@ fn update(index: &mut SparseIndex){
 
     let res = client.execute(req).unwrap();
 
-    let mut builder = http::Response::builder()
-        .status(res.status())
-        .version(res.version());
+    let mut builder = http::Response::builder().status(res.status()).version(res.version());
 
     builder
         .headers_mut()

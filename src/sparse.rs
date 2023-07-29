@@ -1,20 +1,13 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::{Crate, dirs::get_index_details, Error, IndexConfig, path_max_byte_len};
+use crate::dirs::crate_name_to_relative_path;
+use crate::{dirs::local_path_and_canonical_url, path_max_byte_len, Crate, Error, IndexConfig, SparseIndex};
 
-/// The default URL of the crates.io HTTP index, see [`Index::from_url`] and [`Index::new_cargo_default`]
-pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
+/// The default URL of the crates.io HTTP index, see [`SparseIndex::from_url`] and [`SparseIndex::new_cargo_default`]
+pub const URL: &str = "sparse+https://index.crates.io/";
 
-/// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
-///
-/// Currently it only uses local Cargo cache, and does not access the network in any way.
-pub struct Index {
-    path: PathBuf,
-    url: String,
-}
-
-impl Index {
+impl SparseIndex {
     /// Creates a view over the sparse HTTP index from a provided URL, opening
     /// the same location on disk that Cargo uses for that registry index's
     /// metadata and cache.
@@ -33,7 +26,7 @@ impl Index {
     /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
-        Self::from_url(CRATES_IO_HTTP_INDEX)
+        Self::from_url(URL)
     }
 
     /// Creates a view over the sparse HTTP index from the provided URL, rooted
@@ -47,7 +40,7 @@ impl Index {
             return Err(Error::Url(url.to_owned()));
         }
 
-        let (path, url) = get_index_details(url, Some(cargo_home.as_ref()))?;
+        let (path, url) = local_path_and_canonical_url(url, Some(cargo_home.as_ref()))?;
         Ok(Self::at_path(path, url))
     }
 
@@ -72,7 +65,8 @@ impl Index {
     /// Reads a crate from the local cache of the index. There are no guarantees around freshness,
     /// and if the crate is not known in the cache, no fetch will be performed.
     pub fn crate_from_cache(&self, name: &str) -> Result<Crate, Error> {
-        let cache_path = self.cache_path(name)
+        let cache_path = self
+            .cache_path(name)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
         let cache_bytes = std::fs::read(cache_path)?;
@@ -94,13 +88,13 @@ impl Index {
     #[inline]
     #[must_use]
     pub fn crate_url(&self, name: &str) -> Option<String> {
-        let rel_path = crate::crate_name_to_relative_path(name, None)?;
+        let rel_path = crate_name_to_relative_path(name, None)?;
         Some(format!("{}{rel_path}", self.url()))
     }
 
     /// Gets the full path to the cache file for the specified crate
     fn cache_path(&self, name: &str) -> Option<PathBuf> {
-        let rel_path = crate::crate_name_to_relative_path(name, None)?;
+        let rel_path = crate_name_to_relative_path(name, None)?;
 
         // avoid realloc on each push
         let mut cache_path = PathBuf::with_capacity(path_max_byte_len(&self.path) + 8 + rel_path.len());
@@ -112,10 +106,10 @@ impl Index {
     }
 
     /// Reads the version of the cache entry for the specified crate, if it exists
-    /// 
+    ///
     /// The version is of the form `key:value`, where, currently, the key is either
     /// `etag` or `last-modified`
-    #[cfg(feature = "sparse-http")]
+    #[cfg(feature = "sparse")]
     fn read_cache_version(&self, name: &str) -> Option<String> {
         let cache_path = self.cache_path(name)?;
         let bytes = std::fs::read(cache_path).ok()?;
@@ -136,28 +130,28 @@ impl Index {
         }
         let rest = &rest[4..];
 
-        let version = crate::split(rest, 0).next().and_then(|version| {
-            std::str::from_utf8(version).ok().map(String::from)
-        });
+        let version = crate::split(rest, 0)
+            .next()
+            .and_then(|version| std::str::from_utf8(version).ok().map(String::from));
 
         version
     }
 
     /// Creates an HTTP request that can be sent via your HTTP client of choice
     /// to retrieve the current metadata for the specified crate
-    /// 
+    ///
     /// See [`Self::parse_cache_response`] processing the response from the remote
     /// index
-    /// 
+    ///
     /// It is highly recommended to assume HTTP/2 when making requests to remote
     /// indices, at least crates.io
-    #[cfg(feature = "sparse-http")]
+    #[cfg(feature = "sparse")]
     pub fn make_cache_request(&self, name: &str) -> Result<http::request::Builder, Error> {
         use http::header;
 
-        let url = self.crate_url(name).ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidInput, "crate name is invalid")
-        })?;
+        let url = self
+            .crate_url(name)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "crate name is invalid"))?;
 
         let cache_version = self.read_cache_version(name);
 
@@ -168,15 +162,9 @@ impl Index {
 
             // AFAICT this does not affect responses at the moment, but could in the future
             // if there are changes
-            headers.insert(
-                "cargo-protocol",
-                header::HeaderValue::from_static("version=1"),
-            );
+            headers.insert("cargo-protocol", header::HeaderValue::from_static("version=1"));
             // All index entries are just files with lines of JSON
-            headers.insert(
-                header::ACCEPT,
-                header::HeaderValue::from_static("text/plain"),
-            );
+            headers.insert(header::ACCEPT, header::HeaderValue::from_static("text/plain"));
             // We need to accept both identity and gzip, as otherwise cloudfront will
             // always respond to requests with strong etag's, which will differ from
             // cache entries generated by cargo
@@ -211,19 +199,24 @@ impl Index {
     }
 
     /// Process the response to a request created by [`Self::make_cache_request`]
-    /// 
+    ///
     /// This handles both the scenario where the local cache is missing the specified
     /// crate, or it is out of date, as well as the local entry being up to date
     /// and can just be read from disk
-    /// 
+    ///
     /// You may specify whether an updated index entry is written locally to the
     /// cache or not
-    /// 
+    ///
     /// Note that responses from sparse HTTP indices, at least crates.io, may
     /// send responses with `gzip` compression, it is your responsibility to
     /// decompress it before sending to this function
-    #[cfg(feature = "sparse-http")]
-    pub fn parse_cache_response(&self, name: &str, response: http::Response<Vec<u8>>, write_cache_entry: bool) -> Result<Option<Crate>, Error> {
+    #[cfg(feature = "sparse")]
+    pub fn parse_cache_response(
+        &self,
+        name: &str,
+        response: http::Response<Vec<u8>>,
+        write_cache_entry: bool,
+    ) -> Result<Option<Crate>, Error> {
         use http::{header, StatusCode};
         let (parts, body) = response.into_parts();
 
@@ -259,132 +252,42 @@ impl Index {
             }
             // The local cache entry is up to date with the latest entry on the
             // server, we can just return the local one
-            StatusCode::NOT_MODIFIED => {
-                self.crate_from_cache(name).map(Option::Some)
-            }
+            StatusCode::NOT_MODIFIED => self.crate_from_cache(name).map(Option::Some),
             // The server requires authorization but the user didn't provide it
             StatusCode::UNAUTHORIZED => {
                 Err(io::Error::new(io::ErrorKind::PermissionDenied, "the request was not authorized").into())
             }
             // The crate does not exist, or has been removed
-            StatusCode::NOT_FOUND | StatusCode::GONE | StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS => {
-                Ok(None)
-            }
-            other => {
-                Err(io::Error::new(io::ErrorKind::Unsupported, format!("the server responded with status code '{other}', which is not supported in the current protocol")).into())
-            }
+            StatusCode::NOT_FOUND | StatusCode::GONE | StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS => Ok(None),
+            other => Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                format!(
+                    "the server responded with status code '{other}', which is not supported in the current protocol"
+                ),
+            )
+            .into()),
         }
     }
 }
 
 #[cfg(test)]
-mod test {
-    #[test]
-    fn parses_cache() {
-        let index = super::Index::with_path(
-            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/testdata/sparse_registry_cache/cargo_home"),
-            crate::CRATES_IO_HTTP_INDEX
-        ).unwrap();
-
-        let crate_ = index.crate_from_cache("autocfg").unwrap();
-
-        assert_eq!(crate_.name(), "autocfg");
-        assert_eq!(crate_.versions().len(), 13);
-        assert_eq!(crate_.earliest_version().version(), "0.0.1");
-        assert_eq!(crate_.highest_version().version(), "1.1.0");
-    }
-}
-
-#[cfg(all(test, feature = "sparse-http"))]
-mod http_tests {
+#[cfg(feature = "sparse")]
+mod tests {
+    use crate::SparseIndex;
+    use http::header;
 
     #[inline]
-    fn crates_io() -> super::Index {
-        super::Index::with_path(
-            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/testdata/sparse_registry_cache/cargo_home"),
-            crate::CRATES_IO_HTTP_INDEX
-        ).unwrap()
-    }
-
-    use http::{header, Request};
-
-    // Validates that a valid request is generated when there is no cache entry
-    // for a crate
-    #[test]
-    fn generates_request_for_missing_cache_entry() {
-        let index = crates_io();
-        let builder = index.make_cache_request("serde").unwrap();
-        let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
-
-        assert_eq!(req.uri(), format!("{}se/rd/serde", index.url()).as_str());
-        assert!(req.headers().get(header::IF_NONE_MATCH).is_none());
-        assert!(req.headers().get(header::IF_MODIFIED_SINCE).is_none());
-        assert_eq!(req.headers().get(header::ACCEPT_ENCODING).unwrap(), "gzip,identity");
-        assert_eq!(req.headers().get(header::HeaderName::from_static("cargo-protocol")).unwrap(), "version=1");
-        assert_eq!(req.headers().get(header::ACCEPT).unwrap(), "text/plain");
-    }
-
-    // Validates that a valid request is generated when there is a local cache
-    // entry for a crate
-    #[test]
-    fn generates_request_for_local_cache_entry() {
-        let index = crates_io();
-        let builder = index.make_cache_request("autocfg").unwrap();
-        let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
-
-        assert_eq!(req.uri(), format!("{}au/to/autocfg", index.url()).as_str());
-        assert_eq!(req.headers().get(header::IF_NONE_MATCH).unwrap(), "W/\"aa975a09419f9c8f61762a3d06fdb67d\"");
-        assert!(req.headers().get(header::IF_MODIFIED_SINCE).is_none());
-    }
-
-    // curl -v -H 'accept-encoding: gzip,identity' -H 'if-none-match: W/"aa975a09419f9c8f61762a3d06fdb67d"' https://index.crates.io/au/to/autocfg
-    // as of 2023-06-15
-    const AUTOCFG_INDEX_ENTRY: &[u8] = include_bytes!("../tests/testdata/autocfg.txt");
-
-    // Validates that a response with the full index contents are properly parsed
-    #[test]
-    fn parses_modified_response() {
-        let index = crates_io();
-        let response = http::Response::builder()
-            .status(http::StatusCode::OK)
-            .header(header::ETAG, "W/\"5f15de4a723e10b3f9eaf048d693cccc\"")
-            .body(AUTOCFG_INDEX_ENTRY.to_vec()).unwrap();
-
-        let krate = index.parse_cache_response("autocfg", response, false).unwrap().unwrap();
-        assert_eq!(krate.highest_version().version(), "1.1.0");
-    }
-
-    // Validates that a response for an index entry that has not been modified is
-    // parsed correctly
-    #[test]
-    fn parses_unmodified_response() {
-        let index = crates_io();
-        let response = http::Response::builder()
-            .status(http::StatusCode::NOT_MODIFIED)
-            .header(header::ETAG, "W/\"5f15de4a723e10b3f9eaf048d693cccc\"")
-            .body(Vec::new()).unwrap();
-
-        let krate = index.parse_cache_response("autocfg", response, false).unwrap().unwrap();
-        assert_eq!(krate.name(), "autocfg");
-        assert_eq!(krate.versions().len(), 13);
-        assert_eq!(krate.earliest_version().version(), "0.0.1");
-        assert_eq!(krate.highest_version().version(), "1.1.0");
-    }
-
-    // Validates that a response for an index entry that does not exist is
-    // parsed correcty
-    #[test]
-    fn parses_missing_response() {
-        let index = crates_io();
-        let response = http::Response::builder()
-            .status(http::StatusCode::NOT_FOUND)
-            .body(Vec::new()).unwrap();
-
-        assert!(index.parse_cache_response("serde", response, false).unwrap().is_none());
+    fn crates_io() -> SparseIndex {
+        SparseIndex::with_path(
+            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap())
+                .join("tests/fixtures/sparse_registry_cache/cargo_home"),
+            crate::sparse::URL,
+        )
+        .unwrap()
     }
 
     // curl -v -H 'accept-encoding: gzip,identity' https://index.crates.io/cr/at/crates-index
-    const CRATES_INDEX_INDEX_ENTRY: &[u8] = include_bytes!("../tests/testdata/crates-index.txt");
+    const CRATES_INDEX_INDEX_ENTRY: &[u8] = include_bytes!("../tests/fixtures/crates-index.txt");
 
     // Validates that a valid cache entry is written if the index entry has been
     // modified
@@ -392,17 +295,22 @@ mod http_tests {
     fn writes_cache_entry() {
         let index = crates_io();
 
-        let path = index.cache_path("crates-index").unwrap();
-        if path.exists() {
-            std::fs::remove_file(path).expect("failed to remove existing crates-index cache file");
+        let cache_path = index.cache_path("crates-index").unwrap();
+        if cache_path.exists() {
+            std::fs::remove_file(&cache_path).expect("failed to remove existing crates-index cache file");
         }
 
         let response = http::Response::builder()
             .status(http::StatusCode::OK)
             .header(header::ETAG, "W/\"7fbfc422231ec53a9283f2eb2fb4f459\"")
-            .body(CRATES_INDEX_INDEX_ENTRY.to_vec()).unwrap();
+            .body(CRATES_INDEX_INDEX_ENTRY.to_vec())
+            .unwrap();
 
-        let http_krate = index.parse_cache_response("crates-index", response, true).unwrap().unwrap();
+        let http_krate = index
+            .parse_cache_response("crates-index", response, true /* write cache entry */)
+            .unwrap()
+            .unwrap();
+        assert!(cache_path.is_file(), "the cache entry was indeed written");
         let cache_krate = index.crate_from_cache("crates-index").unwrap();
 
         for (http, cache) in http_krate.versions().iter().zip(cache_krate.versions().iter()) {

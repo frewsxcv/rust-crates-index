@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "1.0.0"
+version = "2.0.0"
 homepage = "https://lib.rs/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -11,18 +11,19 @@ license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
 edition = "2021"
 rust-version = "1.60"
+include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [[example]]
 name = "sparse_http_reqwest"
-required-features = ["sparse-http"]
+required-features = ["sparse"]
 
 [[example]]
 name = "sparse_http_ureq"
-required-features = ["sparse-http"]
+required-features = ["sparse"]
 
 [[example]]
 name = "update_and_get_latest"
-required-features = ["changes"]
+required-features = ["git"]
 
 [dependencies]
 gix = { version = "0.50.0", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
@@ -40,6 +41,8 @@ smol_str = { version = "0.2.0", features = ["serde"] }
 thiserror = "1.0.43"
 toml = "0.7.3"
 
+document-features = { version = "0.2.0", optional = true }
+
 [dev-dependencies]
 bytesize = "1.2.0"
 cap = { version = "0.1.2", features = ["stats"] }
@@ -47,20 +50,30 @@ is_ci = "1.1.1"
 tempfile = "3.5.0"
 ureq = { version = "2.7.1", features = ["http-interop"] }
 reqwest = { version = "0.11.18", features = ["blocking", "gzip"] }
+serial_test = "2.0.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
-features = ["sparse-http"]
+features = ["sparse", "git", "git-https", "parallel", "document-features"]
+rustdoc-args = ["--cfg", "docsrs"]
+
 
 [features]
-default = ["git-index", "https", "parallel"]
-changes = ["git-index"]
-git-index = ["dep:gix"]
-git-index-performance = ["git-index", "gix?/max-performance"]
-https = ["git-index", "gix?/blocking-http-transport-curl"]
+default = ["sparse"]
+## Activate support for accessing git-powered cargo indices. These have been superseded by the sparse-index, see the `sparse` feature.
+git = ["dep:gix"]
+## Activate support for git-powered cargo indices, but configure the underlying `gix` crate to use higher-performance sub-crates at the expense of platform compatibility.
+##
+## If it compiles for you, this should be preferred over `git`.
+git-performance = ["git", "gix?/max-performance"]
+## Add support for https based URLs in git indices.
+##
+## Most will want this enabled unless they know to only have to access non-https URLs for their indices.
+git-https = ["git", "gix?/blocking-http-transport-curl"]
+## Allow some functions to receive `rayon`-powered siblings for higher performance.
 parallel = ["dep:rayon"]
-ssh = ["git-index"] # at this time, `gix` does not need feature toggles for this as the `ssh` program is used. Native support is planned to match `git2`.
-sparse-http = ["dep:http"]
+## Add support for communicating with sparse indices.
+sparse = ["dep:http"]
 
 [badges]
-maintenance = { status = "looking-for-maintainer" }
+maintenance = { status = "passively-maintained" }

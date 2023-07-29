@@ -1,5 +1,5 @@
 pub use serde_json::Error as SerdeJsonError;
-use std::{io};
+use std::io;
 use std::path::PathBuf;
 pub use toml::de::Error as TomlDeError;
 
@@ -8,11 +8,11 @@ pub use toml::de::Error as TomlDeError;
 #[allow(missing_docs)]
 pub enum Error {
     #[error("\"gix\" crate failed. If problems persist, consider deleting `~/.cargo/registry/index/github.com-1ecc6299db9ec823/`")]
-    #[cfg(feature = "git-index")]
+    #[cfg(feature = "git")]
     Git(#[from] GixError),
     #[error("{0}")]
     Url(String),
-    #[error("Could not obtain the most recent head commit in repo at {}. Tried {}, had {} available", repo_path.display(), refs_tried.join(", "), refs_available.join(", "))] 
+    #[error("Could not obtain the most recent head commit in repo at {}. Tried {}, had {} available", repo_path.display(), refs_tried.join(", "), refs_available.join(", "))]
     MissingHead {
         /// The references we tried to get commits for.
         refs_tried: &'static [&'static str],
@@ -32,7 +32,7 @@ pub enum Error {
 /// Any error produced by `gix` or the `gix-*` family of crates.
 #[derive(Debug, thiserror::Error)]
 #[allow(missing_docs)]
-#[cfg(feature = "git-index")]
+#[cfg(feature = "git")]
 pub enum GixError {
     #[error(transparent)]
     CreateInMemoryRemote(#[from] gix::remote::init::Error),
@@ -49,9 +49,7 @@ pub enum GixError {
     #[error(transparent)]
     IntoObjectKind(#[from] gix::object::try_into::Error),
     #[error("The '{}' file is missing at the root of the tree of the crates index", path.display())]
-    PathMissing {
-        path: std::path::PathBuf
-    },
+    PathMissing { path: std::path::PathBuf },
     #[error(transparent)]
     LockAcquire(#[from] gix::lock::acquire::Error),
     #[error(transparent)]
@@ -72,18 +70,8 @@ pub enum GixError {
     PeelToKind(#[from] gix::object::peel::to_kind::Error),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn error_is_send() {
-        fn is_send<T: Send>() {}
-        is_send::<Error>();
-    }
-}
-
-/// Unknown error from [`crate::Index::crates_parallel`]
+/// Unknown error from [`crate::GitIndex::crates_parallel`]
+#[cfg(feature = "parallel")]
 #[derive(Debug, thiserror::Error)]
 #[error("error while iterating git repository")]
 pub struct CratesIterError;

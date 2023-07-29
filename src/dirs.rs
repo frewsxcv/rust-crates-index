@@ -1,8 +1,78 @@
 use crate::Error;
 
+/// Get the disk location of the specified `url`, as well as its canonical form,
+/// exactly as cargo would.
+///
+/// `cargo_home` is used to root the directory at specific location, if not
+/// specified `CARGO_HOME` or else the default cargo location is used as the root.
+pub fn local_path_and_canonical_url(
+    url: &str,
+    cargo_home: Option<&std::path::Path>,
+) -> Result<(std::path::PathBuf, String), Error> {
+    let (dir_name, canonical_url) = url_to_local_dir(url)?;
+
+    let mut path = match cargo_home {
+        Some(path) => path.to_owned(),
+        None => home::cargo_home()?,
+    };
+
+    path.push("registry");
+    path.push("index");
+    path.push(dir_name);
+
+    Ok((path, canonical_url))
+}
+
+pub(crate) fn crate_prefix(accumulator: &mut String, crate_name: &str, separator: char) -> Option<()> {
+    match crate_name.len() {
+        0 => return None,
+        1 => accumulator.push('1'),
+        2 => accumulator.push('2'),
+        3 => {
+            accumulator.push('3');
+            accumulator.push(separator);
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..1)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
+        }
+        _ => {
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(0..2)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
+            accumulator.push(separator);
+            accumulator.extend(
+                crate_name
+                    .as_bytes()
+                    .get(2..4)?
+                    .iter()
+                    .map(|c| c.to_ascii_lowercase() as char),
+            );
+        }
+    };
+    Some(())
+}
+
+pub(crate) fn crate_name_to_relative_path(crate_name: &str, separator: Option<char>) -> Option<String> {
+    let separator = separator.unwrap_or(std::path::MAIN_SEPARATOR);
+    let mut rel_path = String::with_capacity(crate_name.len() + 6);
+    crate_prefix(&mut rel_path, crate_name, separator)?;
+    rel_path.push(separator);
+    rel_path.extend(crate_name.as_bytes().iter().map(|c| c.to_ascii_lowercase() as char));
+
+    Some(rel_path)
+}
+
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
 /// the root directory name where cargo itself will fetch it on disk
-pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
+fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     fn to_hex(num: u64) -> String {
         const CHARS: &[u8] = b"0123456789abcdef";
 
@@ -113,53 +183,43 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     Ok((format!("{host}-{ident}"), url))
 }
 
-/// Get the disk location of the specified url, as well as its canonical form,
-/// exactly as cargo would
-/// 
-/// `cargo_home` is used to root the directory at specific location, if not
-/// specified `CARGO_HOME` or else the default cargo location is used as the root
-pub(crate) fn get_index_details(
-    url: &str,
-    cargo_home: Option<&std::path::Path>,
-) -> Result<(std::path::PathBuf, String), Error> {
-    let (dir_name, canonical_url) = url_to_local_dir(url)?;
-
-    let mut path = match cargo_home {
-        Some(path) => path.to_owned(),
-        None => home::cargo_home()?,
-    };
-
-    path.push("registry");
-    path.push("index");
-    path.push(dir_name);
-
-    Ok((path, canonical_url))
-}
-
 #[cfg(test)]
 mod test {
+
     #[test]
-    fn matches_cargo() {
+    fn http_index_url_matches_cargo() {
+        use crate::sparse::URL;
         assert_eq!(
-            super::url_to_local_dir(crate::CRATES_IO_HTTP_INDEX).unwrap(),
-            (
-                "index.crates.io-6f17d22bba15001f".to_owned(),
-                crate::CRATES_IO_HTTP_INDEX.to_owned(),
-            )
+            super::url_to_local_dir(URL).unwrap(),
+            ("index.crates.io-6f17d22bba15001f".to_owned(), URL.to_owned(),)
         );
 
         // I've confirmed this also works with a custom registry, unfortunately
         // that one includes a secret key as part of the url which would allow
         // anyone to publish to the registry, so uhh...here's a fake one instead
         assert_eq!(
-            super::url_to_local_dir(
-                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git"
-            )
-            .unwrap(),
+            super::url_to_local_dir("https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git").unwrap(),
             (
                 "dl.cloudsmith.io-ff79e51ddd2b38fd".to_owned(),
                 "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git".to_owned()
             )
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "git")]
+    fn git_url_matches_cargo() {
+        use crate::git::URL;
+        assert_eq!(
+            crate::dirs::url_to_local_dir(URL).unwrap(),
+            ("github.com-1ecc6299db9ec823".to_owned(), URL.to_owned())
+        );
+
+        // Ensure we actually strip off the irrelevant parts of a url, note that
+        // the .git suffix is not part of the canonical url, but *is* used when hashing
+        assert_eq!(
+            crate::dirs::url_to_local_dir(&format!("registry+{}.git?one=1&two=2#fragment", URL)).unwrap(),
+            ("github.com-c786010fb7ef2e6e".to_owned(), URL.to_owned())
         );
     }
 }
