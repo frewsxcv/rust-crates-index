@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+<csr-id-c293e35e43650bebbdbd869c4c9d01bfb2e836c0/>
+<csr-id-2c5d33a51604f032ff1538b16cf0408a8fe2568a/>
+
+This is a major release with many breaking changes to make the overall package structure, type-names and feature names more consistent.
+
+**Note that the `default` features changed**, so if you relied on that you will have to change the dependency definition in your `cargo` manifest
+to something like `default-features = false, features = ["git-performance" and "git-https"]`. This is due to the sparse index now being the default,
+just like with `cargo` itself.
+
+Further, now `crate_index::Index` is `crates_index::GitIndex`, but when done all should work as before, maybe even a little bit faster thanks to
+replacing `git2` with [`gix`](https://docs.rs/gix/0.50.1/gix/).
+
+For details about all breaking changes, please take a look at the `(BREAKING)` paragraphs that follow.
+
 ### Chore
 
  - <csr-id-c293e35e43650bebbdbd869c4c9d01bfb2e836c0/> Add `CHANGELOG.md` for a built-in version of it
@@ -14,13 +28,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    This change bringe performance improvements along with increased compatibilty
    with other build targets, as pure Rust builds are now possible.
 
+### Refactor (BREAKING)
+
+ - <csr-id-7e86e3c625944cdeba55dda6086617796fb061e3/> refactor code structure
+   The goal is to keep related code together, instead of spreading it out into
+   top-level modules exclusively.
+   
+   This also renames `Index` to `GitIndex`.
+   Further changes involved renaming `ChangesIter` to `git::Changes`, and
+   `INDEX_GIT_URL` to `git::URL`, and `CRATES_IO_HTTP_INDEX` to `sparse::URL`.
+
+### Chore (BREAKING)
+
+ - <csr-id-a8953e0939711940f2ef554155edcf3853030df3/> remove `ssh` feature, and rename many existing features, change defaults
+   * `git-index` -> `git`
+   * add `git-performance`
+   * `https` -> `git-https`
+   * `sparse-http` -> `sparse`
+   
+   The default features are now `sparse`, effectively adjusting to the fact
+   that the default is now the http registry.
+ - <csr-id-260c103409ff08a96c465568363675d6dc8a2fa7/> remove `changes` feature
+   It only gated a little bit of code, but no dependencies. Thus it had no considerable
+   effect on build times and can be removed.
+
+### Other
+
+ - <csr-id-235e175022647f9ab63b024ca0780c907b9fd6ec/> make clear that `GitIndex` auto-clones any index as needed.
+ - <csr-id-beb9f12885703574ba3c3307c368fb84c1a05028/> crate features are now documented
+
+### Chore
+
+ - <csr-id-42d89c2e84f0e81da3db046864be379a2ae9eb15/> Add `CHANGELOG.md` for a built-in version of it
+
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 25 commits contributed to the release over the course of 6 calendar days.
+ - 34 commits contributed to the release over the course of 7 calendar days.
  - 8 days passed between releases.
- - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 7 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#129](https://github.com/frewsxcv/rust-crates-index/issues/129)
 
 ### Thanks Clippy
@@ -38,7 +85,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **[#129](https://github.com/frewsxcv/rust-crates-index/issues/129)**
     - Replace `git2` with `gix`. ([`2c5d33a`](https://github.com/frewsxcv/rust-crates-index/commit/2c5d33a51604f032ff1538b16cf0408a8fe2568a))
  * **Uncategorized**
-    - Add `CHANGELOG.md` for a built-in version of it ([`c293e35`](https://github.com/frewsxcv/rust-crates-index/commit/c293e35e43650bebbdbd869c4c9d01bfb2e836c0))
+    - Make clear that `GitIndex` auto-clones any index as needed. ([`235e175`](https://github.com/frewsxcv/rust-crates-index/commit/235e175022647f9ab63b024ca0780c907b9fd6ec))
+    - Remove `ssh` feature, and rename many existing features, change defaults ([`a8953e0`](https://github.com/frewsxcv/rust-crates-index/commit/a8953e0939711940f2ef554155edcf3853030df3))
+    - Crate features are now documented ([`beb9f12`](https://github.com/frewsxcv/rust-crates-index/commit/beb9f12885703574ba3c3307c368fb84c1a05028))
+    - Bump version to 2.0, update CHANGELOG.md with excerpt from README.md ([`b0836d1`](https://github.com/frewsxcv/rust-crates-index/commit/b0836d1974ea35fec6c6f40e72a62dd9ca0d65bc))
+    - Run `cargo-diet` to optimize package size ([`2fdf3a8`](https://github.com/frewsxcv/rust-crates-index/commit/2fdf3a8eaef6bc2114f82050d5306d896b0fe76d))
+    - Refactor code structure ([`7e86e3c`](https://github.com/frewsxcv/rust-crates-index/commit/7e86e3c625944cdeba55dda6086617796fb061e3))
+    - Remove `changes` feature ([`260c103`](https://github.com/frewsxcv/rust-crates-index/commit/260c103409ff08a96c465568363675d6dc8a2fa7))
+    - Rename `testdata` to `fixtures` ([`aba9606`](https://github.com/frewsxcv/rust-crates-index/commit/aba9606a02c84be8229a642c6b8d06914a1c5fc6))
+    - Move tests of the public API into `tests/` where integration tests live ([`0096b92`](https://github.com/frewsxcv/rust-crates-index/commit/0096b924e437a6c310b18a72b2aa5e68605afdcc))
+    - Add `CHANGELOG.md` for a built-in version of it ([`42d89c2`](https://github.com/frewsxcv/rust-crates-index/commit/42d89c2e84f0e81da3db046864be379a2ae9eb15))
     - Use `thiserror` for the error type. ([`fed6904`](https://github.com/frewsxcv/rust-crates-index/commit/fed6904d2bc92ed8ac83d39134b1a97fbd1c980d))
     - Improve "find_repo_head()" to be more resilient ([`5649466`](https://github.com/frewsxcv/rust-crates-index/commit/564946679e8867a364badffefa8470185442ee33))
     - Fix refspecs for updating the crates index ([`cc6b8f9`](https://github.com/frewsxcv/rust-crates-index/commit/cc6b8f9692eeb0e7a0660fd7a6c02459d1f05d0d))
@@ -125,6 +181,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v0.19.12 (2023-06-15)
 
+<csr-id-de7df1cb85b322e0e9cde387a01f426685d8a4a4/>
+<csr-id-a69a7785347cfc7b5773c73e0b10b8e5b63a1e58/>
+<csr-id-135179a0e95a97e3e57d16692c7b17c54ffe0d16/>
+
 ### Other
 
  - <csr-id-de7df1cb85b322e0e9cde387a01f426685d8a4a4/> Add `cargo check --all-targets --no-default-features`
@@ -177,6 +237,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v0.19.11 (2023-06-14)
 
+<csr-id-8cf14fbe0317ba4fc443eb6926f4a952bf8e7e0e/>
+
 ### Chore
 
  - <csr-id-8cf14fbe0317ba4fc443eb6926f4a952bf8e7e0e/> Release crates-index version 0.19.11
@@ -213,6 +275,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 </details>
 
 ## v0.19.10 (2023-05-13)
+
+<csr-id-286b2251ae8a286f8992831f7a845f88227107dd/>
 
 ### Chore
 
@@ -305,6 +369,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v0.19.6 (2023-02-24)
 
+<csr-id-34501eae518292acb55a4821214eff9fc03e7aee/>
+
 ### Chore
 
  - <csr-id-34501eae518292acb55a4821214eff9fc03e7aee/> Release crates-index version 0.19.6
@@ -330,6 +396,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 </details>
 
 ## v0.19.5 (2023-02-15)
+
+<csr-id-6e5d42720fe76834213723ebe95e52e5dd788f15/>
 
 ### Chore
 
@@ -402,6 +470,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 </details>
 
 ## v0.19.2 (2023-01-29)
+
+<csr-id-a3407ce2f58217e0b4dc30552cf65d4a11d67d5a/>
 
 ### Chore
 
@@ -477,6 +547,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 </details>
 
 ## v0.18.11 (2022-11-04)
+
+<csr-id-18253ffa6c5d837efdf607718270c5845ee76f70/>
 
 ### New Features
 
@@ -688,6 +760,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 </details>
 
 ## v0.18.1 (2021-10-25)
+
+<csr-id-9984f8920bea2fbeea999137b33aae8d8eb2f094/>
 
 ### Chore
 

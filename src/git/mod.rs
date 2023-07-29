@@ -66,6 +66,7 @@ impl GitIndex {
     /// disk location as Cargo itself.
     ///
     /// This is the recommended way to access Cargo's index.
+    /// *Note that this clones a new index if none is present yet.
     ///
     /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
@@ -76,6 +77,8 @@ impl GitIndex {
 
     /// Creates a bare index from a provided URL, opening the same location on
     /// disk that Cargo uses for that registry index.
+    /// 
+    /// *Note that this clones a new index if none is present yet.
     ///
     /// It can be used to access custom registries.
     pub fn from_url(url: &str) -> Result<Self, Error> {
@@ -83,7 +86,9 @@ impl GitIndex {
         Self::from_path_and_url(path, canonical_url)
     }
 
-    /// Creates a bare index at the provided path with the specified repository URL.
+    /// Creates a bare index at the provided `path` with the specified repository `URL`.
+    /// 
+    /// *Note that this clones a new index to `path` if none is present there yet.
     #[inline]
     pub fn with_path<P: Into<PathBuf>, S: Into<String>>(path: P, url: S) -> Result<Self, Error> {
         Self::from_path_and_url(path.into(), url.into())
