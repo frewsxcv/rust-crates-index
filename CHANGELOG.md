@@ -5,10 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.0.0 (2023-07-29)
 
 <csr-id-c293e35e43650bebbdbd869c4c9d01bfb2e836c0/>
 <csr-id-2c5d33a51604f032ff1538b16cf0408a8fe2568a/>
+<csr-id-7e86e3c625944cdeba55dda6086617796fb061e3/>
+<csr-id-a8953e0939711940f2ef554155edcf3853030df3/>
+<csr-id-260c103409ff08a96c465568363675d6dc8a2fa7/>
+<csr-id-235e175022647f9ab63b024ca0780c907b9fd6ec/>
+<csr-id-beb9f12885703574ba3c3307c368fb84c1a05028/>
+<csr-id-42d89c2e84f0e81da3db046864be379a2ae9eb15/>
 
 This is a major release with many breaking changes to make the overall package structure, type-names and feature names more consistent.
 
@@ -20,6 +26,15 @@ Further, now `crate_index::Index` is `crates_index::GitIndex`, but when done all
 replacing `git2` with [`gix`](https://docs.rs/gix/0.50.1/gix/).
 
 For details about all breaking changes, please take a look at the `(BREAKING)` paragraphs that follow.
+
+### Other
+
+ - <csr-id-965f6e98788a62c380ed1daa61867817685d7371/> make clear that `GitIndex` auto-clones any index as needed.
+
+### New Features
+
+ - <csr-id-0d893523aa682b10c50441be3ec1d8f5356bf2c0/> add `dirs::TBD` to make it possible to know where the index should be looked for.
+   This might be interesting also for tools that deal with the data alone, like `cargo-cache`.
 
 ### Chore
 
@@ -65,9 +80,9 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 
 <csr-read-only-do-not-edit/>
 
- - 34 commits contributed to the release over the course of 7 calendar days.
+ - 38 commits contributed to the release over the course of 7 calendar days.
  - 8 days passed between releases.
- - 7 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 8 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#129](https://github.com/frewsxcv/rust-crates-index/issues/129)
 
 ### Thanks Clippy
@@ -85,7 +100,11 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
  * **[#129](https://github.com/frewsxcv/rust-crates-index/issues/129)**
     - Replace `git2` with `gix`. ([`2c5d33a`](https://github.com/frewsxcv/rust-crates-index/commit/2c5d33a51604f032ff1538b16cf0408a8fe2568a))
  * **Uncategorized**
-    - Make clear that `GitIndex` auto-clones any index as needed. ([`235e175`](https://github.com/frewsxcv/rust-crates-index/commit/235e175022647f9ab63b024ca0780c907b9fd6ec))
+    - Fix `include` directive to allow publish to succeed ([`40caa8f`](https://github.com/frewsxcv/rust-crates-index/commit/40caa8f16b1e33603660a614918d2497bc9427c3))
+    - Merge branch 'v2.0' ([`d3b0069`](https://github.com/frewsxcv/rust-crates-index/commit/d3b006976060cda7c09c407ee5707a73bea50b2b))
+    - Enable cargo-fmt ([`365f9dc`](https://github.com/frewsxcv/rust-crates-index/commit/365f9dcf36a86ffda5c0280b5494bca3becfd3ed))
+    - Add `dirs::TBD` to make it possible to know where the index should be looked for. ([`0d89352`](https://github.com/frewsxcv/rust-crates-index/commit/0d893523aa682b10c50441be3ec1d8f5356bf2c0))
+    - Make clear that `GitIndex` auto-clones any index as needed. ([`965f6e9`](https://github.com/frewsxcv/rust-crates-index/commit/965f6e98788a62c380ed1daa61867817685d7371))
     - Remove `ssh` feature, and rename many existing features, change defaults ([`a8953e0`](https://github.com/frewsxcv/rust-crates-index/commit/a8953e0939711940f2ef554155edcf3853030df3))
     - Crate features are now documented ([`beb9f12`](https://github.com/frewsxcv/rust-crates-index/commit/beb9f12885703574ba3c3307c368fb84c1a05028))
     - Bump version to 2.0, update CHANGELOG.md with excerpt from README.md ([`b0836d1`](https://github.com/frewsxcv/rust-crates-index/commit/b0836d1974ea35fec6c6f40e72a62dd9ca0d65bc))
