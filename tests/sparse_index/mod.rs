@@ -1,7 +1,7 @@
 #[test]
 fn crate_from_cache() {
     let index = crates_index::SparseIndex::with_path(
-        std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/testdata/sparse_registry_cache/cargo_home"),
+        std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/sparse_registry_cache/cargo_home"),
         crates_index::CRATES_IO_HTTP_INDEX
     ).unwrap();
 
@@ -20,7 +20,7 @@ mod with_sparse_http_feature {
     #[inline]
     fn crates_io() -> SparseIndex {
         SparseIndex::with_path(
-            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/testdata/sparse_registry_cache/cargo_home"),
+            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/sparse_registry_cache/cargo_home"),
             crates_index::CRATES_IO_HTTP_INDEX
         ).unwrap()
     }
@@ -65,7 +65,7 @@ mod with_sparse_http_feature {
 
         // curl -v -H 'accept-encoding: gzip,identity' -H 'if-none-match: W/"aa975a09419f9c8f61762a3d06fdb67d"' https://index.crates.io/au/to/autocfg
         // as of 2023-06-15
-        const AUTOCFG_INDEX_ENTRY: &[u8] = include_bytes!("../../tests/testdata/autocfg.txt");
+        const AUTOCFG_INDEX_ENTRY: &[u8] = include_bytes!("../../tests/fixtures/autocfg.txt");
 
         // Validates that a response with the full index contents are properly parsed
         #[test]

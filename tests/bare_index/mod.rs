@@ -180,7 +180,7 @@ pub(crate)  mod with_https {
     }
 
     pub(crate) fn shared_index() -> Index {
-        let index_path = "tests/testdata/git-registry";
+        let index_path = "tests/fixtures/git-registry";
         if is_ci::cached() {
             Index::new_cargo_default()
                 .expect("CI has just cloned this index and its ours and valid")

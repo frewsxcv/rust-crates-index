@@ -286,13 +286,13 @@ mod tests {
     #[inline]
     fn crates_io() -> SparseIndex {
         SparseIndex::with_path(
-            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/testdata/sparse_registry_cache/cargo_home"),
+            std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/sparse_registry_cache/cargo_home"),
             crate::CRATES_IO_HTTP_INDEX
         ).unwrap()
     }
 
     // curl -v -H 'accept-encoding: gzip,identity' https://index.crates.io/cr/at/crates-index
-    const CRATES_INDEX_INDEX_ENTRY: &[u8] = include_bytes!("../tests/testdata/crates-index.txt");
+    const CRATES_INDEX_INDEX_ENTRY: &[u8] = include_bytes!("../tests/fixtures/crates-index.txt");
 
     // Validates that a valid cache entry is written if the index entry has been
     // modified
