@@ -1,6 +1,6 @@
 # crates-index
 
-[![crates-index on Crates.io](https://img.shields.io/crates/v/crates-index.svg)](https://lib.rs/crates/crates-index)
+[![crates-index on Crates.io](https://img.shields.io/crates/v/crates-index.svg)](https://crates.io/crates/crates-index)
 
 Library for retrieving and interacting with the [crates.io registry git-based index](https://github.com/rust-lang/crates.io-index).
 
