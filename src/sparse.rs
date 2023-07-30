@@ -88,7 +88,7 @@ impl SparseIndex {
     #[inline]
     #[must_use]
     pub fn crate_url(&self, name: &str) -> Option<String> {
-        let rel_path = crate_name_to_relative_path(name, None)?;
+        let rel_path = crate_name_to_relative_path(name, Some('/'))?;
         Some(format!("{}{rel_path}", self.url()))
     }
 
