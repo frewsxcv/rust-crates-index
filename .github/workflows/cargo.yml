@@ -16,8 +16,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         rust:
-          - beta
-          - nightly
+          - stable
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
