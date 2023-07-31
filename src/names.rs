@@ -60,8 +60,11 @@ impl Iterator for Names {
                         return None;
                     }
 
+                    //map the count so the first value is the last one (all "-"), the second one is the first one (all "_")...
+                    let used_count = *count as isize - 1 + self.max_count as isize;
+
                     for (sep_index, char_index) in self.separator_indexes[..self.separator_count].iter().enumerate() {
-                        let char = if *count & (1 << sep_index) == 0 { b'-' } else { b'_' };
+                        let char = if used_count & (1 << sep_index) == 0 { b'_' } else { b'-' };
                         // SAFETY: We validated that `char_index` is a valid UTF-8 codepoint
                         #[allow(unsafe_code)]
                         unsafe {
