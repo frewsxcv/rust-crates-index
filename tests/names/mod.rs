@@ -38,7 +38,7 @@ fn max_permutation_count_causes_error() {
     );
     assert!(
         Names::new("a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r").is_none(),
-        "17 are not fine anymore"
+        "16 are not fine anymore"
     );
 }
 
