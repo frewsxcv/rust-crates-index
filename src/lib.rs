@@ -155,6 +155,16 @@ pub struct SparseIndex {
 ///
 pub mod sparse;
 
+/// Iterator over all possible permutations of `-_` in crate names
+#[derive(Clone)]
+pub struct Names {
+    count: u32,
+    max_count: u32,
+    chars: Vec<char>,
+    separator_indexes: Vec<usize>,
+}
+mod names;
+
 mod types;
 pub use types::{Crate, Dependency, DependencyKind, Version};
 
