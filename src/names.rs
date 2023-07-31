@@ -49,7 +49,6 @@ impl Iterator for Names {
         }
 
         self.count += 1;
-
         Some(self.chars.iter().collect())
     }
 }

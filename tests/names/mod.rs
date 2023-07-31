@@ -1,30 +1,31 @@
 use crates_index::Names;
-use itertools::Itertools;
 
 #[test]
 fn empty_string() {
-    assert_eq!(Names::new("").dedup().count(), 1);
+    assert_eq!(Names::new("").count(), 1);
 }
 
 #[test]
-fn string_with_out_separators() {
-    assert_eq!(Names::new("serde").dedup().count(), 1);
+fn name_without_separators_yields_name() {
+    assert_eq!(Names::new("serde").count(), 1);
 }
 
 #[test]
-fn string_with_separators() {
-    assert_eq!(Names::new("serde-test").dedup().count(), 2);
-    assert_eq!(Names::new("serde-test_2").dedup().count(), 4);
-    assert_eq!(Names::new("serde_test_2").dedup().count(), 4);
-    assert_eq!(Names::new("serde_test_2-test").dedup().count(), 8);
+fn permutation_count() {
+    assert_eq!(Names::new("a-b").count(), 2);
+    assert_eq!(Names::new("a-b_c").count(), 4);
+    assert_eq!(Names::new("a_b_c").count(), 4);
+    assert_eq!(Names::new("a_b_c-d").count(), 8);
 }
 
 #[test]
-fn correct_strings() {
-    let names = Names::new("serde-test-2");
-
-    assert!(names.clone().contains(&"serde-test-2".to_string()));
-    assert!(names.clone().contains(&"serde-test_2".to_string()));
-    assert!(names.clone().contains(&"serde_test_2".to_string()));
-    assert!(names.clone().contains(&"serde_test-2".to_string()));
+fn permutations() {
+    for (name, expected) in [
+        ("a_b", &["a_b", "a-b"] as &[_]),
+        ("a-b", &["a_b", "a-b"] as &[_]),
+        ("a-b-c", &["a_b_c", "a-b_c", "a_b-c", "a-b-c"]),
+    ] {
+        let names: Vec<String> = Names::new(name).collect();
+        assert_eq!(&names, expected);
+    }
 }
