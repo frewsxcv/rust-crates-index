@@ -22,7 +22,7 @@ impl Names {
                 if char == '-' || char == '_' {
                     separator_indexes[separator_count] = index;
                     separator_count += 1;
-                    '-'
+                    '_'
                 } else {
                     char
                 }
@@ -47,9 +47,9 @@ impl Iterator for Names {
             return None;
         }
 
-        for (index, string_index) in self.separator_indexes[..self.separator_count].iter().enumerate() {
-            let char = if self.count & (1 << index) == 0 { '_' } else { '-' };
-            *self.chars.get_mut(*string_index).unwrap() = char;
+        for (sep_index, char_index) in self.separator_indexes[..self.separator_count].iter().enumerate() {
+            let char = if self.count & (1 << sep_index) == 0 { '-' } else { '_' };
+            self.chars[*char_index] = char;
         }
 
         self.count += 1;

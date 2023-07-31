@@ -35,9 +35,16 @@ fn max_permutation_count_causes_error() {
 #[test]
 fn permutations() {
     for (name, expected) in [
-        ("a_b", &["a_b", "a-b"] as &[_]),
-        ("a-b", &["a_b", "a-b"] as &[_]),
-        ("a-b-c", &["a_b_c", "a-b_c", "a_b-c", "a-b-c"]),
+        ("a_b", &["a-b", "a_b"] as &[_]),
+        ("parking_lot", &["parking-lot", "parking_lot"]), // Ideally, the input name is always the first one returned.
+        ("a-b", &["a-b", "a_b"]),
+        ("a-b-c", &["a-b-c", "a_b-c", "a-b_c", "a_b_c"]),
+        (
+            "a-b-c-d",
+            &[
+                "a-b-c-d", "a_b-c-d", "a-b_c-d", "a_b_c-d", "a-b-c_d", "a_b-c_d", "a-b_c_d", "a_b_c_d",
+            ],
+        ),
     ] {
         let names: Vec<String> = Names::new(name).unwrap().collect();
         assert_eq!(&names, expected);
