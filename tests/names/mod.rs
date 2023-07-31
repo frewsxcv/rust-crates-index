@@ -35,8 +35,8 @@ fn max_permutation_count_causes_error() {
 #[test]
 fn permutations() {
     for (name, expected) in [
-        ("a_b", &["a-b", "a_b"] as &[_]),
-        ("parking_lot", &["parking-lot", "parking_lot"]), // Ideally, the input name is always the first one returned.
+        ("parking_lot", &["parking-lot", "parking_lot"] as &[_]), // the input name is always the first one returned.
+        ("a_b", &["a-b", "a_b"]),
         ("a-b", &["a-b", "a_b"]),
         ("a-b-c", &["a-b-c", "a_b-c", "a-b_c", "a_b_c"]),
         (

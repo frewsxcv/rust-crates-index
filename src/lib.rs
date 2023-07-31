@@ -107,8 +107,7 @@
     cfg_attr(doc, doc = ::document_features::document_features!())
 )]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
-#![forbid(unsafe_code)]
-#![deny(rust_2018_compatibility, missing_docs)]
+#![deny(unsafe_code, rust_2018_compatibility, missing_docs)]
 use std::path::{Path, PathBuf};
 
 /// Wrapper around managing the crates.io-index git repository
