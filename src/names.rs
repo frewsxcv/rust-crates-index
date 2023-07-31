@@ -1,6 +1,6 @@
 /// An iterator over all possible permutations of hyphens (`-`) and underscores (`_`) of a crate name.
 ///
-/// For instance, the name `parking_lot` is turned into the sequence `parking_lot` and `parking_lot`, while
+/// For instance, the name `parking_lot` is turned into the sequence `parking_lot` and `parking-lot`, while
 /// `serde-yaml` is turned into `serde-yaml` and `serde_yaml`.
 #[derive(Clone)]
 pub struct Names {
