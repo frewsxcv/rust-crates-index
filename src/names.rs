@@ -78,4 +78,11 @@ impl Iterator for Names {
             }
         }
     }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.max_count as usize
+    }
 }

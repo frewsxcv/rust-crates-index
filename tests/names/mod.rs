@@ -1,13 +1,17 @@
 use crates_index::Names;
 
+fn data_count(names: Names) -> usize {
+    names.collect::<Vec<String>>().len()
+}
+
 #[test]
 fn empty_string() {
-    assert_eq!(Names::new("").unwrap().count(), 1);
+    assert_eq!(data_count(Names::new("").unwrap()), 1);
 }
 
 #[test]
 fn name_without_separators_yields_name() {
-    assert_eq!(Names::new("serde").unwrap().count(), 1);
+    assert_eq!(data_count(Names::new("serde").unwrap()), 1);
 }
 
 #[test]
@@ -19,11 +23,17 @@ fn permutation_count() {
 }
 
 #[test]
+fn permutation_data_count() {
+    assert_eq!(data_count(Names::new("a-b").unwrap()), 2);
+    assert_eq!(data_count(Names::new("a-b_c").unwrap()), 4);
+    assert_eq!(data_count(Names::new("a_b_c").unwrap()), 4);
+    assert_eq!(data_count(Names::new("a_b_c-d").unwrap()), 8);
+}
+
+#[test]
 fn max_permutation_count_causes_error() {
     assert_eq!(
-        Names::new("a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p")
-            .expect("15 separators are fine")
-            .count(),
+        data_count(Names::new("a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p").expect("15 separators are fine")),
         32768
     );
     assert!(
