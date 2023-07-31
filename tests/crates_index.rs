@@ -1,4 +1,5 @@
 mod git;
+mod names;
 mod sparse_index;
 mod error {
     #[test]
