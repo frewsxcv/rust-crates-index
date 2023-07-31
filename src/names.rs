@@ -1,7 +1,11 @@
 /// An iterator over all possible permutations of hyphens (`-`) and underscores (`_`) of a crate name.
 ///
-/// For instance, the name `parking_lot` is turned into the sequence `parking_lot` and `parking_lot`, while
+/// The sequence yields the input name first, then an all-hyphens variant of it followed by an
+/// all-underscores variant to maximize the chance of finding a match. Then follow all remaining permutations.
+///
+/// For instance, the name `parking_lot` is turned into the sequence `parking_lot` and `parking-lot`, while
 /// `serde-yaml` is turned into `serde-yaml` and `serde_yaml`.
+/// Finally, `a-b_c`  is returned as `a-b_c`, `a-b-c`, `a_b_c`, `a_b-c`.
 #[derive(Clone)]
 pub struct Names {
     count: Option<u16>,
@@ -60,8 +64,10 @@ impl Iterator for Names {
                         return None;
                     }
 
+                    //map the count so the first value is the last one (all "-"), the second one is the first one (all "_")...
+                    let used_count = *count as isize - 1 + self.max_count as isize;
                     for (sep_index, char_index) in self.separator_indexes[..self.separator_count].iter().enumerate() {
-                        let char = if *count & (1 << sep_index) == 0 { b'-' } else { b'_' };
+                        let char = if used_count & (1 << sep_index) == 0 { b'_' } else { b'-' };
                         // SAFETY: We validated that `char_index` is a valid UTF-8 codepoint
                         #[allow(unsafe_code)]
                         unsafe {
@@ -77,5 +83,12 @@ impl Iterator for Names {
                 Some(self.current.clone())
             }
         }
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.max_count as usize
     }
 }
