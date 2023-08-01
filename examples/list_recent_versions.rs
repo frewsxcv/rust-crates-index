@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut missing = Vec::new();
     for name in std::env::args().skip(1) {
         count += 1;
-        let krate = match find_locally(&name, &sparse_index)? {
+        let krate = match find_in_cache(&name, &sparse_index)? {
             Some(krate) => krate,
             None => match fetch_crate(&name, &sparse_index)? {
                 Some(krate) => krate,
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// This is feasible as local lookups are fast.
 ///
 /// Read more about [name permutations](Names).
-fn find_locally(name: &str, sparse_index: &SparseIndex) -> Result<Option<Crate>, Box<dyn Error>> {
+fn find_in_cache(name: &str, sparse_index: &SparseIndex) -> Result<Option<Crate>, Box<dyn Error>> {
     for name in names(name)? {
         eprintln!("checking for '{}' locally", name);
 
@@ -61,7 +61,7 @@ fn fetch_crate(name: &str, sparse_index: &SparseIndex) -> Result<Option<Crate>, 
     for name in names(name)? {
         eprintln!("fetching for '{}'", name);
 
-        if let Some(krate) = update(&name, sparse_index)? {
+        if let Some(krate) = update_cache(&name, sparse_index)? {
             return Ok(Some(krate));
         }
     }
@@ -76,7 +76,7 @@ fn names(name: &str) -> Result<impl Iterator<Item = String>, Box<dyn Error>> {
 
 /// Create a request to the sparse `index` and parse the response with the side-effect of yielding
 /// the desired crate and updating the local cache.
-fn update(name: &str, index: &SparseIndex) -> Result<Option<Crate>, Box<dyn Error>> {
+fn update_cache(name: &str, index: &SparseIndex) -> Result<Option<Crate>, Box<dyn Error>> {
     let request: ureq::Request = index.make_cache_request(name)?.into();
 
     let response: http::Response<String> = match request.call() {
