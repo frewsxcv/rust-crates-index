@@ -114,6 +114,17 @@ use std::path::{Path, PathBuf};
 ///
 /// Uses a "bare" git index that fetches files directly from the repo instead of local checkout.
 /// Uses Cargo's cache.
+///
+/// ### Instantiation
+///
+/// When creating an instance of this type, the crates-index will be cloned automatically should it not
+/// be present. If a repository is present at the location but the remote doesn't match the desired index URL,
+/// a new remote will be added and fetched from.
+///
+/// Please note that concurrent calls to [`GitIndex::new_cargo_default()`] (and related) will automatically block
+/// and wait for each other, so only one instance will try to clone the index while the others will wait for completion.
+///
+/// This, however, only protects from itself and `cargo` cloning the index at the same time might interfere.
 #[cfg(feature = "git")]
 pub struct GitIndex {
     path: std::path::PathBuf,
