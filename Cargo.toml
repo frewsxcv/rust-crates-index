@@ -22,6 +22,10 @@ name = "sparse_http_ureq"
 required-features = ["sparse"]
 
 [[example]]
+name = "get_versions_cli"
+required-features = ["sparse"]
+
+[[example]]
 name = "update_and_get_latest"
 required-features = ["git"]
 
