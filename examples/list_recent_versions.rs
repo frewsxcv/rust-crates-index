@@ -9,11 +9,19 @@ use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
     let sparse_index = SparseIndex::new_cargo_default()?;
     let mut count = 0;
+    let mut missing = Vec::new();
     for name in std::env::args().skip(1) {
         count += 1;
         let krate = match find_locally(&name, &sparse_index)? {
             Some(krate) => krate,
-            None => fetch_crate(&name, &sparse_index)?.ok_or_else(|| format!("could not find '{name}'"))?,
+            None => match fetch_crate(&name, &sparse_index)? {
+                Some(krate) => krate,
+                None => {
+                    eprintln!("{name} not found");
+                    missing.push(name);
+                    continue;
+                }
+            },
         };
 
         print_crate(krate);
@@ -21,6 +29,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if count == 0 {
         Err("Please provide one or more crate names to lookup".into())
+    } else if !missing.is_empty() {
+        Err(format!("The following crates could not be found: {}", missing.join(", ")).into())
     } else {
         Ok(())
     }
@@ -81,20 +91,20 @@ fn update(name: &str, index: &SparseIndex) -> Result<Option<Crate>, Box<dyn Erro
 }
 
 fn print_crate(krate: Crate) {
+    const MAX_VERSIONS: usize = 5;
     println!("{}", krate.name());
 
     let versions = krate
         .versions()
         .iter()
-        .map(|version| version.version())
         .rev()
         .take(5)
-        .collect::<Vec<&str>>();
+        .map(|version| version.version())
+        .collect::<Vec<_>>();
 
     print!("versions: {}", versions.join(", "));
-
-    if krate.versions().len() > 5 {
-        println!(", ...")
+    if krate.versions().len() > MAX_VERSIONS {
+        println!(", [{} more skipped]", krate.versions().len() - MAX_VERSIONS)
     } else {
         println!()
     }
