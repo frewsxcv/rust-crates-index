@@ -27,7 +27,8 @@ Please find the changelog in [CHANGELOG.md](https://github.com/frewsxcv/rust-cra
 
 ## Similar crates
 
-- [`crates_io_api`](https://github.com/theduke/crates_io_api)
+- [`tame-index`](https://github.com/EmbarkStudios/tame-index) - a hard fork with many improvements and advantages
+- [`crates_io_api`](https://github.com/theduke/crates_io_api) - a way to talk to the HTTP API of crates.io
 
 ## License
 
