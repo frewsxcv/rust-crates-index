@@ -52,6 +52,23 @@ pub(crate) mod with_https {
     }
 
     #[test]
+    fn open_without_auto_clone() {
+        let tmp_dir = tempfile::TempDir::new().unwrap();
+        assert!(
+            GitIndex::try_with_path(tmp_dir.path(), crates_index::git::URL)
+                .unwrap()
+                .is_none(),
+            "no index present and none checked out"
+        );
+        assert!(
+            GitIndex::try_from_url("https://example.com/repo/doesnotexist")
+                .unwrap()
+                .is_none(),
+            "no index present and none checked out"
+        );
+    }
+
+    #[test]
     #[serial_test::serial]
     fn with_path_clones_bare_index_automatically() {
         let tmp_dir = tempfile::TempDir::new().unwrap();
