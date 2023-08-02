@@ -139,7 +139,6 @@ impl GitIndex {
     }
 
     fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
-        let mut mapping = gix::sec::trust::Mapping::default();
         let open_with_complete_config = gix::open::Options::default().permissions(gix::open::Permissions {
             config: gix::open::permissions::Config {
                 // Be sure to get all configuration, some of which is only known by the git binary.
@@ -149,27 +148,20 @@ impl GitIndex {
             },
             ..Default::default()
         });
-        mapping.reduced = open_with_complete_config.clone();
-        mapping.full = open_with_complete_config.clone();
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let repo = gix::ThreadSafeRepository::discover_opts(
-            &path,
-            gix::discover::upwards::Options::default().apply_environment(),
-            mapping,
-        )
-        .ok()
-        .map(|repo| repo.to_thread_local())
-        .filter(|repo| {
-            // The `cargo` standard registry clone has no configured origin (when created with `git2`).
-            repo.find_remote("origin").map_or(true, |remote| {
-                remote
-                    .url(gix::remote::Direction::Fetch)
-                    .map_or(false, |remote_url| remote_url.to_bstring() == url)
-            })
-        });
+        let repo = gix::open_opts(&path, open_with_complete_config.clone())
+            .ok()
+            .filter(|repo| {
+                // The `cargo` standard registry clone has no configured origin (when created with `git2`).
+                repo.find_remote("origin").map_or(true, |remote| {
+                    remote
+                        .url(gix::remote::Direction::Fetch)
+                        .map_or(false, |remote_url| remote_url.to_bstring() == url)
+                })
+            });
 
         let repo = match repo {
             Some(repo) => repo,
