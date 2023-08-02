@@ -5,6 +5,99 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.0 (2023-08-02)
+
+### New Features
+
+ - <csr-id-639b0818ce4919118af71c8bc2bfb19d791a215d/> add `GitIndex::try_new*()` and `GitIndex::try_with_path()` to open without cloning.
+   These methods are naturally read-only and thus have no issues in concurrent contexts, while
+   not providing an option to not auto-clone a whole index.
+ - <csr-id-abe5d70bc3c1a78f3f762104f7cb29b5907471ad/> Add `Names` iterator as building block for fuzzy-lookups.
+   It creates all allowed permutations regarding `-` and `_` in the crate name,
+   so it should be possible to find a crate even if the name doesn't have the correct
+   hyphens or underscores set.
+
+### Bug Fixes
+
+ - <csr-id-28ab782c1ece77af4885e58104fc28b2c8687b0e/> `GitIndex::new_*()` will not discover the git repository anymore.
+   Previously, discovery was used which may traverse the directory structure
+   upwards to find the index. This may be error prone as the index location is
+   supposed to be well-known.
+   
+   Now the index path provided must either be `.../index` or `.../index.git` to be
+   opened successfully.
+ - <csr-id-c67033d2c1653eef69e791de0266c15cb7f6321e/> remove the usage of file locks in preference for documentation when opening a git index.
+   Previously, to allow concurrently opening and possibly updating a crates-index, a file-lock was
+   used for synchronization. However, it was rather specific to what the test-suite needed while
+   adding another failure mode for production code which could leave lock-files behind that then
+   lock the crates-index forever for this library at least.
+   
+   Instead, appropriate locking will be used in tests only, while the documentation of all
+   `open` methods of `GitIndex` was adjusted to inform about ways to protect concurrent accesses
+   on application level.
+ - <csr-id-3bb46abf5a07db3c4b98dabc7efe6ddebc2174ff/> always use `/` for sparse URLs
+   Previously on windows, backslashes could have snuck in which may cause problems.
+
+### Other
+
+ - <csr-id-421de3512465f135af8d63ed276ceba9e882f8f3/> add new example to print information using the sparse index: `list_recent_versions`.
+   Run it with `cargo run --example list_recent_versions -- foo bar baz gix rustc gcc foobar blaz`.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 36 commits contributed to the release over the course of 3 calendar days.
+ - 3 days passed between releases.
+ - 6 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#62](https://github.com/frewsxcv/rust-crates-index/issues/62)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#62](https://github.com/frewsxcv/rust-crates-index/issues/62)**
+    - Improve docs to better clarify the locking behaviour and implications ([`4919cb2`](https://github.com/frewsxcv/rust-crates-index/commit/4919cb2f00bc6cf0124d1f6cf0a35d158e249033))
+ * **Uncategorized**
+    - Merge branch 'locking' ([`d8fc1c1`](https://github.com/frewsxcv/rust-crates-index/commit/d8fc1c1c7a9d59f042ceaf301b2b9c4c08a4eded))
+    - Add `GitIndex::try_new*()` and `GitIndex::try_with_path()` to open without cloning. ([`639b081`](https://github.com/frewsxcv/rust-crates-index/commit/639b0818ce4919118af71c8bc2bfb19d791a215d))
+    - `GitIndex::new_*()` will not discover the git repository anymore. ([`28ab782`](https://github.com/frewsxcv/rust-crates-index/commit/28ab782c1ece77af4885e58104fc28b2c8687b0e))
+    - Remove the usage of file locks in preference for documentation when opening a git index. ([`c67033d`](https://github.com/frewsxcv/rust-crates-index/commit/c67033d2c1653eef69e791de0266c15cb7f6321e))
+    - Minor refactor to make names in example more descriptive ([`6f8aa18`](https://github.com/frewsxcv/rust-crates-index/commit/6f8aa183228bee2047d9c14d503b847839bd0764))
+    - Add new example to print information using the sparse index: `list_recent_versions`. ([`421de35`](https://github.com/frewsxcv/rust-crates-index/commit/421de3512465f135af8d63ed276ceba9e882f8f3))
+    - Slighlty more informative printing in new example and improve usability ([`dc6537a`](https://github.com/frewsxcv/rust-crates-index/commit/dc6537a03b1b2b2213331a27b483e9ca2935c72d))
+    - Refactor ([`fdf663e`](https://github.com/frewsxcv/rust-crates-index/commit/fdf663e9914752393bd456bf98cf6e9f6486dc4b))
+    - Rename new example to fit what it does even better ([`5f73acd`](https://github.com/frewsxcv/rust-crates-index/commit/5f73acd3a4f8f8dd1cbc67bd49e70a04312dc37c))
+    - Add example to Cargo.toml ([`6125624`](https://github.com/frewsxcv/rust-crates-index/commit/6125624f312f1bf1bfcd3a535a1761eee253b4e9))
+    - Add a small example to show the full sparse workflow ([`2ef9dac`](https://github.com/frewsxcv/rust-crates-index/commit/2ef9dac7523454af48a059e10f72ca6e48907a4e))
+    - Example "update_and_get_latest" requires git-https ([`f755b0f`](https://github.com/frewsxcv/rust-crates-index/commit/f755b0f20174768771c9ed219c85e0b8ec3b25bd))
+    - Merge branch 'names-optimizations' ([`7b8683e`](https://github.com/frewsxcv/rust-crates-index/commit/7b8683e0a3861f51a751c9f8ee496e17a344e05e))
+    - Improve docs for `Names` ([`6ab652e`](https://github.com/frewsxcv/rust-crates-index/commit/6ab652e52c10ae29bbcc69ae822fb2f03e54550d))
+    - Minor refactor ([`a20138d`](https://github.com/frewsxcv/rust-crates-index/commit/a20138dbfc94fe2a9fa28b0560cd47d53dec8899))
+    - First return all-hyphens & all_underscores ([`6b66356`](https://github.com/frewsxcv/rust-crates-index/commit/6b66356d9c1c463495c5f841a67e5c62152ebc97))
+    - Update test to capture edge case ([`b63ec37`](https://github.com/frewsxcv/rust-crates-index/commit/b63ec378b7b6e248225848b0632b41882311e6f9))
+    - Use max_count for count() ([`254d21e`](https://github.com/frewsxcv/rust-crates-index/commit/254d21e0a10c49cc2dc16b25569743f8d209ef80))
+    - Fix typo in Names doc ([`c8aa392`](https://github.com/frewsxcv/rust-crates-index/commit/c8aa39223a65cd4e0ed087b46b7c1cd70b898a0b))
+    - Improve documentation of `Names` iterator ([`5272d41`](https://github.com/frewsxcv/rust-crates-index/commit/5272d4159b1a7ff66d50a7e2554f9b6c321298f9))
+    - Add `Names` iterator as building block for fuzzy-lookups. ([`abe5d70`](https://github.com/frewsxcv/rust-crates-index/commit/abe5d70bc3c1a78f3f762104f7cb29b5907471ad))
+    - Return the input name first ([`797081e`](https://github.com/frewsxcv/rust-crates-index/commit/797081e1914432cab7af1be18513dc67c7f8d682))
+    - Double the performance/throughput by absusing our knowledge about UTF-8 ([`61ddff0`](https://github.com/frewsxcv/rust-crates-index/commit/61ddff02a2caca4f4f6bd1cde3537833ba161e56))
+    - Prefer hyphens over underscores as these are more common ([`1f542a5`](https://github.com/frewsxcv/rust-crates-index/commit/1f542a5c95b60769b08055e4b737781d11972862))
+    - Avoid allocation of vector for separator indices ([`a7801b0`](https://github.com/frewsxcv/rust-crates-index/commit/a7801b0576c5be3fe77befa71559c2518a0ab9c7))
+    - Allow the `Names` iterator to fail creation if too many permutations are possible ([`9b88659`](https://github.com/frewsxcv/rust-crates-index/commit/9b88659a14f5eb4dd13b3990d7db73756fb63bc6))
+    - Refactor tests ([`95308c8`](https://github.com/frewsxcv/rust-crates-index/commit/95308c8fee8c71f82dd0af90d40f5247edc9e2fc))
+    - Refactor structure ([`bc16839`](https://github.com/frewsxcv/rust-crates-index/commit/bc168393a17c806bf697ab0c668c76c8f462afe5))
+    - Add PoC of NamePermutationIterator ([`1429c4e`](https://github.com/frewsxcv/rust-crates-index/commit/1429c4e2305f854ce645d18258ba0379b0e53f86))
+    - Only test on stable Rust as this covers most use-cases ([`a0bba1c`](https://github.com/frewsxcv/rust-crates-index/commit/a0bba1c5603ee369158120e15b1411b08168a4de))
+    - Change links from lib.rs to crates.io ([`5f1f245`](https://github.com/frewsxcv/rust-crates-index/commit/5f1f245169cebbbc8adb2882af7d094441bdcd9e))
+    - Always use `/` for sparse URLs ([`3bb46ab`](https://github.com/frewsxcv/rust-crates-index/commit/3bb46abf5a07db3c4b98dabc7efe6ddebc2174ff))
+    - Add a cache as well to speed up builds, hopefully, particularly on windows ([`e322e13`](https://github.com/frewsxcv/rust-crates-index/commit/e322e1340b9bf2e30891a6f8ffad09f35fc5f94f))
+    - See if CI can handle windows tests as well ([`2b6e070`](https://github.com/frewsxcv/rust-crates-index/commit/2b6e070594665a15d5bed38cac7e76253167a1b5))
+    - Always use / as a separator for sparse urls ([`1d8a895`](https://github.com/frewsxcv/rust-crates-index/commit/1d8a895fa21745437cb444bf9aa64dafd347fd7c))
+</details>
+
 ## 2.0.0 (2023-07-29)
 
 <csr-id-c293e35e43650bebbdbd869c4c9d01bfb2e836c0/>
@@ -15,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <csr-id-235e175022647f9ab63b024ca0780c907b9fd6ec/>
 <csr-id-beb9f12885703574ba3c3307c368fb84c1a05028/>
 <csr-id-42d89c2e84f0e81da3db046864be379a2ae9eb15/>
+<csr-id-965f6e98788a62c380ed1daa61867817685d7371/>
 
 This is a major release with many breaking changes to make the overall package structure, type-names and feature names more consistent.
 
@@ -80,7 +174,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 
 <csr-read-only-do-not-edit/>
 
- - 38 commits contributed to the release over the course of 7 calendar days.
+ - 39 commits contributed to the release over the course of 7 calendar days.
  - 8 days passed between releases.
  - 8 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#129](https://github.com/frewsxcv/rust-crates-index/issues/129)
@@ -100,6 +194,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
  * **[#129](https://github.com/frewsxcv/rust-crates-index/issues/129)**
     - Replace `git2` with `gix`. ([`2c5d33a`](https://github.com/frewsxcv/rust-crates-index/commit/2c5d33a51604f032ff1538b16cf0408a8fe2568a))
  * **Uncategorized**
+    - Release crates-index v2.0.0 ([`6b95b8f`](https://github.com/frewsxcv/rust-crates-index/commit/6b95b8f6e11f660b15bc0309d68e635792f1c4b2))
     - Fix `include` directive to allow publish to succeed ([`40caa8f`](https://github.com/frewsxcv/rust-crates-index/commit/40caa8f16b1e33603660a614918d2497bc9427c3))
     - Merge branch 'v2.0' ([`d3b0069`](https://github.com/frewsxcv/rust-crates-index/commit/d3b006976060cda7c09c407ee5707a73bea50b2b))
     - Enable cargo-fmt ([`365f9dc`](https://github.com/frewsxcv/rust-crates-index/commit/365f9dcf36a86ffda5c0280b5494bca3becfd3ed))
