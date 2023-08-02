@@ -42,6 +42,13 @@ pub(crate) mod with_https {
         }
         assert!(found_first_crate);
         assert!(found_second_crate);
+
+        assert!(
+            GitIndex::try_with_path(repo.path(), repo.url())
+                .expect("no error opening")
+                .is_some(),
+            "index present as we worked with it"
+        );
     }
 
     #[test]

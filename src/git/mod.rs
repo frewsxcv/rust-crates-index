@@ -59,7 +59,9 @@ impl GitIndex {
     #[doc(hidden)]
     #[deprecated(note = "use new_cargo_default()")]
     pub fn new<P: Into<PathBuf>>(path: P) -> Self {
-        Self::from_path_and_url(path.into(), URL.into()).unwrap()
+        Self::from_path_and_url(path.into(), URL.into(), Mode::ReadOnly)
+            .unwrap()
+            .expect("repo present after possibly cloning index")
     }
 
     /// Creates an index for the default crates.io registry, using the same
@@ -74,10 +76,15 @@ impl GitIndex {
     ///
     /// Concurrent invocations may fail if the index needs to be cloned. To prevent that,
     /// use synchronization mechanisms like mutexes or file locks as needed by the application.
-    #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
         let url = config::get_crates_io_replacement(None, None)?;
         Self::from_url(url.as_deref().unwrap_or(URL))
+    }
+
+    /// Like [`Self::new_cargo_default()`], but read-only without auto-cloning the cargo default git index.
+    pub fn try_new_cargo_default() -> Result<Option<Self>, Error> {
+        let url = config::get_crates_io_replacement(None, None)?;
+        Self::try_from_url(url.as_deref().unwrap_or(URL))
     }
 
     /// Creates a bare index from a provided URL, opening the same location on
@@ -93,7 +100,16 @@ impl GitIndex {
     /// use synchronization mechanisms like mutexes or file locks as needed by the application.
     pub fn from_url(url: &str) -> Result<Self, Error> {
         let (path, canonical_url) = local_path_and_canonical_url(url, None)?;
-        Self::from_path_and_url(path, canonical_url)
+        Ok(
+            Self::from_path_and_url(path, canonical_url, Mode::CloneUrlToPathIfRepoMissing)?
+                .expect("repo present after possibly cloning it"),
+        )
+    }
+
+    /// Like [`Self::from_url()`], but read-only without auto-cloning the index at `url`.
+    pub fn try_from_url(url: &str) -> Result<Option<Self>, Error> {
+        let (path, canonical_url) = local_path_and_canonical_url(url, None)?;
+        Self::from_path_and_url(path, canonical_url, Mode::ReadOnly)
     }
 
     /// Creates a bare index at the provided `path` with the specified repository `URL`.
@@ -104,9 +120,17 @@ impl GitIndex {
     ///
     /// Concurrent invocations may fail if the index needs to be cloned. To prevent that,
     /// use synchronization mechanisms like mutexes or file locks as needed by the application.
-    #[inline]
     pub fn with_path<P: Into<PathBuf>, S: Into<String>>(path: P, url: S) -> Result<Self, Error> {
-        Self::from_path_and_url(path.into(), url.into())
+        Ok(
+            Self::from_path_and_url(path.into(), url.into(), Mode::CloneUrlToPathIfRepoMissing)?
+                .expect("repo present after possibly cloning it"),
+        )
+    }
+
+    /// Like [`Self::with_path()`], but read-only without auto-cloning the index at `url` if it's not already
+    /// present at `path`.
+    pub fn try_with_path<P: Into<PathBuf>, S: Into<String>>(path: P, url: S) -> Result<Option<Self>, Error> {
+        Self::from_path_and_url(path.into(), url.into(), Mode::ReadOnly)
     }
 
     /// Get the index directory.
@@ -138,7 +162,7 @@ impl GitIndex {
         Ok(changes::Changes::new(self)?)
     }
 
-    fn from_path_and_url(path: PathBuf, url: String) -> Result<Self, Error> {
+    fn from_path_and_url(path: PathBuf, url: String, mode: Mode) -> Result<Option<Self>, Error> {
         let open_with_complete_config = gix::open::Options::default().permissions(gix::open::Permissions {
             config: gix::open::permissions::Config {
                 // Be sure to get all configuration, some of which is only known by the git binary.
@@ -163,22 +187,30 @@ impl GitIndex {
                 })
             });
 
-        let repo = match repo {
-            Some(repo) => repo,
-            None => match gix::open_opts(&path, open_with_complete_config).ok() {
-                None => clone_url(&url, &path)?,
+        let repo = match mode {
+            Mode::ReadOnly => repo,
+            Mode::CloneUrlToPathIfRepoMissing => Some(match repo {
                 Some(repo) => repo,
-            },
+                None => match gix::open_opts(&path, open_with_complete_config).ok() {
+                    None => clone_url(&url, &path)?,
+                    Some(repo) => repo,
+                },
+            }),
         };
 
-        let head_commit = Self::find_repo_head(&repo, &path)?;
-        Ok(Self {
-            path,
-            url,
-            repo,
-            head_commit_hex: head_commit.to_hex().to_string(),
-            head_commit,
-        })
+        match repo {
+            None => Ok(None),
+            Some(repo) => {
+                let head_commit = Self::find_repo_head(&repo, &path)?;
+                Ok(Some(Self {
+                    path,
+                    url,
+                    repo,
+                    head_commit_hex: head_commit.to_hex().to_string(),
+                    head_commit,
+                }))
+            }
+        }
     }
 
     fn tree(&self) -> Result<gix::Tree<'_>, GixError> {
@@ -520,6 +552,11 @@ impl<'a> Iterator for Crates<'a> {
         }
         None
     }
+}
+
+enum Mode {
+    ReadOnly,
+    CloneUrlToPathIfRepoMissing,
 }
 
 #[cfg(test)]
