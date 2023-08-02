@@ -69,6 +69,11 @@ impl GitIndex {
     /// *Note that this clones a new index if none is present yet.
     ///
     /// Note this function takes the `CARGO_HOME` environment variable into account
+    ///
+    /// ### Concurrency
+    ///
+    /// Concurrent invocations may fail if the index needs to be cloned. To prevent that,
+    /// use synchronization mechanisms like mutexes or file locks as needed by the application.
     #[inline]
     pub fn new_cargo_default() -> Result<Self, Error> {
         let url = config::get_crates_io_replacement(None, None)?;
@@ -81,6 +86,11 @@ impl GitIndex {
     /// *Note that this clones a new index if none is present yet.
     ///
     /// It can be used to access custom registries.
+    ///
+    /// ### Concurrency
+    ///
+    /// Concurrent invocations may fail if the index needs to be cloned. To prevent that,
+    /// use synchronization mechanisms like mutexes or file locks as needed by the application.
     pub fn from_url(url: &str) -> Result<Self, Error> {
         let (path, canonical_url) = local_path_and_canonical_url(url, None)?;
         Self::from_path_and_url(path, canonical_url)
@@ -89,6 +99,11 @@ impl GitIndex {
     /// Creates a bare index at the provided `path` with the specified repository `URL`.
     ///
     /// *Note that this clones a new index to `path` if none is present there yet.
+    ///
+    /// ### Concurrency
+    ///
+    /// Concurrent invocations may fail if the index needs to be cloned. To prevent that,
+    /// use synchronization mechanisms like mutexes or file locks as needed by the application.
     #[inline]
     pub fn with_path<P: Into<PathBuf>, S: Into<String>>(path: P, url: S) -> Result<Self, Error> {
         Self::from_path_and_url(path.into(), url.into())
@@ -137,12 +152,9 @@ impl GitIndex {
         mapping.reduced = open_with_complete_config.clone();
         mapping.full = open_with_complete_config.clone();
 
-        let _lock = gix::lock::Marker::acquire_to_hold_resource(
-            path.with_extension("crates-index"),
-            gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(60 * 10)),
-            Some(PathBuf::from_iter(Some(std::path::Component::RootDir))),
-        )
-        .map_err(GixError::from)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         let repo = gix::ThreadSafeRepository::discover_opts(
             &path,
             gix::discover::upwards::Options::default().apply_environment(),

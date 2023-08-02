@@ -161,6 +161,9 @@ pub(crate) mod with_https {
     }
 
     pub(crate) fn shared_index() -> GitIndex {
+        static LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
+        let _guard = LOCK.lock();
+
         let index_path = "tests/fixtures/git-registry";
         if is_ci::cached() {
             GitIndex::new_cargo_default().expect("CI has just cloned this index and its ours and valid")

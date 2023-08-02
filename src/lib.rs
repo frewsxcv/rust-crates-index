@@ -74,15 +74,11 @@
 //! clone the default crates index (or the given one) if it no git
 //! repository is present at the destination path.
 //!
-//! In order to protect from parallel operations of this kind, a
-//! file-based lock is used. When interrupting the program with `Ctrl + C`,
-//! by default the program will be aborted which won't run destructors.
-//! This will cause the file lock to be stranded, causing all future operations
-//! to fail.
+//! This operation is racy and opening the index concurrently can lead to errors
+//! as multiple threads may try to clone the index at the same time if it wasn't there yet.
 //!
-//! To prevent this issue, the application must integrate with the
-//! [`gix-tempfile` signal handler](https://docs.rs/gix-tempfile/latest/gix_tempfile/#initial-setup),
-//! which allows locks to be deleted when typical signals are received.
+//! To prevent that, consider using synchronization primitives on application level that
+//! synchronize methods like [`GitIndex::new_cargo_default()`] and its siblings.
 //!
 //! ## Git Repository Performance
 //!
