@@ -51,6 +51,7 @@ pub enum GixError {
     #[error("The '{}' file is missing at the root of the tree of the crates index", path.display())]
     PathMissing { path: std::path::PathBuf },
     #[error(transparent)]
+    #[deprecated(note = "This variant can't happen anymore as locks aren't used when opening the index")]
     LockAcquire(#[from] gix::lock::acquire::Error),
     #[error(transparent)]
     ParseRefSpec(#[from] gix::refspec::parse::Error),
