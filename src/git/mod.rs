@@ -21,7 +21,3 @@ mod impl_;
 use impl_::fetch_remote;
 #[cfg(feature = "git")]
 pub use impl_::{Change, Crates};
-
-#[cfg(test)]
-#[cfg(feature = "git-https")]
-mod test;
