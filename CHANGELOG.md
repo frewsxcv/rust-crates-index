@@ -5,7 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.1 (2023-08-20)
+
+### Chore
+
+ - <csr-id-72796a91835d05099fc20f9f5895288d9d3ff715/> upgrade gix to v0.51 from v0.50
+
+### Bug Fixes
+
+ - <csr-id-2d4bbdaf7147b556b36b60b7facf042b079bd19c/> Allow using git::URL without git feature active
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release over the course of 17 calendar days.
+ - 17 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#149](https://github.com/frewsxcv/rust-crates-index/issues/149)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#149](https://github.com/frewsxcv/rust-crates-index/issues/149)**
+    - Allow using git::URL without git feature active ([`2d4bbda`](https://github.com/frewsxcv/rust-crates-index/commit/2d4bbdaf7147b556b36b60b7facf042b079bd19c))
+ * **Uncategorized**
+    - Upgrade gix to v0.51 from v0.50 ([`72796a9`](https://github.com/frewsxcv/rust-crates-index/commit/72796a91835d05099fc20f9f5895288d9d3ff715))
+    - Fix build ([`57763f1`](https://github.com/frewsxcv/rust-crates-index/commit/57763f16a77be91e7744263bdbfeaa3e4fe73db9))
+    - Allow using `git::URL` without `git` feature active ([`f5d398a`](https://github.com/frewsxcv/rust-crates-index/commit/f5d398a0eb60b6a459dcb2c4e0f50b1e51a779a9))
+    - Add `tame-index` link to README ([`88ac53e`](https://github.com/frewsxcv/rust-crates-index/commit/88ac53e139a0990ba0e55139d645422b1a071207))
+    - Test negative case of `GitIndex::try_*` as well as possible ([`238526f`](https://github.com/frewsxcv/rust-crates-index/commit/238526f61b1fd91d930be3441a9203beee9aed76))
+</details>
+
 ## 2.1.0 (2023-08-02)
+
+<csr-id-421de3512465f135af8d63ed276ceba9e882f8f3/>
 
 ### New Features
 
@@ -47,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 36 commits contributed to the release over the course of 3 calendar days.
+ - 37 commits contributed to the release over the course of 3 calendar days.
  - 3 days passed between releases.
  - 6 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#62](https://github.com/frewsxcv/rust-crates-index/issues/62)
@@ -61,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **[#62](https://github.com/frewsxcv/rust-crates-index/issues/62)**
     - Improve docs to better clarify the locking behaviour and implications ([`4919cb2`](https://github.com/frewsxcv/rust-crates-index/commit/4919cb2f00bc6cf0124d1f6cf0a35d158e249033))
  * **Uncategorized**
+    - Release crates-index v2.1.0 ([`a9b6065`](https://github.com/frewsxcv/rust-crates-index/commit/a9b60653efb72d9e6be98c4f8fe56194475cbd3f))
     - Merge branch 'locking' ([`d8fc1c1`](https://github.com/frewsxcv/rust-crates-index/commit/d8fc1c1c7a9d59f042ceaf301b2b9c4c08a4eded))
     - Add `GitIndex::try_new*()` and `GitIndex::try_with_path()` to open without cloning. ([`639b081`](https://github.com/frewsxcv/rust-crates-index/commit/639b0818ce4919118af71c8bc2bfb19d791a215d))
     - `GitIndex::new_*()` will not discover the git repository anymore. ([`28ab782`](https://github.com/frewsxcv/rust-crates-index/commit/28ab782c1ece77af4885e58104fc28b2c8687b0e))
