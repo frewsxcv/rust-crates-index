@@ -132,7 +132,6 @@ pub struct GitIndex {
 }
 
 ///
-#[cfg(feature = "git")]
 pub mod git;
 
 mod config;
