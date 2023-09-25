@@ -3,6 +3,7 @@ use crate::dirs::{crate_name_to_relative_path, local_path_and_canonical_url};
 use crate::error::GixError;
 use crate::git::{changes, config, URL};
 use crate::{path_max_byte_len, Crate, Error, GitIndex, IndexConfig};
+use gix::bstr::ByteSlice;
 use gix::config::tree::Key;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -174,7 +175,7 @@ impl GitIndex {
                 repo.find_remote("origin").map_or(true, |remote| {
                     remote
                         .url(gix::remote::Direction::Fetch)
-                        .map_or(false, |remote_url| remote_url.to_bstring() == url)
+                        .map_or(false, |remote_url| remote_url.to_bstring().starts_with_str(&url))
                 })
             });
 
