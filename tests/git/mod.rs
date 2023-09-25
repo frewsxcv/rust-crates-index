@@ -190,7 +190,12 @@ pub(crate) mod with_https {
 
         let index_path = "tests/fixtures/git-registry";
         if is_ci::cached() {
-            GitIndex::new_cargo_default().expect("CI has just cloned this index and its ours and valid")
+            let index = GitIndex::new_cargo_default().expect("CI has just cloned this index and its ours and valid");
+            assert!(
+                GitIndex::try_new_cargo_default().unwrap().is_some(),
+                "index should exist if we just retrieved it"
+            );
+            index
         } else {
             GitIndex::with_path(index_path, URL).expect("clone works and there is no racing")
         }
