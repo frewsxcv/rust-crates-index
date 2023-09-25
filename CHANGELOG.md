@@ -5,7 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.2.0 (2023-09-25)
+
+### New Features
+
+ - <csr-id-9aec9abcd6b78bba27e8ea6000f6e4592bcc9397/> upgrade `gix` to v0.54
+
+### Bug Fixes
+
+ - <csr-id-61b93a1e9b21ac3a8c146570e6fdebdaaffdd698/> be less strict when determining if the crates-index remote matches the target URL.
+   Previously a trailing slash could have caused it to think ti's not the same.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 5 commits contributed to the release.
+ - 36 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge branch 'gix-upgrade' ([`fe1ac0c`](https://github.com/frewsxcv/rust-crates-index/commit/fe1ac0cab22b3a0a9529a15a5549ac8bbf93ad10))
+    - Be less strict when determining if the crates-index remote matches the target URL. ([`61b93a1`](https://github.com/frewsxcv/rust-crates-index/commit/61b93a1e9b21ac3a8c146570e6fdebdaaffdd698))
+    - Upgrade `toml` to latest version ([`fc79c67`](https://github.com/frewsxcv/rust-crates-index/commit/fc79c6711946c83f8a7fd6e892dd446de3345622))
+    - Adjust test expectations ([`1f73994`](https://github.com/frewsxcv/rust-crates-index/commit/1f739940b00be746dcd06edc8b00b586817845eb))
+    - Upgrade `gix` to v0.54 ([`9aec9ab`](https://github.com/frewsxcv/rust-crates-index/commit/9aec9abcd6b78bba27e8ea6000f6e4592bcc9397))
+</details>
+
 ## 2.1.1 (2023-08-20)
+
+<csr-id-72796a91835d05099fc20f9f5895288d9d3ff715/>
 
 ### Chore
 
@@ -19,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release over the course of 17 calendar days.
+ - 7 commits contributed to the release over the course of 17 calendar days.
  - 17 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#149](https://github.com/frewsxcv/rust-crates-index/issues/149)
@@ -33,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **[#149](https://github.com/frewsxcv/rust-crates-index/issues/149)**
     - Allow using git::URL without git feature active ([`2d4bbda`](https://github.com/frewsxcv/rust-crates-index/commit/2d4bbdaf7147b556b36b60b7facf042b079bd19c))
  * **Uncategorized**
+    - Release crates-index v2.1.1 ([`7d6df0d`](https://github.com/frewsxcv/rust-crates-index/commit/7d6df0dd27eafcd2d9e6375d394010fd3756b093))
     - Upgrade gix to v0.51 from v0.50 ([`72796a9`](https://github.com/frewsxcv/rust-crates-index/commit/72796a91835d05099fc20f9f5895288d9d3ff715))
     - Fix build ([`57763f1`](https://github.com/frewsxcv/rust-crates-index/commit/57763f16a77be91e7744263bdbfeaa3e4fe73db9))
     - Allow using `git::URL` without `git` feature active ([`f5d398a`](https://github.com/frewsxcv/rust-crates-index/commit/f5d398a0eb60b6a459dcb2c4e0f50b1e51a779a9))
