@@ -30,7 +30,7 @@ name = "update_and_get_latest"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.54.1", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
+gix = { version = "0.55.2", default-features = false, features = ["max-performance-safe", "blocking-network-client"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 http = { version = "0.2", optional = true }
