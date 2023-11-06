@@ -52,7 +52,7 @@ bytesize = "1.2.0"
 cap = { version = "0.1.2", features = ["stats"] }
 is_ci = "1.1.1"
 tempfile = "3.5.0"
-ureq = { version = "2.7.1", features = ["http-interop"] }
+ureq = { version = "2.8.0", features = ["http-interop"] }
 reqwest = { version = "0.11.18", features = ["blocking", "gzip"] }
 serial_test = "2.0.0"
 parking_lot = "0.12.1"
