@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.3.0 (2023-11-06)
+
+### Chore
+
+ - <csr-id-82002e7d8362b5e0736f994a1569d002333c7fad/> upgrade `gitoxide` to v0.55.2
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 41 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge branch 'updates' ([`345d8ce`](https://github.com/frewsxcv/rust-crates-index/commit/345d8ce9461da90fb70cb894be30ecd5669fa6fd))
+    - Bump feature level ([`c9a7744`](https://github.com/frewsxcv/rust-crates-index/commit/c9a7744c94a2e41f0ea2291cb5f184800a0c922e))
+    - Upgrade `gitoxide` to v0.55.2 ([`82002e7`](https://github.com/frewsxcv/rust-crates-index/commit/82002e7d8362b5e0736f994a1569d002333c7fad))
+</details>
+
 ## 2.2.0 (2023-09-25)
 
 ### New Features
@@ -20,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 5 commits contributed to the release.
+ - 6 commits contributed to the release.
  - 36 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -32,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.2.0 ([`87700cf`](https://github.com/frewsxcv/rust-crates-index/commit/87700cf530e37b5cbb1d7892953bdd6608ad6b4f))
     - Merge branch 'gix-upgrade' ([`fe1ac0c`](https://github.com/frewsxcv/rust-crates-index/commit/fe1ac0cab22b3a0a9529a15a5549ac8bbf93ad10))
     - Be less strict when determining if the crates-index remote matches the target URL. ([`61b93a1`](https://github.com/frewsxcv/rust-crates-index/commit/61b93a1e9b21ac3a8c146570e6fdebdaaffdd698))
     - Upgrade `toml` to latest version ([`fc79c67`](https://github.com/frewsxcv/rust-crates-index/commit/fc79c6711946c83f8a7fd6e892dd446de3345622))
