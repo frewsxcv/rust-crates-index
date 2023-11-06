@@ -6,7 +6,7 @@ use std::io;
 /// dont forget to enable the **http-interop** feature of **ureq**
 ///
 /// command to run:<br>
-/// cargo run --example sparse_http_ureq -F sparse-http
+/// cargo run --example sparse_http_ureq -F sparse
 ///
 
 const CRATE_TO_FETCH: &str = "inferno";
@@ -33,14 +33,10 @@ fn print_crate(index: &mut SparseIndex) {
 fn update(index: &mut SparseIndex) {
     let request: ureq::Request = index.make_cache_request(CRATE_TO_FETCH).unwrap().into();
 
-    let response: http::Response<String> = request
+    let response = request
         .call()
         .map_err(|_e| io::Error::new(io::ErrorKind::InvalidInput, "connection error"))
-        .unwrap()
-        .into();
+        .unwrap();
 
-    let (parts, body) = response.into_parts();
-    let response = http::Response::from_parts(parts, body.into_bytes());
-
-    index.parse_cache_response(CRATE_TO_FETCH, response, true).unwrap();
+    index.parse_cache_response(CRATE_TO_FETCH, response.into(), true).unwrap();
 }
