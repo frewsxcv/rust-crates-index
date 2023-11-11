@@ -2,7 +2,7 @@
 
 [![crates-index on Crates.io](https://img.shields.io/crates/v/crates-index.svg)](https://crates.io/crates/crates-index)
 
-Library for retrieving and interacting with the [crates.io registry git-based index](https://github.com/rust-lang/crates.io-index).
+Library for retrieving and interacting with the [crates.io registry index](https://doc.rust-lang.org/cargo/reference/registry-index.html) using either the `git` or `sparse` protocol.
 
 The index contains metadata for all Rust libraries and programs published on crates.io: their versions, dependencies, and feature flags.
 
