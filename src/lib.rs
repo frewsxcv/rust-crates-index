@@ -152,6 +152,11 @@ pub use error::Error;
 /// Wrapper around managing a sparse HTTP index, re-using Cargo's local disk caches.
 ///
 /// Currently it only uses local Cargo cache, and does not access the network in any way.
+/// For examples of how to update the local cache,
+/// see [`examples/sparse_http_reqwest.rs`][reqwest] and [`examples/sparse_http_ureq.rs`][ureq].
+///
+/// [reqwest]: https://github.com/frewsxcv/rust-crates-index/blob/HEAD/examples/sparse_http_reqwest.rs
+/// [ureq]: https://github.com/frewsxcv/rust-crates-index/blob/HEAD/examples/sparse_http_ureq.rs
 pub struct SparseIndex {
     path: PathBuf,
     url: String,
