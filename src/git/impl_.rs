@@ -520,6 +520,7 @@ impl Iterator for CratesTreesToBlobs {
 
 enum MaybeOwned<'a, T> {
     Owned(T),
+    #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
     Borrowed(&'a mut T),
 }
 
