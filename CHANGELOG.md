@@ -5,7 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.4.0 (2023-12-30)
+
+### Chore
+
+ - <csr-id-81f70d7cbcac5d4dbef6477cd803b1d103099347/> update `gix` to v0.57
+
+### Other
+
+ - <csr-id-4ffad17947228bfeff47200d1ca969ae637c35cb/> Update readme to include the sparse protocol
+ - <csr-id-39d9fb66270d38d4a3933e0f52edd3e0afcad143/> Link to examples of how to update the sparse index
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 9 commits contributed to the release over the course of 53 calendar days.
+ - 53 days passed between releases.
+ - 3 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Bump minor version for gix dependency change ([`3ae82f5`](https://github.com/frewsxcv/rust-crates-index/commit/3ae82f506aa7b67366cd59336e4245503c40edc9))
+    - Merge branch 'maintenance' ([`be03b1f`](https://github.com/frewsxcv/rust-crates-index/commit/be03b1f1245555a81f9005b3ebf28069ba47f236))
+    - Adapt to quite drastic changes in memory requirements. ([`c237796`](https://github.com/frewsxcv/rust-crates-index/commit/c237796a3ffd80c0c06a354f2a9cc3693e8d5e0c))
+    - Update `gix` to v0.57 ([`81f70d7`](https://github.com/frewsxcv/rust-crates-index/commit/81f70d7cbcac5d4dbef6477cd803b1d103099347))
+    - Fix cargo-check ([`2920beb`](https://github.com/frewsxcv/rust-crates-index/commit/2920beb86ede9cdca09c8f516ec5981e05912575))
+    - Add new example to list the most recent version of a crate using the git index ([`61f3090`](https://github.com/frewsxcv/rust-crates-index/commit/61f3090271f5992ca621c2a13df5daaa91e0cca6))
+    - Update readme to include the sparse protocol ([`4ffad17`](https://github.com/frewsxcv/rust-crates-index/commit/4ffad17947228bfeff47200d1ca969ae637c35cb))
+    - Link to examples of how to update the sparse index ([`39d9fb6`](https://github.com/frewsxcv/rust-crates-index/commit/39d9fb66270d38d4a3933e0f52edd3e0afcad143))
+    - Update ureq-sparse-example to use ureq 2.8.0 ([`239b009`](https://github.com/frewsxcv/rust-crates-index/commit/239b009fc8fdb42250a09f52ef351e84c29ab7e3))
+</details>
+
 ## 2.3.0 (2023-11-06)
+
+<csr-id-82002e7d8362b5e0736f994a1569d002333c7fad/>
 
 ### Chore
 
@@ -15,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 41 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.3.0 ([`639e425`](https://github.com/frewsxcv/rust-crates-index/commit/639e425b2b640a9f289ad394c1310cce3474102e))
     - Merge branch 'updates' ([`345d8ce`](https://github.com/frewsxcv/rust-crates-index/commit/345d8ce9461da90fb70cb894be30ecd5669fa6fd))
     - Bump feature level ([`c9a7744`](https://github.com/frewsxcv/rust-crates-index/commit/c9a7744c94a2e41f0ea2291cb5f184800a0c922e))
     - Upgrade `gitoxide` to v0.55.2 ([`82002e7`](https://github.com/frewsxcv/rust-crates-index/commit/82002e7d8362b5e0736f994a1569d002333c7fad))
