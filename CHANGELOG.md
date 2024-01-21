@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.5.0 (2024-01-21)
+
+### Chore
+
+ - <csr-id-5960658acef322349d9c8e9ac291365321b6add0/> update `gix` to v0.58
+
+### New Features
+
+ - <csr-id-2efa665a28bcdb54d4d4faf6f75c6f4e80153a93/> upgrade to `gix-0.58`
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 22 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Upgrade to `gix-0.58` ([`2efa665`](https://github.com/frewsxcv/rust-crates-index/commit/2efa665a28bcdb54d4d4faf6f75c6f4e80153a93))
+    - Update `gix` to v0.58 ([`5960658`](https://github.com/frewsxcv/rust-crates-index/commit/5960658acef322349d9c8e9ac291365321b6add0))
+</details>
+
 ## 2.4.0 (2023-12-30)
+
+<csr-id-81f70d7cbcac5d4dbef6477cd803b1d103099347/>
+<csr-id-4ffad17947228bfeff47200d1ca969ae637c35cb/>
+<csr-id-39d9fb66270d38d4a3933e0f52edd3e0afcad143/>
 
 ### Chore
 
@@ -20,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 9 commits contributed to the release over the course of 53 calendar days.
+ - 10 commits contributed to the release over the course of 53 calendar days.
  - 53 days passed between releases.
  - 3 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -32,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.4.0 ([`b84f4b9`](https://github.com/frewsxcv/rust-crates-index/commit/b84f4b9371be12d7ae3d34422efd25dbb0181341))
     - Bump minor version for gix dependency change ([`3ae82f5`](https://github.com/frewsxcv/rust-crates-index/commit/3ae82f506aa7b67366cd59336e4245503c40edc9))
     - Merge branch 'maintenance' ([`be03b1f`](https://github.com/frewsxcv/rust-crates-index/commit/be03b1f1245555a81f9005b3ebf28069ba47f236))
     - Adapt to quite drastic changes in memory requirements. ([`c237796`](https://github.com/frewsxcv/rust-crates-index/commit/c237796a3ffd80c0c06a354f2a9cc3693e8d5e0c))
