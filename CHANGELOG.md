@@ -5,7 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.5.1 (2024-01-28)
+
+### Bug Fixes
+
+ - <csr-id-4d75232a72cb5f87b6dafa042898b7249123b88a/> assure Git index updates to refs are actually written.
+   The remote git repository may alter its references in such a way that
+   local fast-forwards aren't possible anymore.
+   
+   This happens regularly as the history will be squashed on the remote.
+   
+   Now we forcefully store the updated references, which resolves
+   the issue that calling `update()` didn't seem to do anything despite
+   being busy (i.e. downloading a possibly huge pack, and resolving it).
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 6 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge branch 'fix-index-update' ([`99e8fe1`](https://github.com/frewsxcv/rust-crates-index/commit/99e8fe172f98e096607789f349c050663f416b1d))
+    - Assure Git index updates to refs are actually written. ([`4d75232`](https://github.com/frewsxcv/rust-crates-index/commit/4d75232a72cb5f87b6dafa042898b7249123b88a))
+</details>
+
 ## 2.5.0 (2024-01-21)
+
+<csr-id-5960658acef322349d9c8e9ac291365321b6add0/>
 
 ### Chore
 
@@ -19,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 22 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -31,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.5.0 ([`234c7b1`](https://github.com/frewsxcv/rust-crates-index/commit/234c7b16295068e74fae8873be2a8f612cd83f05))
     - Upgrade to `gix-0.58` ([`2efa665`](https://github.com/frewsxcv/rust-crates-index/commit/2efa665a28bcdb54d4d4faf6f75c6f4e80153a93))
     - Update `gix` to v0.58 ([`5960658`](https://github.com/frewsxcv/rust-crates-index/commit/5960658acef322349d9c8e9ac291365321b6add0))
 </details>
