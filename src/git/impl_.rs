@@ -239,7 +239,7 @@ impl GitIndex {
             .unwrap_or_else(|| self.repo.remote_at(self.url.as_str()).expect("own URL is always valid"));
         fetch_remote(
             &mut remote,
-            &["HEAD:refs/remotes/origin/HEAD", "master:refs/remotes/origin/master"],
+            &["+HEAD:refs/remotes/origin/HEAD", "+master:refs/remotes/origin/master"],
         )?;
 
         let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
