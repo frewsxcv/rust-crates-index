@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.6.0 (2024-02-25)
+
+### Chore
+
+ - <csr-id-110d4a8096b781e1cde8a35c08cb8c68d7a69612/> update to gix v0.59
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 28 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Set next release version ([`bec65e9`](https://github.com/frewsxcv/rust-crates-index/commit/bec65e9de8948defb266fa0859fb5b9b920d4d73))
+    - Update to gix v0.59 ([`110d4a8`](https://github.com/frewsxcv/rust-crates-index/commit/110d4a8096b781e1cde8a35c08cb8c68d7a69612))
+</details>
+
 ## 2.5.1 (2024-01-28)
 
 ### Bug Fixes
@@ -23,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 6 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -35,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.5.1 ([`3e1b769`](https://github.com/frewsxcv/rust-crates-index/commit/3e1b769353d2e6bbdfd5288637aa6a111b056939))
     - Merge branch 'fix-index-update' ([`99e8fe1`](https://github.com/frewsxcv/rust-crates-index/commit/99e8fe172f98e096607789f349c050663f416b1d))
     - Assure Git index updates to refs are actually written. ([`4d75232`](https://github.com/frewsxcv/rust-crates-index/commit/4d75232a72cb5f87b6dafa042898b7249123b88a))
 </details>
