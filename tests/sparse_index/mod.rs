@@ -124,4 +124,76 @@ mod with_sparse_http_feature {
             assert!(index.parse_cache_response("serde", response, false).unwrap().is_none());
         }
     }
+
+    mod make_config_request {
+        use crate::sparse_index::with_sparse_http_feature::crates_io;
+        use http::{header, Request};
+
+        #[test]
+        fn generates_request() {
+            let index = crates_io();
+            let builder = index.make_config_request().unwrap();
+            let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
+
+            assert_eq!(req.uri(), format!("{}config.json", index.url()).as_str());
+            assert!(req.headers().get(header::IF_NONE_MATCH).is_none());
+            assert!(req.headers().get(header::IF_MODIFIED_SINCE).is_none());
+            assert_eq!(req.headers().get(header::ACCEPT_ENCODING).unwrap(), "gzip,identity");
+            assert_eq!(
+                req.headers()
+                    .get(header::HeaderName::from_static("cargo-protocol"))
+                    .unwrap(),
+                "version=1"
+            );
+            assert_eq!(req.headers().get(header::ACCEPT).unwrap(), "text/plain");
+        }
+    }
+
+    mod parse_config_response {
+        use crates_index::{Error, SparseIndex};
+        use std::io;
+
+        // curl -v -H 'accept-encoding: gzip,identity' https://index.crates.io/config.json
+        const CONFIG_JSON: &[u8] = include_bytes!("../../tests/fixtures/config.json");
+
+        fn crates_io_tmp() -> (tempfile::TempDir, SparseIndex) {
+            let dir = tempfile::tempdir().unwrap();
+            let index = SparseIndex::with_path(dir.path(), crates_index::sparse::URL).unwrap();
+            (dir, index)
+        }
+
+        fn make_response() -> http::Response<Vec<u8>> {
+            http::Response::builder()
+                .status(http::StatusCode::OK)
+                .body(CONFIG_JSON.to_vec())
+                .unwrap()
+        }
+
+        #[test]
+        fn parses_response() {
+            let (_dir, index) = crates_io_tmp();
+
+            let config = index.parse_config_response(make_response(), false).unwrap();
+
+            assert_eq!(config.dl, "https://static.crates.io/crates");
+            assert_eq!(config.api.as_deref(), Some("https://crates.io"));
+        }
+
+        #[test]
+        fn stores_response() {
+            let (_dir, index) = crates_io_tmp();
+
+            let Err(Error::Io(err)) = index.index_config() else {
+                panic!("expected to get an io error")
+            };
+            assert!(err.kind() == io::ErrorKind::NotFound);
+
+            let config = index.parse_config_response(make_response(), true).unwrap();
+
+            let stored_config = index.index_config().unwrap();
+
+            assert_eq!(config.dl, stored_config.dl);
+            assert_eq!(config.api, stored_config.api);
+        }
+    }
 }
