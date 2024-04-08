@@ -5,7 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.7.0 (2024-04-08)
+
+### New Features
+
+ - <csr-id-3667cd02d53716aa4bc01fdbdf526f7070efbe47/> add `SparseIndex::make_config_request()` and `SparseIndex::parse_config_request()`.
+   That way it's possible to handle the case where no sparse index exists yet.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release over the course of 41 calendar days.
+ - 42 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#164](https://github.com/frewsxcv/rust-crates-index/issues/164)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#164](https://github.com/frewsxcv/rust-crates-index/issues/164)**
+    - Add `SparseIndex::make_config_request()` and `SparseIndex::parse_config_request()`. ([`3667cd0`](https://github.com/frewsxcv/rust-crates-index/commit/3667cd02d53716aa4bc01fdbdf526f7070efbe47))
+ * **Uncategorized**
+    - Refactor ([`49e8ba7`](https://github.com/frewsxcv/rust-crates-index/commit/49e8ba7ad882f6f6ed8252bb97b5320c997448d1))
+    - Add support for downloading the sparse index config ([`2b8460c`](https://github.com/frewsxcv/rust-crates-index/commit/2b8460cd76e9836d98db231546654d0c38c0da3d))
+    - Revert "chore: update to gix v0.59" - this version was yanked ([`289617b`](https://github.com/frewsxcv/rust-crates-index/commit/289617b1f9ed5f30448bb5b5e57ab3af1e8d10d8))
+</details>
+
 ## 2.6.0 (2024-02-25)
+
+<csr-id-110d4a8096b781e1cde8a35c08cb8c68d7a69612/>
 
 ### Chore
 
@@ -15,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 28 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.6.0 ([`fab4d1d`](https://github.com/frewsxcv/rust-crates-index/commit/fab4d1dff8fefe3f944e0182f6da94b23bd451b7))
     - Set next release version ([`bec65e9`](https://github.com/frewsxcv/rust-crates-index/commit/bec65e9de8948defb266fa0859fb5b9b920d4d73))
     - Update to gix v0.59 ([`110d4a8`](https://github.com/frewsxcv/rust-crates-index/commit/110d4a8096b781e1cde8a35c08cb8c68d7a69612))
 </details>
