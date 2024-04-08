@@ -36,7 +36,7 @@ mod with_sparse_http_feature {
         // Validates that a valid request is generated when there is no cache entry
         // for a crate
         #[test]
-        fn generates_request_for_missing_cache_entry() {
+        fn generate_request_for_missing_cache_entry() {
             let index = crates_io();
             let builder = index.make_cache_request("serde").unwrap();
             let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
@@ -57,7 +57,7 @@ mod with_sparse_http_feature {
         // Validates that a valid request is generated when there is a local cache
         // entry for a crate
         #[test]
-        fn generates_request_for_local_cache_entry() {
+        fn generate_request_for_local_cache_entry() {
             let index = crates_io();
             let builder = index.make_cache_request("autocfg").unwrap();
             let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
@@ -81,7 +81,7 @@ mod with_sparse_http_feature {
 
         // Validates that a response with the full index contents are properly parsed
         #[test]
-        fn parses_modified_response() {
+        fn modified_response() {
             let index = crates_io();
             let response = http::Response::builder()
                 .status(http::StatusCode::OK)
@@ -96,7 +96,7 @@ mod with_sparse_http_feature {
         // Validates that a response for an index entry that has not been modified is
         // parsed correctly
         #[test]
-        fn parses_unmodified_response() {
+        fn unmodified_response() {
             let index = crates_io();
             let response = http::Response::builder()
                 .status(http::StatusCode::NOT_MODIFIED)
@@ -114,7 +114,7 @@ mod with_sparse_http_feature {
         // Validates that a response for an index entry that does not exist is
         // parsed correcty
         #[test]
-        fn parses_missing_response() {
+        fn missing_response() {
             let index = crates_io();
             let response = http::Response::builder()
                 .status(http::StatusCode::NOT_FOUND)
@@ -122,6 +122,82 @@ mod with_sparse_http_feature {
                 .unwrap();
 
             assert!(index.parse_cache_response("serde", response, false).unwrap().is_none());
+        }
+    }
+
+    #[test]
+    fn make_config_request() {
+        use crate::sparse_index::with_sparse_http_feature::crates_io;
+        use http::{header, Request};
+
+        let index = crates_io();
+        let builder = index.make_config_request().unwrap();
+        let req: Request<Vec<u8>> = builder.body(vec![]).unwrap();
+
+        assert_eq!(req.uri(), format!("{}config.json", index.url()).as_str());
+        assert!(req.headers().get(header::IF_NONE_MATCH).is_none());
+        assert!(req.headers().get(header::IF_MODIFIED_SINCE).is_none());
+        assert_eq!(req.headers().get(header::ACCEPT_ENCODING).unwrap(), "gzip,identity");
+        assert_eq!(
+            req.headers()
+                .get(header::HeaderName::from_static("cargo-protocol"))
+                .unwrap(),
+            "version=1"
+        );
+        assert_eq!(req.headers().get(header::ACCEPT).unwrap(), "text/plain");
+    }
+
+    mod parse_config_response {
+        use crates_index::{Error, SparseIndex};
+        use std::io;
+
+        // curl -v -H 'accept-encoding: gzip,identity' https://index.crates.io/config.json
+        const CONFIG_JSON: &[u8] = include_bytes!("../../tests/fixtures/config.json");
+
+        fn crates_io_tmp() -> (tempfile::TempDir, SparseIndex) {
+            let dir = tempfile::tempdir().unwrap();
+            let index = SparseIndex::with_path(dir.path(), crates_index::sparse::URL).unwrap();
+            (dir, index)
+        }
+
+        fn make_response() -> http::Response<Vec<u8>> {
+            http::Response::builder()
+                .status(http::StatusCode::OK)
+                .body(CONFIG_JSON.to_vec())
+                .unwrap()
+        }
+
+        #[test]
+        fn parse() {
+            let (_dir, index) = crates_io_tmp();
+
+            let config = index.parse_config_response(make_response(), false).unwrap();
+
+            assert_eq!(config.dl, "https://static.crates.io/crates");
+            assert_eq!(config.api.as_deref(), Some("https://crates.io"));
+
+            assert!(
+                matches!(index.index_config(), Err(Error::Io(_))),
+                "the configuration shouldn't exist, hence we cannot query the index configuration"
+            );
+        }
+
+        #[test]
+        fn parse_and_store() {
+            let (_dir, index) = crates_io_tmp();
+
+            match index.index_config() {
+                Err(Error::Io(err)) => {
+                    assert_eq!(err.kind(), io::ErrorKind::NotFound);
+                }
+                _ => unreachable!("precondition: there is no configuration and this triggers an IO error"),
+            };
+
+            let config = index.parse_config_response(make_response(), true).unwrap();
+            let stored_config = index.index_config().unwrap();
+
+            assert_eq!(config.dl, stored_config.dl);
+            assert_eq!(config.api, stored_config.api);
         }
     }
 }

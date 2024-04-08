@@ -54,7 +54,8 @@ impl SparseIndex {
         Self { path, url }
     }
 
-    /// Get the global configuration of the index.
+    /// Get the global configuration of the index. There are no guarantees around freshness,
+    /// and if the config is not available, no fetch will be performed.
     pub fn index_config(&self) -> Result<IndexConfig, Error> {
         let path = self.path.join("config.json");
         let bytes = std::fs::read(path).map_err(Error::Io)?;
@@ -137,23 +138,9 @@ impl SparseIndex {
         version
     }
 
-    /// Creates an HTTP request that can be sent via your HTTP client of choice
-    /// to retrieve the current metadata for the specified crate
-    ///
-    /// See [`Self::parse_cache_response`] processing the response from the remote
-    /// index
-    ///
-    /// It is highly recommended to assume HTTP/2 when making requests to remote
-    /// indices, at least crates.io
     #[cfg(feature = "sparse")]
-    pub fn make_cache_request(&self, name: &str) -> Result<http::request::Builder, Error> {
+    fn make_request(&self, url: &str, cache_version: Option<&str>) -> Result<http::request::Builder, Error> {
         use http::header;
-
-        let url = self
-            .crate_url(name)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "crate name is invalid"))?;
-
-        let cache_version = self.read_cache_version(name);
 
         let mut req = http::Request::get(url).version(http::Version::HTTP_2);
 
@@ -196,6 +183,81 @@ impl SparseIndex {
         }
 
         Ok(req)
+    }
+
+    /// Creates an HTTP request that can be sent via your HTTP client of choice
+    /// to retrieve the config for this index.
+    ///
+    /// See [`Self::parse_config_response()`] processing the response from the remote
+    /// index.
+    ///
+    /// It is highly recommended to assume HTTP/2 when making requests to remote
+    /// indices, at least crates.io.
+    #[cfg(feature = "sparse")]
+    pub fn make_config_request(&self) -> Result<http::request::Builder, Error> {
+        self.make_request(&format!("{}config.json", self.url()), None)
+    }
+
+    /// Creates an HTTP request that can be sent via your HTTP client of choice
+    /// to retrieve the current metadata for the specified crate `namw`.
+    ///
+    /// See [`Self::parse_cache_response()`] processing the response from the remote
+    /// index.
+    ///
+    /// It is highly recommended to assume HTTP/2 when making requests to remote
+    /// indices, at least crates.io.
+    #[cfg(feature = "sparse")]
+    pub fn make_cache_request(&self, name: &str) -> Result<http::request::Builder, Error> {
+        self.make_request(
+            &self
+                .crate_url(name)
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "crate name is invalid"))?,
+            self.read_cache_version(name).as_deref(),
+        )
+    }
+
+    /// Process the response to a request created by [`Self::make_config_request()`].
+    ///
+    /// If `write_config` is `true`, write the configuration to disk after parsing it.
+    /// Note that the write operation may fail, and as opposed to the similar parameter
+    /// in [`Self::parse_cache_response()`], write errors will not be ignored.
+    ///
+    /// Note that the `response` from sparse HTTP indices, at least crates.io, may
+    /// send responses with `gzip` compression, it is your responsibility to
+    /// decompress it before sending to this function.
+    #[cfg(feature = "sparse")]
+    pub fn parse_config_response(
+        &self,
+        response: http::Response<Vec<u8>>,
+        write_config: bool,
+    ) -> Result<IndexConfig, Error> {
+        use http::StatusCode;
+        let (parts, body) = response.into_parts();
+
+        match parts.status {
+            StatusCode::OK => {
+                let res = serde_json::from_slice(&body).map_err(Error::Json);
+                if write_config {
+                    let path = self.path.join("config.json");
+                    std::fs::create_dir_all(path.parent().unwrap())?;
+                    std::fs::write(&path, &body)?;
+                }
+                res
+            }
+            StatusCode::UNAUTHORIZED => {
+                Err(io::Error::new(io::ErrorKind::PermissionDenied, "the request was not authorized").into())
+            }
+            StatusCode::NOT_FOUND => {
+                Err(io::Error::new(io::ErrorKind::NotFound, "config.json not found in registry").into())
+            }
+            other => Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                format!(
+                    "the server responded with status code '{other}', which is not supported in the current protocol"
+                ),
+            )
+            .into()),
+        }
     }
 
     /// Process the response to a request created by [`Self::make_cache_request`]
