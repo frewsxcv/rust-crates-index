@@ -186,26 +186,26 @@ impl SparseIndex {
     }
 
     /// Creates an HTTP request that can be sent via your HTTP client of choice
-    /// to retrieve the config for this index
+    /// to retrieve the config for this index.
     ///
-    /// See [`Self::parse_config_response`] processing the response from the remote
-    /// index
+    /// See [`Self::parse_config_response()`] processing the response from the remote
+    /// index.
     ///
     /// It is highly recommended to assume HTTP/2 when making requests to remote
-    /// indices, at least crates.io
+    /// indices, at least crates.io.
     #[cfg(feature = "sparse")]
     pub fn make_config_request(&self) -> Result<http::request::Builder, Error> {
         self.make_request(&format!("{}config.json", self.url()), None)
     }
 
     /// Creates an HTTP request that can be sent via your HTTP client of choice
-    /// to retrieve the current metadata for the specified crate
+    /// to retrieve the current metadata for the specified crate `namw`.
     ///
-    /// See [`Self::parse_cache_response`] processing the response from the remote
-    /// index
+    /// See [`Self::parse_cache_response()`] processing the response from the remote
+    /// index.
     ///
     /// It is highly recommended to assume HTTP/2 when making requests to remote
-    /// indices, at least crates.io
+    /// indices, at least crates.io.
     #[cfg(feature = "sparse")]
     pub fn make_cache_request(&self, name: &str) -> Result<http::request::Builder, Error> {
         self.make_request(
@@ -216,39 +216,34 @@ impl SparseIndex {
         )
     }
 
-    /// Process the response to a request created by [`Self::make_config_request`]
+    /// Process the response to a request created by [`Self::make_config_request()`].
     ///
-    /// You may specify whether an updated config file is written locally to the
-    /// cache or not
+    /// If `write_config` is `true`, write the configuration to disk after parsing it.
+    /// Note that the write operation may fail, and as opposed to the similar parameter
+    /// in [`Self::parse_cache_response()`], write errors will not be ignored.
     ///
-    /// Note that responses from sparse HTTP indices, at least crates.io, may
+    /// Note that the `response` from sparse HTTP indices, at least crates.io, may
     /// send responses with `gzip` compression, it is your responsibility to
-    /// decompress it before sending to this function
+    /// decompress it before sending to this function.
     #[cfg(feature = "sparse")]
     pub fn parse_config_response(
         &self,
         response: http::Response<Vec<u8>>,
-        write_cache_entry: bool,
+        write_config: bool,
     ) -> Result<IndexConfig, Error> {
         use http::StatusCode;
         let (parts, body) = response.into_parts();
 
         match parts.status {
-            // The server responded with the full contents of the config
             StatusCode::OK => {
-                if write_cache_entry {
+                let res = serde_json::from_slice(&body).map_err(Error::Json);
+                if write_config {
                     let path = self.path.join("config.json");
-                    if std::fs::create_dir_all(path.parent().unwrap()).is_ok() {
-                        // It's unfortunate if this fails for some reason, but
-                        // not writing the cache entry shouldn't stop the user
-                        // from getting the config
-                        let _ = std::fs::write(&path, &body);
-                    }
+                    std::fs::create_dir_all(path.parent().unwrap())?;
+                    std::fs::write(&path, &body)?;
                 }
-
-                serde_json::from_slice(&body).map_err(Error::Json)
+                res
             }
-            // The server requires authorization but the user didn't provide it
             StatusCode::UNAUTHORIZED => {
                 Err(io::Error::new(io::ErrorKind::PermissionDenied, "the request was not authorized").into())
             }
