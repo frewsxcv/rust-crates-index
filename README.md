@@ -11,7 +11,7 @@ The index contains metadata for all Rust libraries and programs published on cra
 ## Example
 
 ```rust
-let index = crates_index::Index::new_cargo_default()?;
+let index = crates_index::GitIndex::new_cargo_default()?;
 
 for crate_releases in index.crates() {
     let _ = crate_releases.most_recent_version(); // newest version
