@@ -5,7 +5,207 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.8.0 (2024-04-15)
+
+### Chore
+
+ - <csr-id-07c23f363d7a0494b52e0741794d6dfa96fd65a1/> upgrade gix to v0.62
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 7 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge branch 'gix-upgrade' ([`a9d4660`](https://github.com/frewsxcv/rust-crates-index/commit/a9d4660e7411d4e8341d0825b82dc483ddb6aefb))
+    - Bump minor version to indicate 'gix' upgrade. ([`731658f`](https://github.com/frewsxcv/rust-crates-index/commit/731658f97d2fd5f08cb65616f4edbdb096811f47))
+    - Upgrade gix to v0.62 ([`07c23f3`](https://github.com/frewsxcv/rust-crates-index/commit/07c23f363d7a0494b52e0741794d6dfa96fd65a1))
+</details>
+
+## 2.7.0 (2024-04-08)
+
+### New Features
+
+ - <csr-id-3667cd02d53716aa4bc01fdbdf526f7070efbe47/> add `SparseIndex::make_config_request()` and `SparseIndex::parse_config_request()`.
+   That way it's possible to handle the case where no sparse index exists yet.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 5 commits contributed to the release over the course of 41 calendar days.
+ - 42 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#164](https://github.com/frewsxcv/rust-crates-index/issues/164)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#164](https://github.com/frewsxcv/rust-crates-index/issues/164)**
+    - Add `SparseIndex::make_config_request()` and `SparseIndex::parse_config_request()`. ([`3667cd0`](https://github.com/frewsxcv/rust-crates-index/commit/3667cd02d53716aa4bc01fdbdf526f7070efbe47))
+ * **Uncategorized**
+    - Release crates-index v2.7.0 ([`2895ec1`](https://github.com/frewsxcv/rust-crates-index/commit/2895ec122a94ab097ff6ce5918308e7daa8d6f4f))
+    - Refactor ([`49e8ba7`](https://github.com/frewsxcv/rust-crates-index/commit/49e8ba7ad882f6f6ed8252bb97b5320c997448d1))
+    - Add support for downloading the sparse index config ([`2b8460c`](https://github.com/frewsxcv/rust-crates-index/commit/2b8460cd76e9836d98db231546654d0c38c0da3d))
+    - Revert "chore: update to gix v0.59" - this version was yanked ([`289617b`](https://github.com/frewsxcv/rust-crates-index/commit/289617b1f9ed5f30448bb5b5e57ab3af1e8d10d8))
+</details>
+
+## 2.6.0 (2024-02-25)
+
+<csr-id-110d4a8096b781e1cde8a35c08cb8c68d7a69612/>
+
+### Chore
+
+ - <csr-id-110d4a8096b781e1cde8a35c08cb8c68d7a69612/> update to gix v0.59
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 28 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release crates-index v2.6.0 ([`fab4d1d`](https://github.com/frewsxcv/rust-crates-index/commit/fab4d1dff8fefe3f944e0182f6da94b23bd451b7))
+    - Set next release version ([`bec65e9`](https://github.com/frewsxcv/rust-crates-index/commit/bec65e9de8948defb266fa0859fb5b9b920d4d73))
+    - Update to gix v0.59 ([`110d4a8`](https://github.com/frewsxcv/rust-crates-index/commit/110d4a8096b781e1cde8a35c08cb8c68d7a69612))
+</details>
+
+## 2.5.1 (2024-01-28)
+
+### Bug Fixes
+
+ - <csr-id-4d75232a72cb5f87b6dafa042898b7249123b88a/> assure Git index updates to refs are actually written.
+   The remote git repository may alter its references in such a way that
+   local fast-forwards aren't possible anymore.
+   
+   This happens regularly as the history will be squashed on the remote.
+   
+   Now we forcefully store the updated references, which resolves
+   the issue that calling `update()` didn't seem to do anything despite
+   being busy (i.e. downloading a possibly huge pack, and resolving it).
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 6 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release crates-index v2.5.1 ([`3e1b769`](https://github.com/frewsxcv/rust-crates-index/commit/3e1b769353d2e6bbdfd5288637aa6a111b056939))
+    - Merge branch 'fix-index-update' ([`99e8fe1`](https://github.com/frewsxcv/rust-crates-index/commit/99e8fe172f98e096607789f349c050663f416b1d))
+    - Assure Git index updates to refs are actually written. ([`4d75232`](https://github.com/frewsxcv/rust-crates-index/commit/4d75232a72cb5f87b6dafa042898b7249123b88a))
+</details>
+
+## 2.5.0 (2024-01-21)
+
+<csr-id-5960658acef322349d9c8e9ac291365321b6add0/>
+
+### Chore
+
+ - <csr-id-5960658acef322349d9c8e9ac291365321b6add0/> update `gix` to v0.58
+
+### New Features
+
+ - <csr-id-2efa665a28bcdb54d4d4faf6f75c6f4e80153a93/> upgrade to `gix-0.58`
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 22 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release crates-index v2.5.0 ([`234c7b1`](https://github.com/frewsxcv/rust-crates-index/commit/234c7b16295068e74fae8873be2a8f612cd83f05))
+    - Upgrade to `gix-0.58` ([`2efa665`](https://github.com/frewsxcv/rust-crates-index/commit/2efa665a28bcdb54d4d4faf6f75c6f4e80153a93))
+    - Update `gix` to v0.58 ([`5960658`](https://github.com/frewsxcv/rust-crates-index/commit/5960658acef322349d9c8e9ac291365321b6add0))
+</details>
+
+## 2.4.0 (2023-12-30)
+
+<csr-id-81f70d7cbcac5d4dbef6477cd803b1d103099347/>
+<csr-id-4ffad17947228bfeff47200d1ca969ae637c35cb/>
+<csr-id-39d9fb66270d38d4a3933e0f52edd3e0afcad143/>
+
+### Chore
+
+ - <csr-id-81f70d7cbcac5d4dbef6477cd803b1d103099347/> update `gix` to v0.57
+
+### Other
+
+ - <csr-id-4ffad17947228bfeff47200d1ca969ae637c35cb/> Update readme to include the sparse protocol
+ - <csr-id-39d9fb66270d38d4a3933e0f52edd3e0afcad143/> Link to examples of how to update the sparse index
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 10 commits contributed to the release over the course of 53 calendar days.
+ - 53 days passed between releases.
+ - 3 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release crates-index v2.4.0 ([`b84f4b9`](https://github.com/frewsxcv/rust-crates-index/commit/b84f4b9371be12d7ae3d34422efd25dbb0181341))
+    - Bump minor version for gix dependency change ([`3ae82f5`](https://github.com/frewsxcv/rust-crates-index/commit/3ae82f506aa7b67366cd59336e4245503c40edc9))
+    - Merge branch 'maintenance' ([`be03b1f`](https://github.com/frewsxcv/rust-crates-index/commit/be03b1f1245555a81f9005b3ebf28069ba47f236))
+    - Adapt to quite drastic changes in memory requirements. ([`c237796`](https://github.com/frewsxcv/rust-crates-index/commit/c237796a3ffd80c0c06a354f2a9cc3693e8d5e0c))
+    - Update `gix` to v0.57 ([`81f70d7`](https://github.com/frewsxcv/rust-crates-index/commit/81f70d7cbcac5d4dbef6477cd803b1d103099347))
+    - Fix cargo-check ([`2920beb`](https://github.com/frewsxcv/rust-crates-index/commit/2920beb86ede9cdca09c8f516ec5981e05912575))
+    - Add new example to list the most recent version of a crate using the git index ([`61f3090`](https://github.com/frewsxcv/rust-crates-index/commit/61f3090271f5992ca621c2a13df5daaa91e0cca6))
+    - Update readme to include the sparse protocol ([`4ffad17`](https://github.com/frewsxcv/rust-crates-index/commit/4ffad17947228bfeff47200d1ca969ae637c35cb))
+    - Link to examples of how to update the sparse index ([`39d9fb6`](https://github.com/frewsxcv/rust-crates-index/commit/39d9fb66270d38d4a3933e0f52edd3e0afcad143))
+    - Update ureq-sparse-example to use ureq 2.8.0 ([`239b009`](https://github.com/frewsxcv/rust-crates-index/commit/239b009fc8fdb42250a09f52ef351e84c29ab7e3))
+</details>
+
 ## 2.3.0 (2023-11-06)
+
+<csr-id-82002e7d8362b5e0736f994a1569d002333c7fad/>
 
 ### Chore
 
@@ -15,7 +215,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 41 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.3.0 ([`639e425`](https://github.com/frewsxcv/rust-crates-index/commit/639e425b2b640a9f289ad394c1310cce3474102e))
     - Merge branch 'updates' ([`345d8ce`](https://github.com/frewsxcv/rust-crates-index/commit/345d8ce9461da90fb70cb894be30ecd5669fa6fd))
     - Bump feature level ([`c9a7744`](https://github.com/frewsxcv/rust-crates-index/commit/c9a7744c94a2e41f0ea2291cb5f184800a0c922e))
     - Upgrade `gitoxide` to v0.55.2 ([`82002e7`](https://github.com/frewsxcv/rust-crates-index/commit/82002e7d8362b5e0736f994a1569d002333c7fad))
