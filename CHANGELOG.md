@@ -5,7 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.10.0 (2024-05-24)
+
+### New Features
+
+ - <csr-id-6223b70962579000aba8e01be925bbcf6f7fa95d/> upgrade `gix` to v0.63 for security fixes
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 7 commits contributed to the release over the course of 21 calendar days.
+ - 38 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Bump version to next free one after messing up v2.9 ([`217bb86`](https://github.com/frewsxcv/rust-crates-index/commit/217bb868efe69c10f4ace62a46f8267dc38657ad))
+    - Upgrade `gix` to v0.63 for security fixes ([`6223b70`](https://github.com/frewsxcv/rust-crates-index/commit/6223b70962579000aba8e01be925bbcf6f7fa95d))
+    - Upgrade `gix` to version 0.63.0 ([`2dc7734`](https://github.com/frewsxcv/rust-crates-index/commit/2dc7734511fab8f6043615fc8fe5af3e49029118))
+    - Merge pull request #170 from fenhl/http1 ([`eae6947`](https://github.com/frewsxcv/rust-crates-index/commit/eae69477dcb44f27c2a4f80e1d4a1107fe5b3087))
+    - Upgrade to http 1 ([`a925945`](https://github.com/frewsxcv/rust-crates-index/commit/a925945966d1da60bed757c1b0788082ef7b0417))
+    - Merge pull request #169 from nickspurry/master ([`4be1703`](https://github.com/frewsxcv/rust-crates-index/commit/4be1703d13817d76896f98084ee1a06a2533125a))
+    - Correct Example code in README ([`4e23a38`](https://github.com/frewsxcv/rust-crates-index/commit/4e23a38068715337ab4908cf33dd4476687cdcc7))
+</details>
+
 ## 2.8.0 (2024-04-15)
+
+<csr-id-07c23f363d7a0494b52e0741794d6dfa96fd65a1/>
 
 ### Chore
 
@@ -15,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 7 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v2.8.0 ([`b6314ac`](https://github.com/frewsxcv/rust-crates-index/commit/b6314acbd12ccb5effbf20b4e3d91b2c088db6b5))
     - Merge branch 'gix-upgrade' ([`a9d4660`](https://github.com/frewsxcv/rust-crates-index/commit/a9d4660e7411d4e8341d0825b82dc483ddb6aefb))
     - Bump minor version to indicate 'gix' upgrade. ([`731658f`](https://github.com/frewsxcv/rust-crates-index/commit/731658f97d2fd5f08cb65616f4edbdb096811f47))
     - Upgrade gix to v0.62 ([`07c23f3`](https://github.com/frewsxcv/rust-crates-index/commit/07c23f363d7a0494b52e0741794d6dfa96fd65a1))
