@@ -77,7 +77,7 @@ fn names(name: &str) -> Result<impl Iterator<Item = String>, Box<dyn Error>> {
 /// Create a request to the sparse `index` and parse the response with the side-effect of yielding
 /// the desired crate and updating the local cache.
 fn update_cache(name: &str, index: &SparseIndex) -> Result<Option<Crate>, Box<dyn Error>> {
-    let request: ureq::Request = index.make_cache_request(name)?.try_into()?;
+    let request: ureq::Request = index.make_cache_request(name)?.into();
 
     let response: http::Response<String> = match request.call() {
         Ok(response) => response.into(),

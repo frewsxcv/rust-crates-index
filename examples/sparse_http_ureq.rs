@@ -31,7 +31,7 @@ fn print_crate(index: &mut SparseIndex) {
 }
 
 fn update(index: &mut SparseIndex) {
-    let request: ureq::Request = index.make_cache_request(CRATE_TO_FETCH).unwrap().try_into().unwrap();
+    let request: ureq::Request = index.make_cache_request(CRATE_TO_FETCH).unwrap().into();
 
     let response = request
         .call()
