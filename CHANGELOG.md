@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.10.1 (2024-05-28)
 
 This release fixes v2.10 which broke the `sparse` feature due to the upgrade to `http` 1.0, which was present in the public API.
 This release uses `http` 0.2 again, whereas the upcoming v3.0 will be for `http` 1.0.
@@ -18,7 +18,7 @@ This release uses `http` 0.2 again, whereas the upcoming v3.0 will be for `http`
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 3 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -30,6 +30,7 @@ This release uses `http` 0.2 again, whereas the upcoming v3.0 will be for `http`
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Update changelog ([`3920ef3`](https://github.com/Byron/rust-crates-index/commit/3920ef3a6c81af074e45d84d4bdb1b05e8243e28))
     - Export `http` crate to make more obvious we are using it in the public API ([`2cbb080`](https://github.com/Byron/rust-crates-index/commit/2cbb0808738c9c5a6ab361fd00b03fbd0009a2f7))
     - Revert "Upgrade to http 1" - this was a breaking change ([`451026b`](https://github.com/Byron/rust-crates-index/commit/451026bb817c862c7ea753588b9b97abbd97af74))
 </details>
