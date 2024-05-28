@@ -164,6 +164,9 @@ pub struct SparseIndex {
 
 ///
 pub mod sparse;
+/// The matching `http` types for use in the [`sparse`] API.
+#[cfg(feature = "sparse")]
+pub use http;
 
 mod names;
 pub use names::Names;
