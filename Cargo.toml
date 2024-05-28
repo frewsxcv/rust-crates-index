@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "2.10.0"
+version = "2.10.1"
 homepage = "https://crates.io/crates/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
