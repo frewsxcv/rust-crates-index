@@ -7,11 +7,14 @@ pub use toml::de::Error as TomlDeError;
 #[derive(Debug, thiserror::Error)]
 #[allow(missing_docs)]
 pub enum Error {
-    #[error("\"gix\" crate failed. If problems persist, consider deleting `~/.cargo/registry/index/github.com-1ecc6299db9ec823/`")]
+    // ~/.cargo/registry/index/github.com-1ecc6299db9ec823/
+    #[error("\"gix\" crate failed. If problems persist, consider deleting `TODO`")]
     #[cfg(feature = "git")]
-    Git(#[from] GixError),
+    Git(#[from] GixError), // String
     #[error("{0}")]
     Url(String),
+    #[error("GitIndex cannot take sparse URL `{0}`, use SparseIndex")]
+    UrlIsSparse(String),
     #[error("Could not obtain the most recent head commit in repo at {}. Tried {}, had {} available", repo_path.display(), refs_tried.join(", "), refs_available.join(", "))]
     MissingHead {
         /// The references we tried to get commits for.
