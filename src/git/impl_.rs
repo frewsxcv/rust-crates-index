@@ -447,7 +447,7 @@ fn is_top_level_dir(entry: &gix::object::tree::EntryRef<'_, '_>) -> bool {
 fn with_delta_cache(mut repo: gix::Repository) -> gix::Repository {
     if repo
         .config_snapshot()
-        .integer_by_key(gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT.logical_name().as_str())
+        .integer(gix::config::tree::Core::DELTA_BASE_CACHE_LIMIT.logical_name().as_str())
         .is_none()
     {
         let mut config = repo.config_snapshot_mut();

@@ -137,7 +137,8 @@ pub struct Dependency {
     package: Option<Box<SmolStr>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<DependencyKind>,
-    registry: SmolStr,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    registry: Option<SmolStr>,
     #[serde(skip_serializing_if = "Option::is_none")]
     target: Option<Box<SmolStr>>,
     optional: bool,
@@ -197,13 +198,13 @@ impl Dependency {
         self.kind.unwrap_or_default()
     }
 
-    /// Registry URL
+    /// The registry URL, if available.
     ///
     /// Example: `https://github.com/rust-lang/crates.io-index.git`
     #[inline]
     #[must_use]
-    pub fn registry(&self) -> &str {
-        &self.registry
+    pub fn registry(&self) -> Option<&str> {
+        self.registry.as_deref()
     }
 
     /// Set if dependency's crate name is different from the `name` (alias)

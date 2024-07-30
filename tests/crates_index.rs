@@ -15,7 +15,7 @@ use crates_index::{Crate, Dependency, Version};
 fn sizes() {
     assert!(std::mem::size_of::<Version>() <= 152);
     assert!(std::mem::size_of::<Crate>() <= 16);
-    assert!(std::mem::size_of::<Dependency>() <= 80);
+    assert!(std::mem::size_of::<Dependency>() <= 104);
 }
 
 #[test]

@@ -34,7 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.63.0", default-features = false, features = [
+gix = { version = "0.64.0", default-features = false, features = [
     "max-performance-safe",
     "blocking-network-client",
 ], optional = true }
@@ -43,7 +43,7 @@ home = "0.5.4"
 http = { version = "1", optional = true }
 memchr = "2.5.0"
 rayon = { version = "1.7.0", optional = true }
-rustc-hash = "1.1.0"
+rustc-hash = "2.0.0"
 semver = "1.0.17"
 serde = { version = "1.0.160", features = ["rc"] }
 serde_derive = "1.0.160"
@@ -61,7 +61,7 @@ is_ci = "1.1.1"
 tempfile = "3.5.0"
 ureq = { version = "2.8.0", features = ["http-crate"] }
 reqwest = { version = "0.12", features = ["blocking", "gzip"] }
-serial_test = "2.0.0"
+serial_test = "3.1.1"
 parking_lot = "0.12.1"
 
 [package.metadata.docs.rs]
