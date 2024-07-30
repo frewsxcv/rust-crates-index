@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.1.0 (2024-07-30)
+
+### New Features
+
+ - <csr-id-73b7bf2d6de441f62962bf7744cc30ce2d15e50e/> update `gix` to v0.64
+
+### Other
+
+ - <csr-id-704225198d5ada22863f4f20eac0c193b1c0c4a3/> expose dependency registry url
+   This commit exposes the field `registry` on the `Dependency` struct. This field is always set by `cargo`, and it's needed to properly handle dependencies when multiple registries are used.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release.
+ - 63 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge branch 'update-gix' ([`8cc981f`](https://github.com/frewsxcv/rust-crates-index/commit/8cc981fe6bacf4d3ddab69db3fdd97bccb407681))
+    - Fix registry field ([`7a79f51`](https://github.com/frewsxcv/rust-crates-index/commit/7a79f51666ad0c54c4894818ff967d828a2f9d56))
+    - Update all dependencies ([`39b6ff8`](https://github.com/frewsxcv/rust-crates-index/commit/39b6ff86f48b0960ff70aaa547d59e130d159ee1))
+    - Update `gix` to v0.64 ([`73b7bf2`](https://github.com/frewsxcv/rust-crates-index/commit/73b7bf2d6de441f62962bf7744cc30ce2d15e50e))
+    - Merge pull request #174 from demurgos/feature/dependency-registry ([`8b0a542`](https://github.com/frewsxcv/rust-crates-index/commit/8b0a5426f26ba7fc0fd0a8ff2027b61044628863))
+    - Expose dependency registry url ([`7042251`](https://github.com/frewsxcv/rust-crates-index/commit/704225198d5ada22863f4f20eac0c193b1c0c4a3))
+</details>
+
 ## 3.0.0 (2024-05-28)
 
 ### New Features (BREAKING)
@@ -16,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -27,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.0.0 ([`9bfd7eb`](https://github.com/frewsxcv/rust-crates-index/commit/9bfd7eb33675a3f113e686185fc6aa4080552695))
     - Merge branch 'fix-breakage' ([`ffc0920`](https://github.com/frewsxcv/rust-crates-index/commit/ffc09204ec3547d9ef4f49c5efcc53cb83d69d95))
     - Upgrade `http` to v1.0 ([`8d85c9a`](https://github.com/frewsxcv/rust-crates-index/commit/8d85c9a8d08f90c92ae3f5190e20a72dccf21f18))
 </details>
