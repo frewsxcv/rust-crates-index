@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.2.0 (2024-08-23)
+
+### New Features
+
+ - <csr-id-15a503e74d1a4a6cbb115849824f6c814510c093/> upgrade `gix` to v0.66
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 23 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Upgrade `gix` to v0.66 ([`15a503e`](https://github.com/frewsxcv/rust-crates-index/commit/15a503e74d1a4a6cbb115849824f6c814510c093))
+</details>
+
 ## 3.1.0 (2024-07-30)
+
+<csr-id-704225198d5ada22863f4f20eac0c193b1c0c4a3/>
 
 ### New Features
 
@@ -20,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release.
+ - 7 commits contributed to the release.
  - 63 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -32,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.1.0 ([`10289d7`](https://github.com/frewsxcv/rust-crates-index/commit/10289d7b9922a3711ac19c5afe6dca9e81c363e1))
     - Merge branch 'update-gix' ([`8cc981f`](https://github.com/frewsxcv/rust-crates-index/commit/8cc981fe6bacf4d3ddab69db3fdd97bccb407681))
     - Fix registry field ([`7a79f51`](https://github.com/frewsxcv/rust-crates-index/commit/7a79f51666ad0c54c4894818ff967d828a2f9d56))
     - Update all dependencies ([`39b6ff8`](https://github.com/frewsxcv/rust-crates-index/commit/39b6ff86f48b0960ff70aaa547d59e130d159ee1))
