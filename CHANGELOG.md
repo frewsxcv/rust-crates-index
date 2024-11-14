@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+A release to update dependencies, namely `gix` is now at version 0.67.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge branch 'bump-dependencies' ([`9fdf214`](https://github.com/frewsxcv/rust-crates-index/commit/9fdf214b6235c3efebd960a536451a6361f80974))
+    - Update all dependencies ([`0c47c11`](https://github.com/frewsxcv/rust-crates-index/commit/0c47c11d67815ee4641fa0a2312a434046fc62ac))
+</details>
+
 ## 3.2.0 (2024-08-23)
 
 ### New Features
@@ -15,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 1 commit contributed to the release.
+ - 2 commits contributed to the release.
  - 23 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.2.0 ([`7b6c0e3`](https://github.com/frewsxcv/rust-crates-index/commit/7b6c0e349fe3578607323a259272ea6b0c0e2ddc))
     - Upgrade `gix` to v0.66 ([`15a503e`](https://github.com/frewsxcv/rust-crates-index/commit/15a503e74d1a4a6cbb115849824f6c814510c093))
 </details>
 
@@ -136,7 +160,7 @@ This release uses `http` 0.2 again, whereas the upcoming v3.0 will be for `http`
 
 <csr-read-only-do-not-edit/>
 
- - 8 commits contributed to the release over the course of 21 calendar days.
+ - 8 commits contributed to the release.
  - 38 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -199,8 +223,7 @@ This release uses `http` 0.2 again, whereas the upcoming v3.0 will be for `http`
 
 <csr-read-only-do-not-edit/>
 
- - 5 commits contributed to the release over the course of 41 calendar days.
- - 42 days passed between releases.
+ - 5 commits contributed to the release.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#164](https://github.com/frewsxcv/rust-crates-index/issues/164)
 
@@ -372,7 +395,6 @@ This release uses `http` 0.2 again, whereas the upcoming v3.0 will be for `http`
 <csr-read-only-do-not-edit/>
 
  - 4 commits contributed to the release.
- - 41 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -635,7 +657,6 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 <csr-read-only-do-not-edit/>
 
  - 39 commits contributed to the release over the course of 7 calendar days.
- - 8 days passed between releases.
  - 8 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#129](https://github.com/frewsxcv/rust-crates-index/issues/129)
 
@@ -706,7 +727,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 
 <csr-read-only-do-not-edit/>
 
- - 11 commits contributed to the release over the course of 26 calendar days.
+ - 11 commits contributed to the release.
  - 28 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -809,7 +830,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
     - Disable rustfmt ([`d1f51bf`](https://github.com/frewsxcv/rust-crates-index/commit/d1f51bf9ece463581b1ab54898f480ac58670ad7))
 </details>
 
-## v0.19.11 (2023-06-14)
+## v0.19.11 (2023-06-15)
 
 <csr-id-8cf14fbe0317ba4fc443eb6926f4a952bf8e7e0e/>
 
@@ -825,7 +846,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 
 <csr-read-only-do-not-edit/>
 
- - 9 commits contributed to the release over the course of 4 calendar days.
+ - 9 commits contributed to the release.
  - 32 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -895,7 +916,6 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 <csr-read-only-do-not-edit/>
 
  - 1 commit contributed to the release.
- - 36 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1141,7 +1161,6 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 <csr-read-only-do-not-edit/>
 
  - 7 commits contributed to the release over the course of 1 calendar day.
- - 28 days passed between releases.
  - 3 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1208,14 +1227,13 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
     - Avoid building libssh ([`95b9fdd`](https://github.com/frewsxcv/rust-crates-index/commit/95b9fdd4bab3e7c11dc5dc3ef2c43444873b314d))
 </details>
 
-## v0.18.8 (2022-05-23)
+## v0.18.8 (2022-05-24)
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 8 commits contributed to the release over the course of 85 calendar days.
- - 86 days passed between releases.
+ - 8 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1318,7 +1336,6 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release.
- - 86 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1352,7 +1369,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release over the course of 1 calendar day.
+ - 6 commits contributed to the release.
  - 7 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -1372,7 +1389,7 @@ For details about all breaking changes, please take a look at the `(BREAKING)` p
     - Support non-crates.io registries ([`8e3c293`](https://github.com/frewsxcv/rust-crates-index/commit/8e3c29369d6adec961a1e9b421bc8699a48a04de))
 </details>
 
-## v0.18.0 (2021-10-17)
+## v0.18.0 (2021-10-18)
 
 It should work without any code changes. Only the `git2` and `toml` dependencies were updated.
 
@@ -1471,8 +1488,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release over the course of 46 calendar days.
- - 46 days passed between releases.
+ - 6 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1527,7 +1543,6 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 <csr-read-only-do-not-edit/>
 
  - 8 commits contributed to the release over the course of 2 calendar days.
- - 27 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1665,7 +1680,6 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 <csr-read-only-do-not-edit/>
 
  - 4 commits contributed to the release.
- - 49 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1736,7 +1750,6 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 <csr-read-only-do-not-edit/>
 
  - 3 commits contributed to the release.
- - 9 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1758,8 +1771,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 14 commits contributed to the release over the course of 169 calendar days.
- - 176 days passed between releases.
+ - 14 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#30](https://github.com/frewsxcv/rust-crates-index/issues/30)
 
@@ -1794,7 +1806,6 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 <csr-read-only-do-not-edit/>
 
  - 9 commits contributed to the release over the course of 37 calendar days.
- - 65 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1822,8 +1833,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release over the course of 1 calendar day.
- - 88 days passed between releases.
+ - 3 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1845,8 +1855,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 5 commits contributed to the release over the course of 35 calendar days.
- - 104 days passed between releases.
+ - 5 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1871,7 +1880,6 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 <csr-read-only-do-not-edit/>
 
  - 4 commits contributed to the release over the course of 3 calendar days.
- - 226 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1888,14 +1896,13 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
     - Add the method `Dependency::crate_name()`. ([`a892ef6`](https://github.com/frewsxcv/rust-crates-index/commit/a892ef6f61d985973f802b9857326f88d8cef0f4))
 </details>
 
-## v0.12.0 (2018-04-28)
+## v0.12.0 (2018-04-29)
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
  - 6 commits contributed to the release.
- - 76 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1920,8 +1927,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 9 commits contributed to the release over the course of 264 calendar days.
- - 264 days passed between releases.
+ - 9 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -1943,7 +1949,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
     - Bump Travis CI base image. ([`02f87fa`](https://github.com/frewsxcv/rust-crates-index/commit/02f87face8613f0ac795f911f8feb89f9ce4403b))
 </details>
 
-## v0.9.0 (2017-05-22)
+## v0.9.0 (2017-05-21)
 
 ### Commit Statistics
 
@@ -1963,7 +1969,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
     - Replace rustc-serialize with serde, prepare for 0.9.0 release. ([`13795a5`](https://github.com/frewsxcv/rust-crates-index/commit/13795a57f23ff8ff6bb41593a399c7aa779565f7))
 </details>
 
-## v0.8.0 (2017-05-22)
+## v0.8.0 (2017-05-21)
 
 ### Commit Statistics
 
@@ -1989,8 +1995,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 11 commits contributed to the release over the course of 100 calendar days.
- - 109 days passed between releases.
+ - 11 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -2014,14 +2019,13 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
     - Update documentation link. ([`89cc81b`](https://github.com/frewsxcv/rust-crates-index/commit/89cc81be2f54ba323ff3f582c0bc77f20849e91a))
 </details>
 
-## v0.6.0 (2017-02-01)
+## v0.6.0 (2017-01-31)
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release over the course of 30 calendar days.
- - 31 days passed between releases.
+ - 6 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -2040,14 +2044,13 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
     - No need to take borrowed owned PathBuf. ([`2c0456c`](https://github.com/frewsxcv/rust-crates-index/commit/2c0456cf9ef2e4bdee4ca42a0775a30f207e5202))
 </details>
 
-## v0.5.1 (2016-12-31)
+## v0.5.1 (2016-12-30)
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release.
- - 53 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -2069,7 +2072,6 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 <csr-read-only-do-not-edit/>
 
  - 5 commits contributed to the release.
- - 344 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -2093,8 +2095,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 8 commits contributed to the release over the course of 67 calendar days.
- - 69 days passed between releases.
+ - 8 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -2137,14 +2138,13 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
     - Prevent construction of struct ([`9af9c32`](https://github.com/frewsxcv/rust-crates-index/commit/9af9c327a7c0cf1126e3c4e8815c5635aac18dc9))
 </details>
 
-## v0.2.2 (2015-09-17)
+## v0.2.2 (2015-09-16)
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release.
- - 4 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -2186,8 +2186,7 @@ It should work without any code changes. Only the `git2` and `toml` dependencies
 
 <csr-read-only-do-not-edit/>
 
- - 21 commits contributed to the release over the course of 105 calendar days.
- - 106 days passed between releases.
+ - 21 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
