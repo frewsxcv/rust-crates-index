@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 3.3.0 (2024-11-14)
 
 A release to update dependencies, namely `gix` is now at version 0.67.
 
@@ -13,7 +13,7 @@ A release to update dependencies, namely `gix` is now at version 0.67.
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -24,6 +24,7 @@ A release to update dependencies, namely `gix` is now at version 0.67.
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Bump version and update changelog ([`1054148`](https://github.com/frewsxcv/rust-crates-index/commit/105414897d70187ea06eb38431c8223d2f22a227))
     - Merge branch 'bump-dependencies' ([`9fdf214`](https://github.com/frewsxcv/rust-crates-index/commit/9fdf214b6235c3efebd960a536451a6361f80974))
     - Update all dependencies ([`0c47c11`](https://github.com/frewsxcv/rust-crates-index/commit/0c47c11d67815ee4641fa0a2312a434046fc62ac))
 </details>
