@@ -198,7 +198,6 @@ impl GitIndex {
                     path,
                     url,
                     repo,
-                    head_commit_hex: head_commit.to_hex().to_string(),
                     head_commit,
                 }))
             }
@@ -244,7 +243,6 @@ impl GitIndex {
 
         let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
         self.head_commit = head_commit;
-        self.head_commit_hex = head_commit.to_hex().to_string();
 
         Ok(())
     }
@@ -268,7 +266,7 @@ impl GitIndex {
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_commit_hex)) {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, None) {
                     return Some(krate);
                 }
             }
