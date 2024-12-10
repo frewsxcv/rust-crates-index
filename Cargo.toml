@@ -37,6 +37,7 @@ required-features = ["git-https"]
 gix = { version = "0.67.0", default-features = false, features = [
     "max-performance-safe",
     "blocking-network-client",
+    "revision",
 ], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"

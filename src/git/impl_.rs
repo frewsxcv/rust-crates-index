@@ -7,6 +7,7 @@ use gix::bstr::ByteSlice;
 use gix::config::tree::Key;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 use std::time::SystemTime;
 
 /// An individual change to a crate in the crates.io index, returned by [the changes iterator](GitIndex::changes).
@@ -137,6 +138,70 @@ impl GitIndex {
     #[must_use]
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    /// Timestamp of the commit of repository being read, which may be publication or modification date
+    #[inline]
+    #[must_use]
+    pub fn time(&self) -> SystemTime {
+        SystemTime::UNIX_EPOCH
+            + Duration::from_secs(
+                self.repo
+                    .find_object(self.head_commit)
+                    .expect("the head commit is not in the repo")
+                    .peel_to_kind(gix::object::Kind::Commit)
+                    .expect("the head commit is not a commit")
+                    .into_commit()
+                    .time()
+                    .expect("no time on the commit")
+                    .seconds
+                    .max(0) as _,
+            )
+    }
+
+    /// git hash of the commit of repository being read
+    #[must_use]
+    pub fn commit(&self) -> &[u8; 20] {
+        self.head_commit.as_bytes().try_into().unwrap()
+    }
+
+    /// git hash of the commit of repository being read
+    #[must_use]
+    pub fn commit_hex(&self) -> String {
+        self.head_commit.to_string()
+    }
+
+    fn lookup_commit(&self, rev: &str) -> Option<gix::ObjectId> {
+        Some(
+            self.repo
+                .rev_parse_single(rev)
+                .ok()?
+                .object()
+                .ok()?
+                .try_into_commit()
+                .ok()?
+                .id,
+        )
+    }
+
+    /// Change the commit of repository being read to the commit pointed to by a refspec.
+    pub fn set_commit_from_refspec(&mut self, rev: &str) -> Result<(), Error> {
+        self.head_commit = self.lookup_commit(rev).ok_or_else(|| Error::MissingHead {
+            repo_path: self.path.to_owned(),
+            refs_tried: &[], // TODO: what here?
+            refs_available: self
+                .repo
+                .references()
+                .ok()
+                .and_then(|p| {
+                    p.all()
+                        .ok()?
+                        .map(|r| r.ok().map(|r| r.name().as_bstr().to_string()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        })?;
+        Ok(())
     }
 
     /// List crates that have changed (published or yanked), in reverse chronological order.
