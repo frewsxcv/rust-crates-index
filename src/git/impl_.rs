@@ -140,23 +140,21 @@ impl GitIndex {
         &self.url
     }
 
-    /// Timestamp of the commit of repository being read, which may be publication or modification date
+    /// Timestamp of the commit of repository being read, which may be the publication or modification date.
+    ///
+    /// Note that currently only times at or past the Unix epoch are supported.
     #[inline]
     #[must_use]
-    pub fn time(&self) -> SystemTime {
-        SystemTime::UNIX_EPOCH
+    pub fn time(&self) -> Result<SystemTime, GixError> {
+        Ok(SystemTime::UNIX_EPOCH
             + Duration::from_secs(
                 self.repo
-                    .find_object(self.head_commit)
-                    .expect("the head commit is not in the repo")
-                    .peel_to_kind(gix::object::Kind::Commit)
-                    .expect("the head commit is not a commit")
-                    .into_commit()
-                    .time()
-                    .expect("no time on the commit")
+                    .find_object(self.head_commit)?
+                    .peel_to_commit()?
+                    .time()?
                     .seconds
                     .max(0) as _,
-            )
+            ))
     }
 
     /// git hash of the commit of repository being read
@@ -172,23 +170,23 @@ impl GitIndex {
     }
 
     fn lookup_commit(&self, rev: &str) -> Option<gix::ObjectId> {
-        Some(
-            self.repo
-                .rev_parse_single(rev)
-                .ok()?
-                .object()
-                .ok()?
-                .try_into_commit()
-                .ok()?
-                .id,
-        )
+        self.repo
+            .rev_parse_single(rev)
+            .ok()?
+            .object()
+            .ok()?
+            .try_into_commit()
+            .ok()?
+            .id
+            .into()
     }
 
     /// Change the commit of repository being read to the commit pointed to by a refspec.
+    /// Note that this is *in-memory* only, the repository will not be changed!
     pub fn set_commit_from_refspec(&mut self, rev: &str) -> Result<(), Error> {
         self.head_commit = self.lookup_commit(rev).ok_or_else(|| Error::MissingHead {
             repo_path: self.path.to_owned(),
-            refs_tried: &[], // TODO: what here?
+            refs_tried: &[],
             refs_available: self
                 .repo
                 .references()
@@ -317,7 +315,7 @@ impl GitIndex {
     /// directly from the git blob containing the crate information.
     ///
     /// Use this only if you need to get very few crates. If you're going
-    /// to read majority of crates, prefer the [`GitIndex::crates()`] iterator.
+    /// to read the majority of crates, prefer the [`GitIndex::crates()`] iterator.
     #[must_use]
     pub fn crate_(&self, name: &str) -> Option<Crate> {
         let rel_path = crate_name_to_relative_path(name, None)?;
