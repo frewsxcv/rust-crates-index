@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.4.0 (2024-12-11)
+
+### New Features
+
+ - <csr-id-4d5a4e44ab0bfbde74eb269f4c21156d5d854cd3/> upgrade `gix` to v0.68
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 5 commits contributed to the release.
+ - 27 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge pull request #179 from Eh2406/set_commit ([`42e2d22`](https://github.com/frewsxcv/rust-crates-index/commit/42e2d22e0fd8c909d70b742ad1f866b7a11aa5e9))
+    - Refactor ([`b4e6379`](https://github.com/frewsxcv/rust-crates-index/commit/b4e63793b894d0e67fdcf1b947ecb953cac68ddc))
+    - Upgrade `gix` to v0.68 ([`4d5a4e4`](https://github.com/frewsxcv/rust-crates-index/commit/4d5a4e44ab0bfbde74eb269f4c21156d5d854cd3))
+    - Api to set the head commit ([`383e4f7`](https://github.com/frewsxcv/rust-crates-index/commit/383e4f7c6d7a20bce6cda7d1e88ceb46a994d1a4))
+    - Remove head_commit_hex ([`b801850`](https://github.com/frewsxcv/rust-crates-index/commit/b801850c7dfe3182df0adcc7f643944d23085369))
+</details>
+
 ## 3.3.0 (2024-11-14)
 
 A release to update dependencies, namely `gix` is now at version 0.67.
@@ -13,7 +42,7 @@ A release to update dependencies, namely `gix` is now at version 0.67.
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -24,6 +53,7 @@ A release to update dependencies, namely `gix` is now at version 0.67.
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.3.0 ([`adbc764`](https://github.com/frewsxcv/rust-crates-index/commit/adbc7649549376a1f6fabc4343856a009fe9a904))
     - Bump version and update changelog ([`1054148`](https://github.com/frewsxcv/rust-crates-index/commit/105414897d70187ea06eb38431c8223d2f22a227))
     - Merge branch 'bump-dependencies' ([`9fdf214`](https://github.com/frewsxcv/rust-crates-index/commit/9fdf214b6235c3efebd960a536451a6361f80974))
     - Update all dependencies ([`0c47c11`](https://github.com/frewsxcv/rust-crates-index/commit/0c47c11d67815ee4641fa0a2312a434046fc62ac))
