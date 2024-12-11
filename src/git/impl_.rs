@@ -7,6 +7,7 @@ use gix::bstr::ByteSlice;
 use gix::config::tree::Key;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 use std::time::SystemTime;
 
 /// An individual change to a crate in the crates.io index, returned by [the changes iterator](GitIndex::changes).
@@ -139,6 +140,68 @@ impl GitIndex {
         &self.url
     }
 
+    /// Timestamp of the commit of repository being read, which may be the publication or modification date.
+    ///
+    /// Note that currently only times at or past the Unix epoch are supported.
+    #[inline]
+    #[must_use]
+    pub fn time(&self) -> Result<SystemTime, GixError> {
+        Ok(SystemTime::UNIX_EPOCH
+            + Duration::from_secs(
+                self.repo
+                    .find_object(self.head_commit)?
+                    .peel_to_commit()?
+                    .time()?
+                    .seconds
+                    .max(0) as _,
+            ))
+    }
+
+    /// git hash of the commit of repository being read
+    #[must_use]
+    pub fn commit(&self) -> &[u8; 20] {
+        self.head_commit.as_bytes().try_into().unwrap()
+    }
+
+    /// git hash of the commit of repository being read
+    #[must_use]
+    pub fn commit_hex(&self) -> String {
+        self.head_commit.to_string()
+    }
+
+    fn lookup_commit(&self, rev: &str) -> Option<gix::ObjectId> {
+        self.repo
+            .rev_parse_single(rev)
+            .ok()?
+            .object()
+            .ok()?
+            .try_into_commit()
+            .ok()?
+            .id
+            .into()
+    }
+
+    /// Change the commit of repository being read to the commit pointed to by a refspec.
+    /// Note that this is *in-memory* only, the repository will not be changed!
+    pub fn set_commit_from_refspec(&mut self, rev: &str) -> Result<(), Error> {
+        self.head_commit = self.lookup_commit(rev).ok_or_else(|| Error::MissingHead {
+            repo_path: self.path.to_owned(),
+            refs_tried: &[],
+            refs_available: self
+                .repo
+                .references()
+                .ok()
+                .and_then(|p| {
+                    p.all()
+                        .ok()?
+                        .map(|r| r.ok().map(|r| r.name().as_bstr().to_string()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        })?;
+        Ok(())
+    }
+
     /// List crates that have changed (published or yanked), in reverse chronological order.
     ///
     /// This iterator is aware of periodic index squashing crates.io performs,
@@ -198,7 +261,6 @@ impl GitIndex {
                     path,
                     url,
                     repo,
-                    head_commit_hex: head_commit.to_hex().to_string(),
                     head_commit,
                 }))
             }
@@ -244,7 +306,6 @@ impl GitIndex {
 
         let head_commit = Self::find_repo_head(&self.repo, &self.path)?;
         self.head_commit = head_commit;
-        self.head_commit_hex = head_commit.to_hex().to_string();
 
         Ok(())
     }
@@ -254,7 +315,7 @@ impl GitIndex {
     /// directly from the git blob containing the crate information.
     ///
     /// Use this only if you need to get very few crates. If you're going
-    /// to read majority of crates, prefer the [`GitIndex::crates()`] iterator.
+    /// to read the majority of crates, prefer the [`GitIndex::crates()`] iterator.
     #[must_use]
     pub fn crate_(&self, name: &str) -> Option<Crate> {
         let rel_path = crate_name_to_relative_path(name, None)?;
@@ -268,7 +329,7 @@ impl GitIndex {
             cache_path.push(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, Some(&self.head_commit_hex)) {
+                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, None) {
                     return Some(krate);
                 }
             }

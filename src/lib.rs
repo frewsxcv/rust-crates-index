@@ -128,7 +128,6 @@ pub struct GitIndex {
 
     pub(crate) repo: gix::Repository,
     pub(crate) head_commit: gix::ObjectId,
-    head_commit_hex: String,
 }
 
 ///

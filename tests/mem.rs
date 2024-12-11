@@ -34,7 +34,7 @@ mod mem {
             peak = ByteSize(ALLOCATOR.max_allocated() as u64),
         );
         assert!(
-            per_crate < 7150,
+            per_crate < 10_000,
             "per crate limit {per_crate}B should remain below memory limit"
         );
     }

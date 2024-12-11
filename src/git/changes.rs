@@ -47,11 +47,7 @@ impl<'repo> Iterator for Changes<'repo> {
 
 impl<'repo> Changes<'repo> {
     pub(crate) fn new(index: &'repo GitIndex) -> Result<Self, GixError> {
-        let current = index
-            .repo
-            .find_object(index.head_commit)?
-            .peel_to_kind(gix::object::Kind::Commit)?
-            .into_commit();
+        let current = index.repo.find_object(index.head_commit)?.peel_to_commit()?;
         let current_tree = current.tree()?;
 
         Ok(Self {
