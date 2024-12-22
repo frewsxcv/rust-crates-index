@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.5.0 (2024-12-22)
+
+### New Features
+
+ - <csr-id-daf488dd8efcec325cda6e48fba644ba2a770d51/> upgrade `gix` to v0.69
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 11 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge pull request #180 from paolobarbolini/gix-0.69 ([`07207bd`](https://github.com/frewsxcv/rust-crates-index/commit/07207bd37c867e08871cb833074fbbeddcf091b5))
+    - Upgrade `gix` to v0.69 ([`daf488d`](https://github.com/frewsxcv/rust-crates-index/commit/daf488dd8efcec325cda6e48fba644ba2a770d51))
+</details>
+
 ## 3.4.0 (2024-12-11)
 
 ### New Features
@@ -15,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 5 commits contributed to the release.
+ - 6 commits contributed to the release.
  - 27 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.4.0 ([`4e2a1d4`](https://github.com/frewsxcv/rust-crates-index/commit/4e2a1d4ff78d78b9175dd1e39a0a6a3f9645bec1))
     - Merge pull request #179 from Eh2406/set_commit ([`42e2d22`](https://github.com/frewsxcv/rust-crates-index/commit/42e2d22e0fd8c909d70b742ad1f866b7a11aa5e9))
     - Refactor ([`b4e6379`](https://github.com/frewsxcv/rust-crates-index/commit/b4e63793b894d0e67fdcf1b947ecb953cac68ddc))
     - Upgrade `gix` to v0.68 ([`4d5a4e4`](https://github.com/frewsxcv/rust-crates-index/commit/4d5a4e44ab0bfbde74eb269f4c21156d5d854cd3))
