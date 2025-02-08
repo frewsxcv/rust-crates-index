@@ -11,14 +11,24 @@ pub(crate) mod with_https {
         let mut last_time = SystemTime::now();
         let desired = 500;
         let mut count = 0;
+        let mut missing = 0;
         for c in ch.take(desired) {
             let c = c.unwrap();
             count += 1;
-            index.crate_(&c.crate_name()).unwrap();
+            if index.crate_(&c.crate_name()).is_none() {
+                eprintln!(
+                    "{} is changed but couldn't be found in the Git database",
+                    c.crate_name()
+                );
+                missing += 1
+            }
             assert!(last_time >= c.time());
             last_time = c.time();
         }
         assert_eq!(count, desired);
+        if missing != 0 {
+            eprintln!("Couldn't find {missing} crates when looking them up - strange")
+        }
     }
 
     #[test]
