@@ -89,7 +89,7 @@ impl SparseIndex {
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
         let cache_bytes = std::fs::read(&cache_path)
-            .map_err(|e| io::Error::new(e.kind(), format!("{}: `{}`", e.to_string(), cache_path.display())))?;
+            .map_err(|e| io::Error::new(e.kind(), format!("{}: `{}`", e, cache_path.display())))?;
         Ok(Crate::from_cache_slice(&cache_bytes, None)?)
     }
 

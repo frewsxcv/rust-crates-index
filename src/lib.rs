@@ -130,7 +130,7 @@ pub struct GitIndex {
     pub(crate) head_commit: gix::ObjectId,
 }
 
-///
+/// The Git based index implementation
 pub mod git;
 
 mod config;
@@ -162,7 +162,7 @@ pub struct SparseIndex {
     url: String,
 }
 
-///
+/// The sparse index implementation.
 pub mod sparse;
 /// The matching `http` types for use in the [`sparse`] API.
 #[cfg(feature = "sparse")]
