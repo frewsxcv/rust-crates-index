@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.6.0 (2025-02-19)
+
+### New Features
+
+ - <csr-id-fd3aecd230e8a1a0b1428bd23d0a6eea46085848/> Add support for new index cargo hash implementation.
+    This also adds `dirs::local_path_and_canonical_url_with_hash_kind()`
+   and `SparseIndex::with_path_and_hash_kind()` to control
+   which hash is used.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release.
+ - 58 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Thanks Clippy
+
+<csr-read-only-do-not-edit/>
+
+[Clippy](https://github.com/rust-lang/rust-clippy) helped 1 time to make code idiomatic. 
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge pull request #184 from UebelAndre/stable_hash ([`1f3b4b0`](https://github.com/frewsxcv/rust-crates-index/commit/1f3b4b03ab3ed4d5aaca589bb3988ac4c1fff212))
+    - Thanks clippy ([`bdd7919`](https://github.com/frewsxcv/rust-crates-index/commit/bdd79190deb2b461c61ba4d5ec49757392d95422))
+    - Add support for new index cargo hash implementation. ([`fd3aecd`](https://github.com/frewsxcv/rust-crates-index/commit/fd3aecd230e8a1a0b1428bd23d0a6eea46085848))
+    - Merge pull request #185 from UebelAndre/macos ([`973f2e5`](https://github.com/frewsxcv/rust-crates-index/commit/973f2e5eb12fdeae2b427000139f1050f49f3c08))
+    - Fix test which could also fail CI ([`55ff57a`](https://github.com/frewsxcv/rust-crates-index/commit/55ff57a54beae94d57b2b0d17c876dd2d6956b80))
+    - Add MacOS to CI matrix ([`ec3c643`](https://github.com/frewsxcv/rust-crates-index/commit/ec3c6432b7a6d11be547949b15eb0d5f1481abde))
+</details>
+
 ## 3.5.0 (2024-12-22)
 
 ### New Features
@@ -15,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 11 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.5.0 ([`0b0ceb8`](https://github.com/frewsxcv/rust-crates-index/commit/0b0ceb88203570325baf0a3febc148feac96721c))
     - Merge pull request #180 from paolobarbolini/gix-0.69 ([`07207bd`](https://github.com/frewsxcv/rust-crates-index/commit/07207bd37c867e08871cb833074fbbeddcf091b5))
     - Upgrade `gix` to v0.69 ([`daf488d`](https://github.com/frewsxcv/rust-crates-index/commit/daf488dd8efcec325cda6e48fba644ba2a770d51))
 </details>
