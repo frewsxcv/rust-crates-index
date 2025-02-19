@@ -45,6 +45,7 @@ http = { version = "1", optional = true }
 memchr = "2.5.0"
 rayon = { version = "1.7.0", optional = true }
 rustc-hash = "2.0.0"
+rustc-stable-hash = "0.1.1"
 semver = "1.0.17"
 serde = { version = "1.0.160", features = ["rc"] }
 serde_derive = "1.0.160"

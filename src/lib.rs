@@ -138,7 +138,7 @@ pub use config::IndexConfig;
 
 mod dedupe;
 mod dirs;
-pub use dirs::local_path_and_canonical_url;
+pub use dirs::{local_path_and_canonical_url, local_path_and_canonical_url_with_hash_kind, HashKind};
 
 /// Re-exports in case you want to inspect specific error details
 pub mod error;
@@ -156,6 +156,7 @@ pub use error::Error;
 ///
 /// [reqwest]: https://github.com/frewsxcv/rust-crates-index/blob/HEAD/examples/sparse_http_reqwest.rs
 /// [ureq]: https://github.com/frewsxcv/rust-crates-index/blob/HEAD/examples/sparse_http_ureq.rs
+#[derive(Debug)]
 pub struct SparseIndex {
     path: PathBuf,
     url: String,
