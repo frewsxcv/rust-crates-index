@@ -1,8 +1,10 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::dirs::crate_name_to_relative_path;
-use crate::{dirs::local_path_and_canonical_url, path_max_byte_len, Crate, Error, IndexConfig, SparseIndex};
+use crate::dirs::{
+    crate_name_to_relative_path, local_path_and_canonical_url_with_hash_kind, HashKind, DEFAULT_HASHER_KIND,
+};
+use crate::{path_max_byte_len, Crate, Error, IndexConfig, SparseIndex};
 
 /// The default URL of the crates.io HTTP index, see [`SparseIndex::from_url`] and [`SparseIndex::new_cargo_default`]
 pub const URL: &str = "sparse+https://index.crates.io/";
@@ -15,7 +17,13 @@ impl SparseIndex {
     /// Note this function takes the `CARGO_HOME` environment variable into account
     #[inline]
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        Self::with_path(home::cargo_home()?, url)
+        Self::from_url_with_hash_kind(url, &DEFAULT_HASHER_KIND)
+    }
+
+    /// Like [`Self::from_url`] but accepts an explicit [`HashKind`] for determining the crates index path.
+    #[inline]
+    pub fn from_url_with_hash_kind(url: &str, hash_kind: &HashKind) -> Result<Self, Error> {
+        Self::with_path_and_hash_kind(home::cargo_home()?, url, hash_kind)
     }
 
     /// Creates an index for the default crates.io registry, using the same
@@ -33,6 +41,16 @@ impl SparseIndex {
     /// at the specified location
     #[inline]
     pub fn with_path(cargo_home: impl AsRef<Path>, url: impl AsRef<str>) -> Result<Self, Error> {
+        Self::with_path_and_hash_kind(cargo_home, url, &DEFAULT_HASHER_KIND)
+    }
+
+    /// Like [`Self::with_path`] but accepts an explicit [`HashKind`] for determining the crates index path.
+    #[inline]
+    pub fn with_path_and_hash_kind(
+        cargo_home: impl AsRef<Path>,
+        url: impl AsRef<str>,
+        hash_kind: &HashKind,
+    ) -> Result<Self, Error> {
         let url = url.as_ref();
         // It is required to have the sparse+ scheme modifier for sparse urls as
         // they are part of the short ident hash calculation done by cargo
@@ -40,7 +58,7 @@ impl SparseIndex {
             return Err(Error::Url(url.to_owned()));
         }
 
-        let (path, url) = local_path_and_canonical_url(url, Some(cargo_home.as_ref()))?;
+        let (path, url) = local_path_and_canonical_url_with_hash_kind(url, Some(cargo_home.as_ref()), hash_kind)?;
         Ok(Self::at_path(path, url))
     }
 
@@ -70,7 +88,8 @@ impl SparseIndex {
             .cache_path(name)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "bad name"))?;
 
-        let cache_bytes = std::fs::read(cache_path)?;
+        let cache_bytes = std::fs::read(&cache_path)
+            .map_err(|e| io::Error::new(e.kind(), format!("{}: `{}`", e, cache_path.display())))?;
         Ok(Crate::from_cache_slice(&cache_bytes, None)?)
     }
 

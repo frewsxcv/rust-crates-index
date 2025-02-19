@@ -298,7 +298,7 @@ impl Crate {
     /// 1. There is no entry for this crate
     /// 2. The entry was created with an older version than the one specified
     /// 3. The entry is a newer version than what can be read, would only
-    /// happen if a future version of cargo changed the format of the cache entries
+    ///    happen if a future version of cargo changed the format of the cache entries
     /// 4. The cache entry is malformed somehow
     #[inline(never)]
     pub(crate) fn from_cache_slice(bytes: &[u8], index_version: Option<&str>) -> io::Result<Self> {

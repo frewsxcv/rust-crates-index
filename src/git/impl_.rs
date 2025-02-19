@@ -1,5 +1,7 @@
 use crate::dedupe::DedupeContext;
-use crate::dirs::{crate_name_to_relative_path, local_path_and_canonical_url};
+use crate::dirs::{
+    crate_name_to_relative_path, local_path_and_canonical_url_with_hash_kind, HashKind, DEFAULT_HASHER_KIND,
+};
 use crate::error::GixError;
 use crate::git::{changes, config, URL};
 use crate::{path_max_byte_len, Crate, Error, GitIndex, IndexConfig};
@@ -92,7 +94,12 @@ impl GitIndex {
     /// Concurrent invocations may fail if the index needs to be cloned. To prevent that,
     /// use synchronization mechanisms like mutexes or file locks as needed by the application.
     pub fn from_url(url: &str) -> Result<Self, Error> {
-        let (path, canonical_url) = local_path_and_canonical_url(url, None)?;
+        Self::from_url_with_hash_kind(url, &DEFAULT_HASHER_KIND)
+    }
+
+    /// Like [`Self::from_url`], but accepts an explicit [`HashKind`] for determining the crates index path.
+    pub fn from_url_with_hash_kind(url: &str, hash_kind: &HashKind) -> Result<Self, Error> {
+        let (path, canonical_url) = local_path_and_canonical_url_with_hash_kind(url, None, hash_kind)?;
         Ok(
             Self::from_path_and_url(path, canonical_url, Mode::CloneUrlToPathIfRepoMissing)?
                 .expect("repo present after possibly cloning it"),
@@ -101,7 +108,12 @@ impl GitIndex {
 
     /// Like [`Self::from_url()`], but read-only without auto-cloning the index at `url`.
     pub fn try_from_url(url: &str) -> Result<Option<Self>, Error> {
-        let (path, canonical_url) = local_path_and_canonical_url(url, None)?;
+        Self::try_from_url_with_hash_kind(url, &DEFAULT_HASHER_KIND)
+    }
+
+    /// Like [`Self::try_from_url`], but accepts an explicit [`HashKind`] for determining the crates index path.
+    pub fn try_from_url_with_hash_kind(url: &str, hash_kind: &HashKind) -> Result<Option<Self>, Error> {
+        let (path, canonical_url) = local_path_and_canonical_url_with_hash_kind(url, None, hash_kind)?;
         Self::from_path_and_url(path, canonical_url, Mode::ReadOnly)
     }
 
