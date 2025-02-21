@@ -84,15 +84,8 @@ fn update_cache(name: &str, index: &SparseIndex) -> Result<Option<Crate>, Box<dy
 
     let response = ureq::run(request)?;
 
-    let mut builder = http::Response::builder()
-        .status(response.status())
-        .version(response.version());
-    builder
-        .headers_mut()
-        .unwrap()
-        .extend(response.headers().iter().map(|(k, v)| (k.clone(), v.clone())));
-    let response = builder.body(response.into_body().read_to_vec().unwrap())?;
-
+    let (parts, mut body) = response.into_parts();
+    let response = http::Response::from_parts(parts, body.read_to_vec()?);
     Ok(index.parse_cache_response(name, response, true)?)
 }
 
