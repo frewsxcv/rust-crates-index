@@ -1,9 +1,5 @@
 use crates_index::SparseIndex;
-use std::io;
 
-///
-/// **important**:<br>
-/// dont forget to enable the **http-interop** feature of **ureq**
 ///
 /// command to run:<br>
 /// cargo run --example sparse_http_ureq -F sparse
@@ -31,12 +27,17 @@ fn print_crate(index: &mut SparseIndex) {
 }
 
 fn update(index: &mut SparseIndex) {
-    let request: ureq::Request = index.make_cache_request(CRATE_TO_FETCH).unwrap().try_into().unwrap();
-
-    let response = request
-        .call()
-        .map_err(|_e| io::Error::new(io::ErrorKind::InvalidInput, "connection error"))
+    // ureq doesn't support HTTP/2, so we have to set the version to HTTP/1.1
+    let request = index
+        .make_cache_request(CRATE_TO_FETCH)
+        .unwrap()
+        .version(ureq::http::Version::HTTP_11)
+        .body(())
         .unwrap();
 
-    index.parse_cache_response(CRATE_TO_FETCH, response.into(), true).unwrap();
+    let response = ureq::run(request).unwrap();
+
+    let (parts, mut body) = response.into_parts();
+    let response = http::Response::from_parts(parts, body.read_to_vec().unwrap());
+    index.parse_cache_response(CRATE_TO_FETCH, response, true).unwrap();
 }
