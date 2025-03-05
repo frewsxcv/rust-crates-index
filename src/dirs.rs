@@ -85,6 +85,7 @@ const SOURCE_KIND_REGISTRY: SourceKind = 2;
 const SOURCE_KIND_SPASE_REGISTRY: SourceKind = 3;
 
 /// Determine the crate registry hashing strategy for locating local crate indexes.
+#[derive(Debug)]
 pub enum HashKind {
     /// Use the new hashing behavior introduced in Rust `1.85.0`.
     Stable,
@@ -129,6 +130,18 @@ fn url_to_local_dir(url: &str, hash_kind: &HashKind) -> Result<(String, String),
         Hasher::finish(&hasher)
     }
 
+    fn has_path_past_base(url: &str) -> bool {
+        if let Some(protocol_end) = url.find("://") {
+            // skip past protocol
+            let base_url_end = protocol_end + 3;
+            let rest_of_url = &url[base_url_end..];
+
+            // Check if there's any path or meaningful content after the domain (ignoring any trailing slashes)
+            return rest_of_url.trim_end_matches('/').contains('/');
+        }
+        false
+    }
+
     // Matches https://github.com/rust-lang/cargo/blob/2928e32734b04925ee51e1ae88bea9a83d2fd451/src/cargo/util/hex.rs#L6
     fn to_hex(num: u64) -> String {
         hex::encode(num.to_le_bytes())
@@ -142,11 +155,10 @@ fn url_to_local_dir(url: &str, hash_kind: &HashKind) -> Result<(String, String),
     let mut registry_kind = SOURCE_KIND_REGISTRY;
 
     // Ensure we have a registry or bare url
-    let (url, scheme_ind) = {
+    let (mut url, scheme_ind) = {
         let scheme_ind = url
             .find("://")
             .ok_or_else(|| Error::Url(format!("'{url}' is not a valid url")))?;
-
         let scheme_str = &url[..scheme_ind];
         if scheme_str.starts_with("sparse+http") {
             registry_kind = SOURCE_KIND_SPASE_REGISTRY;
@@ -168,6 +180,18 @@ fn url_to_local_dir(url: &str, hash_kind: &HashKind) -> Result<(String, String),
         Some(end) => &url[scheme_ind + 3..scheme_ind + 3 + end],
         None => &url[scheme_ind + 3..],
     };
+
+    // if a custom url ends with a slash it messes up the
+    // hash.  But if we remove it from just a base url such as
+    // https://index.crates.io/ it messes it up
+    // as well. So we strip if it has a path
+    // past the base url
+    let needs_to_strip = has_path_past_base(url);
+    if needs_to_strip {
+        if let Some(stripped_url) = url.strip_suffix('/') {
+            url = stripped_url;
+        }
+    }
 
     // trim port
     let host = host.split(':').next().unwrap();
@@ -246,7 +270,6 @@ fn url_to_local_dir(url: &str, hash_kind: &HashKind) -> Result<(String, String),
     } else {
         (to_hex(hash_u64(url, registry_kind)), url.to_owned())
     };
-
     Ok((format!("{host}-{ident}"), url))
 }
 
@@ -283,6 +306,21 @@ mod test {
         assert_eq!(
             super::url_to_local_dir(
                 "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index.git",
+                &HashKind::Stable
+            )
+            .unwrap(),
+            (
+                "dl.cloudsmith.io-5e6de3fada793d05".to_owned(),
+                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index".to_owned()
+            )
+        );
+    }
+
+    #[test]
+    fn http_index_url_matches_index_slash() {
+        assert_eq!(
+            super::url_to_local_dir(
+                "https://dl.cloudsmith.io/aBcW1234aBcW1234/embark/rust/cargo/index/",
                 &HashKind::Stable
             )
             .unwrap(),
