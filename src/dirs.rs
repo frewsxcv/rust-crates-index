@@ -186,8 +186,7 @@ fn url_to_local_dir(url: &str, hash_kind: &HashKind) -> Result<(String, String),
     // https://index.crates.io/ it messes it up
     // as well. So we strip if it has a path
     // past the base url
-    let needs_to_strip = has_path_past_base(url);
-    if needs_to_strip {
+    if has_path_past_base(url) {
         if let Some(stripped_url) = url.strip_suffix('/') {
             url = stripped_url;
         }
