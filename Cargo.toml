@@ -10,7 +10,7 @@ repository = "https://github.com/frewsxcv/rust-crates-index"
 license = "Apache-2.0"
 documentation = "https://docs.rs/crates-index/"
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.70"
 include = ["src/**/*", "examples/*.rs", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [[example]]
@@ -34,7 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.69.0", default-features = false, features = [
+gix = { version = "0.70.0", default-features = false, features = [
     "max-performance-safe",
     "blocking-network-client",
     "revision",
