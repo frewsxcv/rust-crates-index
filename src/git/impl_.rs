@@ -27,7 +27,7 @@ impl Change {
     #[inline]
     #[must_use]
     pub fn crate_name(&self) -> &str {
-        &*self.crate_name
+        &self.crate_name
     }
 
     /// Timestamp in the crates.io index repository, which may be publication or modification date
@@ -230,6 +230,10 @@ impl GitIndex {
     }
 
     fn from_path_and_url(path: PathBuf, url: String, mode: Mode) -> Result<Option<Self>, Error> {
+        if url.starts_with("sparse+http") {
+            return Err(Error::UrlIsSparse(url.to_owned()));
+        }
+
         let open_with_complete_config = gix::open::Options::default().permissions(gix::open::Permissions {
             config: gix::open::permissions::Config {
                 // Be sure to get all configuration, some of which is only known by the git binary.
