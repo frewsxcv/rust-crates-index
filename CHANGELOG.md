@@ -5,12 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.7.0 (2025-03-16)
+
+### Chore
+
+ - <csr-id-707342ab8e821e55b857674a8d675c6aebc77c94/> Update ureq example to version 3.0
+
+### New Features
+
+ - <csr-id-aac3115d95c1ce6dfef689dd3ece876322d90e99/> upgrade `gix` to v0.70
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 9 commits contributed to the release.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Merge pull request #183 from M4SS-Code/upgrades ([`ccaed89`](https://github.com/frewsxcv/rust-crates-index/commit/ccaed89e15a2dfc469f06ee4ce858f5a65b66d66))
+    - Merge pull request #187 from ericmcbride/fix-uris-ending-with-slash ([`9d3625f`](https://github.com/frewsxcv/rust-crates-index/commit/9d3625f95c3c163a92101b1dcb43f0f1bc8b0335))
+    - Get rid of debug expr ([`0bf18b3`](https://github.com/frewsxcv/rust-crates-index/commit/0bf18b36d0fe274daf0147edec7a40d70c70af68))
+    - Fix urls with trailing slashses with paths ([`7a6179e`](https://github.com/frewsxcv/rust-crates-index/commit/7a6179e4f9fa435c29a99067d1510f3e6ce19dc5))
+    - Upgrade `gix` to v0.70 ([`aac3115`](https://github.com/frewsxcv/rust-crates-index/commit/aac3115d95c1ce6dfef689dd3ece876322d90e99))
+    - Bump rust-version to 1.70 ([`34e7610`](https://github.com/frewsxcv/rust-crates-index/commit/34e7610f4e71c673b34100da360319abe9da5c62))
+    - Merge pull request #186 from jfgoog/ureq-3 ([`857c063`](https://github.com/frewsxcv/rust-crates-index/commit/857c063bf6a20a614d18947df4420e221d0c3c00))
+    - Simplify response conversion. ([`4b00dd2`](https://github.com/frewsxcv/rust-crates-index/commit/4b00dd2775d240ede0eedbb1b1a4f5ba054f9e46))
+    - Update ureq example to version 3.0 ([`707342a`](https://github.com/frewsxcv/rust-crates-index/commit/707342ab8e821e55b857674a8d675c6aebc77c94))
+</details>
+
 ## 3.6.0 (2025-02-19)
 
 ### New Features
 
  - <csr-id-fd3aecd230e8a1a0b1428bd23d0a6eea46085848/> Add support for new index cargo hash implementation.
-    This also adds `dirs::local_path_and_canonical_url_with_hash_kind()`
+   This also adds `dirs::local_path_and_canonical_url_with_hash_kind()`
    and `SparseIndex::with_path_and_hash_kind()` to control
    which hash is used.
 
@@ -18,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release.
+ - 7 commits contributed to the release.
  - 58 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -36,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.6.0 ([`4f907a6`](https://github.com/frewsxcv/rust-crates-index/commit/4f907a60d0c86ad4253e1c00186cad1a394a82bc))
     - Merge pull request #184 from UebelAndre/stable_hash ([`1f3b4b0`](https://github.com/frewsxcv/rust-crates-index/commit/1f3b4b03ab3ed4d5aaca589bb3988ac4c1fff212))
     - Thanks clippy ([`bdd7919`](https://github.com/frewsxcv/rust-crates-index/commit/bdd79190deb2b461c61ba4d5ec49757392d95422))
     - Add support for new index cargo hash implementation. ([`fd3aecd`](https://github.com/frewsxcv/rust-crates-index/commit/fd3aecd230e8a1a0b1428bd23d0a6eea46085848))
