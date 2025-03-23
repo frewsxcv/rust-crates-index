@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 3.7.0 (2025-03-16)
+## 3.7.0 (2025-03-23)
+
+<csr-id-707342ab8e821e55b857674a8d675c6aebc77c94/>
 
 ### Chore
 
@@ -14,13 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### New Features
 
  - <csr-id-aac3115d95c1ce6dfef689dd3ece876322d90e99/> upgrade `gix` to v0.70
+ - <csr-id-d003e6986f6fbe6041790cdeefcd052eb360f2e8/> Add `git-https-reqwest` feature
+   That way it's possible to build `rust-crates-index` without `curl`.
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 9 commits contributed to the release.
- - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 2 commits contributed to the release.
+ - 6 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
 ### Commit Details
@@ -30,15 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
-    - Merge pull request #183 from M4SS-Code/upgrades ([`ccaed89`](https://github.com/frewsxcv/rust-crates-index/commit/ccaed89e15a2dfc469f06ee4ce858f5a65b66d66))
-    - Merge pull request #187 from ericmcbride/fix-uris-ending-with-slash ([`9d3625f`](https://github.com/frewsxcv/rust-crates-index/commit/9d3625f95c3c163a92101b1dcb43f0f1bc8b0335))
-    - Get rid of debug expr ([`0bf18b3`](https://github.com/frewsxcv/rust-crates-index/commit/0bf18b36d0fe274daf0147edec7a40d70c70af68))
-    - Fix urls with trailing slashses with paths ([`7a6179e`](https://github.com/frewsxcv/rust-crates-index/commit/7a6179e4f9fa435c29a99067d1510f3e6ce19dc5))
-    - Upgrade `gix` to v0.70 ([`aac3115`](https://github.com/frewsxcv/rust-crates-index/commit/aac3115d95c1ce6dfef689dd3ece876322d90e99))
-    - Bump rust-version to 1.70 ([`34e7610`](https://github.com/frewsxcv/rust-crates-index/commit/34e7610f4e71c673b34100da360319abe9da5c62))
-    - Merge pull request #186 from jfgoog/ureq-3 ([`857c063`](https://github.com/frewsxcv/rust-crates-index/commit/857c063bf6a20a614d18947df4420e221d0c3c00))
-    - Simplify response conversion. ([`4b00dd2`](https://github.com/frewsxcv/rust-crates-index/commit/4b00dd2775d240ede0eedbb1b1a4f5ba054f9e46))
-    - Update ureq example to version 3.0 ([`707342a`](https://github.com/frewsxcv/rust-crates-index/commit/707342ab8e821e55b857674a8d675c6aebc77c94))
+    - Merge pull request #189 from smoelius/git-https-reqwest ([`2d4154a`](https://github.com/frewsxcv/rust-crates-index/commit/2d4154a77722625552eb46c58c1ac394d7234040))
+    - Add `git-https-reqwest` feature ([`d003e69`](https://github.com/frewsxcv/rust-crates-index/commit/d003e6986f6fbe6041790cdeefcd052eb360f2e8))
 </details>
 
 ## 3.6.0 (2025-02-19)
