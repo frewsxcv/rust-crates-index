@@ -84,6 +84,8 @@ git-performance = ["git", "gix?/max-performance"]
 ##
 ## Most will want this enabled unless they know to only have to access non-https URLs for their indices.
 git-https = ["git", "gix?/blocking-http-transport-curl"]
+## Like `git-https` but using a reqwest backend instead of curl
+git-https-reqwest = ["git", "gix?/blocking-http-transport-reqwest"]
 ## Allow some functions to receive `rayon`-powered siblings for higher performance.
 parallel = ["dep:rayon"]
 ## Add support for communicating with sparse indices.
