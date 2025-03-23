@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 6 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release crates-index v3.7.0 ([`f887d0b`](https://github.com/frewsxcv/rust-crates-index/commit/f887d0b4515009401b8a5c9a31b7654ce6cb22fb))
     - Merge pull request #189 from smoelius/git-https-reqwest ([`2d4154a`](https://github.com/frewsxcv/rust-crates-index/commit/2d4154a77722625552eb46c58c1ac394d7234040))
     - Add `git-https-reqwest` feature ([`d003e69`](https://github.com/frewsxcv/rust-crates-index/commit/d003e6986f6fbe6041790cdeefcd052eb360f2e8))
 </details>
