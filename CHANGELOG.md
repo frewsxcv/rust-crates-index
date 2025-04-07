@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 3.9.0 (2025-04-07)
 
 This release contains the upgrade to `gix` v0.71.
 
@@ -13,7 +13,7 @@ This release contains the upgrade to `gix` v0.71.
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 15 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -25,6 +25,7 @@ This release contains the upgrade to `gix` v0.71.
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Prepare next release ([`9561799`](https://github.com/frewsxcv/rust-crates-index/commit/956179901f30fff540300e1787c5f426c5ab230a))
     - Merge pull request #190 from syphar/gix-upgrade ([`cd67dcf`](https://github.com/frewsxcv/rust-crates-index/commit/cd67dcfc297743956ccf4b98aa78aae3647dd593))
     - Ugprade gix to 0.71.0 ([`46b3cab`](https://github.com/frewsxcv/rust-crates-index/commit/46b3cab72d146bbda55cb4e2b1b3dbe48396633c))
 </details>
