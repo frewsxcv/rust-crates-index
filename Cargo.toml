@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "3.9.0"
+version = "3.10.0"
 homepage = "https://crates.io/crates/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -34,7 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.71.0", default-features = false, features = [
+gix = { version = "0.72.1", default-features = false, features = [
     "max-performance-safe",
     "blocking-network-client",
     "revision",
