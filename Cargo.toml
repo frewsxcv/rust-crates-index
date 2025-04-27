@@ -34,7 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.71.0", default-features = false, features = [
+gix = { version = "0.72.1", default-features = false, features = [
     "max-performance-safe",
     "blocking-network-client",
     "revision",
