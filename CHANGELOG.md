@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 3.11.0 (2025-07-30)
+
+<csr-id-d99121572056cceacd8f90c976de4bd2aaf26c63/>
+<csr-id-55fedf14e184043c9098c84872ae8d94e5de31e3/>
 
 Update depndencies, notably `gix` to v0.73.
 
@@ -30,7 +33,7 @@ Update depndencies, notably `gix` to v0.73.
 <details><summary>view details</summary>
 
  * **Uncategorized**
-    - Bump minor version ([`0ffbbb3`](https://github.com/Byron/rust-crates-index/commit/0ffbbb3e6559ab9e9a930c1b6029b3ed08301901))
+    - Bump minor version ([`704d849`](https://github.com/Byron/rust-crates-index/commit/704d8491f42083936cf5fb8135daf54417602d99))
     - Merge pull request #193 from paolobarbolini/gix-0.73 ([`a1dbd05`](https://github.com/Byron/rust-crates-index/commit/a1dbd053505b412a4be050fc04667ec390c17fcf))
     - Merge pull request #192 from paolobarbolini/toml-0.9 ([`97a11b2`](https://github.com/Byron/rust-crates-index/commit/97a11b2c9a48812caf775725fd0c00b757240e8a))
     - Upgrade gix to v0.73 ([`d991215`](https://github.com/Byron/rust-crates-index/commit/d99121572056cceacd8f90c976de4bd2aaf26c63))
