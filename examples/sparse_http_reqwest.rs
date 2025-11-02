@@ -1,12 +1,12 @@
-use crates_index::SparseIndex;
+//!
+//! **important**:<br>
+//! dont forget to enable the **["blocking", "gzip"]** feature of **reqwest**
+//!
+//! command to run:<br>
+//! cargo run --example sparse_http_reqwest -F sparse
+//!
 
-///
-/// **important**:<br>
-/// dont forget to enable the **["blocking", "gzip"]** feature of **reqwest**
-///
-/// command to run:<br>
-/// cargo run --example sparse_http_reqwest -F sparse
-///
+use crates_index::SparseIndex;
 
 const CRATE_TO_FETCH: &str = "names";
 

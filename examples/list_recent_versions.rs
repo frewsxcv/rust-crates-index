@@ -69,9 +69,7 @@ fn fetch_crate(name: &str, sparse_index: &SparseIndex) -> Result<Option<Crate>, 
 }
 
 fn names(name: &str) -> Result<impl Iterator<Item = String>, Box<dyn Error>> {
-    Ok(Names::new(name)
-        .ok_or_else(|| "Too many hyphens in crate name")?
-        .take(3))
+    Ok(Names::new(name).ok_or("Too many hyphens in crate name")?.take(3))
 }
 
 /// Create a request to the sparse `index` and parse the response with the side-effect of yielding

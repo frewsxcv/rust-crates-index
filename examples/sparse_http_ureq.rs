@@ -1,9 +1,8 @@
+//!
+//! command to run:<br>
+//! cargo run --example sparse_http_ureq -F sparse
+//!
 use crates_index::SparseIndex;
-
-///
-/// command to run:<br>
-/// cargo run --example sparse_http_ureq -F sparse
-///
 
 const CRATE_TO_FETCH: &str = "inferno";
 

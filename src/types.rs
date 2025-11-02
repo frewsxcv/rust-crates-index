@@ -238,21 +238,16 @@ impl Dependency {
 }
 
 /// Section in which this dependency was defined
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum DependencyKind {
     /// Used at run time
+    #[default]
     Normal,
     /// Not fetched and not used, except for when used direclty in a workspace
     Dev,
     /// Used at build time, not available at run time
     Build,
-}
-
-impl Default for DependencyKind {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 /// A whole crate with all its versions
@@ -277,8 +272,7 @@ impl Crate {
         let num_versions = bytes.split(is_newline).count();
         let mut versions = Vec::with_capacity(num_versions);
         for line in bytes.split(is_newline) {
-            let mut version: Version =
-                serde_json::from_slice(line).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            let mut version: Version = serde_json::from_slice(line).map_err(io::Error::other)?;
 
             version.build_data(dedupe);
 
@@ -330,10 +324,7 @@ impl Crate {
             // the PR we explicitly tell the user their version of cargo is suspect
             // these versions are so old (and specific) it shouldn't affect really anyone
             2 => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "potentially invalid version 2 cache entry found",
-                ));
+                return Err(io::Error::other("potentially invalid version 2 cache entry found"));
             }
             version => {
                 return Err(io::Error::new(
@@ -347,13 +338,10 @@ impl Crate {
         let update = iter.next().ok_or(io::ErrorKind::UnexpectedEof)?;
         if let Some(index_version) = index_version {
             if update != index_version.as_bytes() {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!(
-                        "cache out of date: current index ({index_version}) != cache ({})",
-                        String::from_utf8_lossy(update)
-                    ),
-                ));
+                return Err(io::Error::other(format!(
+                    "cache out of date: current index ({index_version}) != cache ({})",
+                    String::from_utf8_lossy(update)
+                )));
             }
         }
 
