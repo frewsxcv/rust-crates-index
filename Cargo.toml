@@ -62,7 +62,7 @@ cap = { version = "0.1.2", features = ["stats"] }
 is_ci = "1.1.1"
 tempfile = "3.5.0"
 ureq = "3.0"
-reqwest = { version = "0.12", features = ["blocking", "gzip"] }
+reqwest = { version = "0.13", features = ["blocking", "gzip"] }
 serial_test = "3.1.1"
 parking_lot = "0.12.1"
 
