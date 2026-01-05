@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 3.12.0 (2026-01-05)
 
 Update dependencies, including `gix` to v0.77.
 
@@ -24,7 +24,7 @@ Update dependencies, including `gix` to v0.77.
 <details><summary>view details</summary>
 
  * **Uncategorized**
-    - Update gix to v.0.77 ([`473c236`](https://github.com/frewsxcv/rust-crates-index/commit/473c236adac706f65e74b159ca9f3f29fd26fb50))
+    - Update gix to v.0.77 ([`91aa246`](https://github.com/frewsxcv/rust-crates-index/commit/91aa246092f1e824039213b77f1ca86e8153f8c0))
     - Merge pull request #195 from syphar/upgrades ([`e0f29d3`](https://github.com/frewsxcv/rust-crates-index/commit/e0f29d33550a78adc528703f7831f326bf161609))
     - Upgrade reqwest to 0.13 ([`b7c91e5`](https://github.com/frewsxcv/rust-crates-index/commit/b7c91e564f57e3ac0e48d659dbf5e5d2456a19cd))
     - Upgrade gix to 0.77 ([`86083f2`](https://github.com/frewsxcv/rust-crates-index/commit/86083f2156ac9cad207d567f29a355b0637e76e4))
