@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 3.12.1 (2026-01-05)
 
 Fix docs.rs documentation.
 
@@ -13,7 +13,7 @@ Fix docs.rs documentation.
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -24,6 +24,7 @@ Fix docs.rs documentation.
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Fix docs.rs documentation generation ([`5f55edd`](https://github.com/frewsxcv/rust-crates-index/commit/5f55eddcafbaf379ae97cf4d88ba867a5a3bff22))
     - Merge pull request #196 from syphar/fix-docs ([`ca33e03`](https://github.com/frewsxcv/rust-crates-index/commit/ca33e034652c1b6dda385710e452cb2a47fb458f))
     - Add testing docs to CI ([`04c733b`](https://github.com/frewsxcv/rust-crates-index/commit/04c733bff2d972a5e6c6461ba010e350409fa090))
     - Remove obsolete doc_auto_cfg feature ([`1b149f9`](https://github.com/frewsxcv/rust-crates-index/commit/1b149f99c536b4a20925d7b829325dc9a7655fdc))
