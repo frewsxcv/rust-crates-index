@@ -102,7 +102,7 @@
     feature = "document-features",
     cfg_attr(doc, doc = ::document_features::document_features!())
 )]
-#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(unsafe_code, rust_2018_compatibility, missing_docs)]
 use std::path::{Path, PathBuf};
 
