@@ -5,15 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 3.12.0 (2026-01-05)
+## Unreleased
 
-Update dependencies, including `gix` to v0.77.
+Fix docs.rs documentation.
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 8 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -24,6 +24,31 @@ Update dependencies, including `gix` to v0.77.
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Merge pull request #196 from syphar/fix-docs ([`ca33e03`](https://github.com/frewsxcv/rust-crates-index/commit/ca33e034652c1b6dda385710e452cb2a47fb458f))
+    - Add testing docs to CI ([`04c733b`](https://github.com/frewsxcv/rust-crates-index/commit/04c733bff2d972a5e6c6461ba010e350409fa090))
+    - Remove obsolete doc_auto_cfg feature ([`1b149f9`](https://github.com/frewsxcv/rust-crates-index/commit/1b149f99c536b4a20925d7b829325dc9a7655fdc))
+</details>
+
+## 3.12.0 (2026-01-05)
+
+Update dependencies, including `gix` to v0.77.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 9 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release crates-index v3.12.0 ([`cd6a407`](https://github.com/frewsxcv/rust-crates-index/commit/cd6a407f2019db4f39bec21eab8715f7f49e50c6))
     - Update gix to v.0.77 ([`91aa246`](https://github.com/frewsxcv/rust-crates-index/commit/91aa246092f1e824039213b77f1ca86e8153f8c0))
     - Merge pull request #195 from syphar/upgrades ([`e0f29d3`](https://github.com/frewsxcv/rust-crates-index/commit/e0f29d33550a78adc528703f7831f326bf161609))
     - Upgrade reqwest to 0.13 ([`b7c91e5`](https://github.com/frewsxcv/rust-crates-index/commit/b7c91e564f57e3ac0e48d659dbf5e5d2456a19cd))
