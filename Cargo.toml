@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "3.12.1"
+version = "3.13.0"
 homepage = "https://crates.io/crates/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -34,11 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.77.0", default-features = false, features = [
-    "max-performance-safe",
-    "blocking-network-client",
-    "revision",
-], optional = true }
+gix = { version = "0.79.0", default-features = false, features = ["max-performance-safe", "blocking-network-client", "revision"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 http = { version = "1", optional = true }
@@ -52,7 +48,7 @@ serde_derive = "1.0.160"
 serde_json = "1.0.96"
 smol_str = { version = "0.3.2", features = ["serde"] }
 thiserror = "2.0.0"
-toml = { version = "0.9.0", default-features = false, features = ["parse", "serde"] }
+toml = { version = "1.0.1", default-features = false, features = ["parse", "serde"] }
 
 document-features = { version = "0.2.0", optional = true }
 
@@ -83,7 +79,7 @@ git-performance = ["git", "gix?/max-performance"]
 ## Add support for https based URLs in git indices.
 ##
 ## Most will want this enabled unless they know to only have to access non-https URLs for their indices.
-git-https = ["git", "gix?/blocking-http-transport-curl"]
+git-https = ["git", "gix?/blocking-http-transport-curl-openssl"]
 ## Like `git-https` but using a reqwest backend instead of curl
 git-https-reqwest = ["git", "gix?/blocking-http-transport-reqwest"]
 ## Allow some functions to receive `rayon`-powered siblings for higher performance.
