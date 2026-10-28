@@ -34,7 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.87.1", default-features = false, features = ["max-performance-safe", "blocking-network-client", "revision", "sha1"], optional = true }
+gix = { version = "0.90.0", default-features = false, features = ["blocking-network-client", "revision", "sha1"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 http = { version = "1", optional = true }
@@ -59,8 +59,8 @@ is_ci = "1.1.1"
 tempfile = "3.5.0"
 ureq = "3.0"
 reqwest = { version = "0.13", features = ["blocking", "gzip"] }
-serial_test = "3.1.1"
-parking_lot = "0.12.1"
+serial_test = "4.0.1"
+parking_lot = "0.13.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
