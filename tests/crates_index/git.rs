@@ -140,7 +140,7 @@ pub(crate) mod with_https {
         test_sval(&repo);
 
         let time_before_setting_commit_to_past = repo.time().unwrap();
-        repo.set_commit_from_refspec("@~100").unwrap();
+        repo.set_commit_from_refspec("origin/master~100").unwrap();
         assert_ne!(
             repo.time().unwrap(),
             time_before_setting_commit_to_past,
