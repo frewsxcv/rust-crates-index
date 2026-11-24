@@ -230,7 +230,7 @@ impl GitIndex {
     }
 
     fn from_path_and_url(path: PathBuf, url: String, mode: Mode) -> Result<Option<Self>, Error> {
-        let open_with_complete_config = gix::open::Options::default().permissions(gix::open::Permissions {
+        let permissions = gix::open::Permissions {
             config: gix::open::permissions::Config {
                 // Be sure to get all configuration, some of which is only known by the git binary.
                 // That way we are sure to see all the systems credential helpers
@@ -238,27 +238,27 @@ impl GitIndex {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        };
+        // Fresh options preserve repository-local environment overrides on each open.
+        let open_with_complete_config = || gix::open::Options::default().permissions(permissions).open(&path).ok();
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let repo = gix::open_opts(&path, open_with_complete_config.clone())
-            .ok()
-            .filter(|repo| {
-                // The `cargo` standard registry clone has no configured origin (when created with `git2`).
-                repo.find_remote("origin").map_or(true, |remote| {
-                    remote
-                        .url(gix::remote::Direction::Fetch)
-                        .map_or(false, |remote_url| remote_url.to_bstring().starts_with_str(&url))
-                })
-            });
+        let repo = open_with_complete_config().filter(|repo| {
+            // The `cargo` standard registry clone has no configured origin (when created with `git2`).
+            repo.find_remote("origin").map_or(true, |remote| {
+                remote
+                    .url(gix::remote::Direction::Fetch)
+                    .map_or(false, |remote_url| remote_url.to_bstring().starts_with_str(&url))
+            })
+        });
 
         let repo = match mode {
             Mode::ReadOnly => repo,
             Mode::CloneUrlToPathIfRepoMissing => Some(match repo {
                 Some(repo) => repo,
-                None => match gix::open_opts(&path, open_with_complete_config).ok() {
+                None => match open_with_complete_config() {
                     None => clone_url(&url, &path)?,
                     Some(repo) => repo,
                 },
