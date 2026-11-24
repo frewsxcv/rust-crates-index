@@ -1,7 +1,7 @@
 [package]
 name = "crates-index"
 description = "Library for retrieving and interacting with the crates.io index"
-version = "4.0.0"
+version = "4.0.1"
 homepage = "https://crates.io/crates/crates-index"
 authors = ["Corey Farwell <coreyf@rwell.org>", "Kornel <kornel@geekhood.net>"]
 keywords = ["packaging", "index", "dependencies", "crate", "meta"]
@@ -34,7 +34,7 @@ name = "update_and_get_most_recent_version"
 required-features = ["git-https"]
 
 [dependencies]
-gix = { version = "0.90.0", default-features = false, features = ["blocking-network-client", "revision", "sha1"], optional = true }
+gix = { version = "0.91.0", default-features = false, features = ["blocking-network-client", "revision", "sha1"], optional = true }
 hex = { version = "0.4.3", features = ["serde"] }
 home = "0.5.4"
 http = { version = "1", optional = true }
@@ -71,6 +71,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 default = ["sparse"]
 ## Activate support for accessing git-powered cargo indices. These have been superseded by the sparse-index, see the `sparse` feature.
+## The `gix` dependency requires Rust 1.95 or newer.
 git = ["dep:gix"]
 ## Activate support for git-powered cargo indices, but configure the underlying `gix` crate to use higher-performance sub-crates at the expense of platform compatibility.
 ##
@@ -83,7 +84,7 @@ git-https = ["git", "gix?/blocking-http-transport-curl-openssl"]
 ## Like `git-https` but using a reqwest backend instead of curl
 git-https-reqwest = ["git", "gix?/blocking-http-transport-reqwest"]
 ## Allow some functions to receive `rayon`-powered siblings for higher performance.
-parallel = ["dep:rayon"]
+parallel = ["dep:rayon", "gix?/parallel"]
 ## Add support for communicating with sparse indices.
 sparse = ["dep:http"]
 
